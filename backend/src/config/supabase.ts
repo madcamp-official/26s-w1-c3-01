@@ -12,6 +12,13 @@ export const supabaseAdmin = createClient(
   }
 );
 
+export const supabaseAnon = createClient(env.supabaseUrl, env.supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false
+  }
+});
+
 export function createSupabaseUserClient(accessToken: string) {
   return createClient(env.supabaseUrl, env.supabaseAnonKey, {
     auth: {

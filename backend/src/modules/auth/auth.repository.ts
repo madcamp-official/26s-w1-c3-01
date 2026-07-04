@@ -1,9 +1,9 @@
-import { supabaseAdmin } from "../../config/supabase.js";
+import { supabaseAdmin, supabaseAnon } from "../../config/supabase.js";
 import type { LoginRequest, SignupRequest } from "./auth.dto.js";
 
 export const authRepository = {
   async signUp(input: SignupRequest) {
-    return supabaseAdmin.auth.signUp({
+    return supabaseAnon.auth.signUp({
       email: input.email,
       password: input.password,
       options: {
@@ -16,7 +16,7 @@ export const authRepository = {
   },
 
   async signInWithPassword(input: LoginRequest) {
-    return supabaseAdmin.auth.signInWithPassword({
+    return supabaseAnon.auth.signInWithPassword({
       email: input.email,
       password: input.password
     });
