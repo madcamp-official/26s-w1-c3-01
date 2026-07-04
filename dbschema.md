@@ -21,6 +21,7 @@
 | `menus` | 추천 대상 메뉴 정보 |
 | `menu_categories` | 메뉴 카테고리 정보 |
 | `tags` | 메뉴 특성 태그 정보 |
+| `category_tags` | 카테고리와 태그의 다대다 관계 |
 | `menu_tags` | 메뉴와 태그의 다대다 관계 |
 | `user_menu_preferences` | 사용자별 메뉴 선호도 |
 | `user_category_preferences` | 사용자별 카테고리 선호도 |
@@ -70,7 +71,7 @@
 | `category_id` | `BIGINT` | PK | NOT NULL | 카테고리 고유 ID |
 | `name` | `VARCHAR(50)` | UNIQUE | NOT NULL | 카테고리 이름 |
 
-예시: 한식, 중식, 일식, 양식, 분식, 패스트푸드, 건강식, 고기, 해산물
+기본 마스터 목록: 한식, 중식, 양식, 일식, 아시안, 고기, 패스트푸드
 
 ---
 
@@ -103,7 +104,30 @@
 | `tag_id` | `BIGINT` | PK | NOT NULL | 태그 고유 ID |
 | `name` | `VARCHAR(50)` | UNIQUE | NOT NULL | 태그 이름 |
 
-예시: 매운맛, 국물, 가벼움, 든든함, 고단백, 저칼로리, 혼밥가능, 단체식사, 새로운시도
+기본 마스터 목록: 구이, 국물, 조림, 찜, 삶음, 볶음, 튀김, 날것, 매운맛
+
+---
+
+### 3.4.1 `category_tags`
+
+카테고리에서 사용할 수 있는 조리 방식 태그를 다대다 관계로 저장하는 테이블이다.
+
+| Attribute | Type | Key | Null | 설명 |
+|---|---|---|---|---|
+| `category_id` | `BIGINT` | PK, FK | NOT NULL | 카테고리 ID |
+| `tag_id` | `BIGINT` | PK, FK | NOT NULL | 태그 ID |
+
+복합 기본키: (`category_id`, `tag_id`)
+
+관계:
+
+- `category_tags.category_id` → `menu_categories.category_id`
+- `category_tags.tag_id` → `tags.tag_id`
+
+활용 예시:
+
+- 한식 카테고리 선택 시 구이, 국물, 조림, 찜, 삶음, 볶음, 튀김, 날것, 매운맛 태그를 선택지로 제공한다.
+- 패스트푸드 카테고리 선택 시 구이, 볶음, 튀김, 매운맛 태그를 선택지로 제공한다.
 
 ---
 
@@ -204,7 +228,27 @@
 | `allergy_id` | `BIGINT` | PK | NOT NULL | 알러지 또는 제한 조건 ID |
 | `name` | `VARCHAR(50)` | UNIQUE | NOT NULL | 알러지 또는 제한 조건 이름 |
 
-예시: 땅콩, 갑각류, 우유, 계란, 밀가루, 해산물, 돼지고기 제한
+기본 마스터 목록:
+
+- 알류
+- 우유
+- 메밀
+- 땅콩
+- 대두
+- 밀
+- 잣
+- 호두
+- 게
+- 새우
+- 오징어
+- 고등어
+- 조개류
+- 복숭아
+- 토마토
+- 닭고기
+- 돼지고기
+- 쇠고기
+- 아황산류
 
 ---
 
@@ -281,6 +325,8 @@
 
 비고:
 
+- `suitability_score = 0`이면 해당 약속 목적에는 부적합한 메뉴로 간주하고 추천 후보에서 제외한다.
+- `suitability_score = 1~5`인 메뉴만 후보에 남기며, 점수가 높을수록 추천 점수에 더 크게 반영한다.
 - ERD에 `meal_purpose_id`라는 이름이 남아 있다면 `meeting_purpose_id`로 통일하는 것이 좋다.
 
 ---
@@ -384,6 +430,7 @@ MVP에서는 반복 그룹 기능을 제외하므로 `group_id`는 사용하지 
 | `run_id` | `BIGINT` | PK | NOT NULL | 추천 실행 ID |
 | `meeting_id` | `BIGINT` | FK | NOT NULL | 약속 ID |
 | `algorithm_version` | `VARCHAR(30)` |  | NOT NULL | 추천 알고리즘 버전 |
+| `config_json` | `JSONB` |  | NULL | 추천 실행 당시 사용한 가중치 및 필터 설정 스냅샷 |
 | `generated_at` | `DATETIME` |  | NOT NULL | 추천 생성 일시 |
 
 관계:
@@ -441,6 +488,7 @@ MVP에서는 반복 그룹 기능을 제외하므로 `group_id`는 사용하지 
 ### 4.2 메뉴 관련 관계
 
 - `menu_categories` 1 : N `menus`
+- `menu_categories` N : M `tags` through `category_tags`
 - `menus` N : M `tags` through `menu_tags`
 - `menus` N : M `allergies` through `menu_allergies`
 - `menus` N : M `meeting_purposes` through `menu_purpose_suitability`
@@ -465,7 +513,7 @@ MVP에서는 반복 그룹 기능을 제외하므로 `group_id`는 사용하지 
 
 1. 참여자의 알러지 및 제한 조건과 충돌하는 메뉴 제외
 2. 강한 비선호 메뉴 제외 또는 감점
-3. 약속 목적과 맞지 않는 메뉴 감점
+3. 약속 목적 적합도 `suitability_score = 0`인 메뉴 제외
 4. 최근 식사 기록과 중복되는 메뉴 감점
 
 ### 5.2 개인별 메뉴 점수 계산
@@ -474,11 +522,12 @@ MVP에서는 반복 그룹 기능을 제외하므로 `group_id`는 사용하지 
 
 ```text
 personal_score =
-  메뉴 선호도
-+ 카테고리 선호도
-+ 태그 선호도
+  메뉴 선호도 * 0.5
++ 카테고리 선호도 * 0.3
++ 태그 선호도 * 0.2
 + 약속 목적 적합도
 - 최근 식사 중복 패널티
+- 강한 비선호 패널티
 ```
 
 사용되는 테이블:
@@ -503,9 +552,35 @@ group_score =
 
 단순 평균만 사용하면 한 명이 매우 싫어하는 메뉴가 추천될 수 있으므로, 최소 점수 또는 강한 비선호 패널티를 함께 고려한다.
 
+기본 추천 설정값은 다음과 같다.
+
+```json
+{
+  "menuPreference": 0.5,
+  "categoryPreference": 0.3,
+  "tagPreference": 0.2,
+  "purposeSuitabilityRule": "exclude_if_score_zero",
+  "averageScore": 0.7,
+  "minimumScore": 0.3,
+  "strongDislikePenalty": 20,
+  "strongDislikeScore": -3,
+  "recentDuplicateDays": 3,
+  "resultLimit": 3
+}
+```
+
+최근 식사 중복 패널티는 `recentDuplicateDays = n`, 최근 동일 메뉴를 먹은 시점이 `k`일 전일 때 다음 방식으로 계산한다.
+
+```text
+recent_duplicate_penalty = 3 - (3k / n)
+score -= recent_duplicate_penalty
+```
+
+따라서 오늘 먹은 메뉴는 `3`점 감점되고, `n`일 전에 먹은 메뉴는 `0`점에 가까워진다.
+
 ### 5.4 추천 결과 저장
 
-추천을 실행하면 먼저 `recommendation_runs`에 실행 로그를 저장하고, 메뉴별 랭킹 결과는 `meeting_recommendations`에 저장한다.
+추천을 실행하면 먼저 `recommendation_runs`에 실행 로그와 `config_json` 설정값 스냅샷을 저장하고, 메뉴별 랭킹 결과는 `meeting_recommendations`에 저장한다.
 
 최종 선택된 메뉴가 있으면 `meetings.selected_menu_id`에 저장한다.
 
@@ -518,6 +593,7 @@ users
 menus
 menu_categories
 tags
+category_tags
 menu_tags
 user_menu_preferences
 user_category_preferences

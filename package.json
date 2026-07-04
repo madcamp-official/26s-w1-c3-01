@@ -1,0 +1,12 @@
+{
+  "name": "mukpick-supabase",
+  "private": true,
+  "scripts": {
+    "supabase:version": "npx -y supabase@2.109.0 --version",
+    "supabase:start": "npx -y supabase@2.109.0 start",
+    "supabase:reset": "npx -y supabase@2.109.0 db reset",
+    "supabase:functions": "npx -y supabase@2.109.0 functions serve api",
+    "check:functions": "npx -y deno@2.9.1 check --config supabase/functions/api/deno.json supabase/functions/api/index.ts",
+    "fmt:functions": "npx -y deno@2.9.1 fmt supabase/functions/api/index.ts supabase/functions/api/deno.json"
+  }
+}
