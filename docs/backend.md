@@ -1,11 +1,21 @@
-# MUK PICK Supabase Backend
+# MUK PICK Backend
 
 ## 구성
 
-- DB schema: `supabase/migrations/20260703080344_mukpick_initial_schema.sql`
+- API server: `backend/`
+- DB schema: `supabase/migrations/`
 - Seed data: `supabase/seed.sql`
-- Edge Function API: `supabase/functions/api/index.ts`
-- Function import map: `supabase/functions/api/deno.json`
+- Supabase local config: `supabase/config.toml`
+
+## 역할 분리
+
+```text
+frontend/ -> backend/ Express API -> Supabase DB/Auth
+```
+
+`backend/`는 API 라우팅, 요청 검증, 인증 확인, 비즈니스 로직, 외부 식당 API 연동을 담당한다.
+
+`supabase/`는 DB/Auth 인프라 관리를 담당한다. API 구현은 Supabase Functions가 아니라 `backend/`에 둔다.
 
 ## Supabase 적용 기준
 
@@ -14,41 +24,29 @@
 - Supabase Auth의 `auth.users.id`는 `public.users.auth_user_id`로 연결한다.
 - 비밀번호는 Supabase Auth가 관리하므로 `password_hash`는 nullable로 둔다.
 - `public` schema의 모든 테이블에 RLS를 활성화했다.
-- `api` Edge Function은 회원가입/로그인을 위해 `verify_jwt = false`로 두고, 보호 API는 함수 내부에서 `Authorization: Bearer {accessToken}`을 직접 검증한다.
+- Express 서버는 `Authorization: Bearer {accessToken}`을 받아 Supabase Auth로 토큰을 검증한다.
 - 추천 목적 적합도는 `menu_purpose_suitability.suitability_score = 0`이면 후보에서 제외한다.
 - 추천 실행 시 사용한 가중치와 필터 설정은 `recommendation_runs.config_json`에 JSONB로 저장한다.
 
-## 로컬 실행
+## 로컬 DB 실행
 
 Docker가 필요하다.
 
 ```bash
 npm run supabase:start
 npm run supabase:reset
-npm run supabase:functions
 ```
 
-Function URL:
+## 백엔드 실행
 
-```text
-http://127.0.0.1:54321/functions/v1/api
+```bash
+cd backend
+cp .env.example .env
+npm install
+npm run dev
 ```
 
-API 문서의 `/api/v1` prefix도 지원한다.
-
-```text
-POST http://127.0.0.1:54321/functions/v1/api/api/v1/auth/signup
-GET  http://127.0.0.1:54321/functions/v1/api/api/v1/users/me
-```
-
-짧은 경로도 지원한다.
-
-```text
-POST http://127.0.0.1:54321/functions/v1/api/auth/signup
-GET  http://127.0.0.1:54321/functions/v1/api/users/me
-```
-
-## 구현된 API
+## API 모듈 기준
 
 ### Auth
 
@@ -122,7 +120,8 @@ GET  http://127.0.0.1:54321/functions/v1/api/users/me
 ## 검증
 
 ```bash
-npm run check:functions
+npm run backend:build
+npm run backend:test
 ```
 
-현재 개발 머신에는 Docker가 없어 `supabase db reset` 기반 DB 검증은 실행하지 못했다. Docker 설치 후 `npm run supabase:reset`으로 migration과 seed 적용을 확인하면 된다.
+Docker 설치 후 `npm run supabase:reset`으로 migration과 seed 적용을 확인한다.

@@ -71,7 +71,8 @@
 
 > 필요한 테이블, 주요 필드, 데이터 타입, 테이블 간 관계를 정리
 
-<!-- ERD 이미지 또는 테이블 정의 -->
+- [DB 스키마 문서](docs/dbschema.md)
+- ERD: `assets/dbschema-erd.png`
 
 ---
 
@@ -79,9 +80,20 @@
 
 > API 주소, 요청 방식, 요청값, 응답값, 에러 상황을 정리
 
-| Method | Endpoint | 설명 | 요청 | 응답 |
-|---|---|---|---|---|
-|  |  |  |  |  |
+- [백엔드 구조 및 API 문서](docs/backend.md)
+- [기능 명세서](docs/기능명세서.md)
+
+---
+
+## 프로젝트 구조
+
+```text
+frontend/   # React + Vite 클라이언트
+backend/    # Express API 서버
+supabase/   # Supabase DB migration, seed, local config
+docs/       # 기능/API/DB 문서
+assets/     # 문서용 이미지
+```
 
 ---
 

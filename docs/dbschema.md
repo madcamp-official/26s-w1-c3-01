@@ -2,7 +2,7 @@
 
 ## ERD 이미지
 
-![MUK PICK DB ERD](assets/dbschema-erd.png)
+![MUK PICK DB ERD](../assets/dbschema-erd.png)
 
 ## 1. 개요
 

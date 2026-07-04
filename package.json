@@ -1,12 +1,14 @@
 {
-  "name": "mukpick-supabase",
+  "name": "mukpick",
   "private": true,
   "scripts": {
+    "backend:dev": "npm --prefix backend run dev",
+    "backend:build": "npm --prefix backend run build",
+    "backend:test": "npm --prefix backend run test",
+    "frontend:dev": "npm --prefix frontend run dev",
+    "frontend:build": "npm --prefix frontend run build",
     "supabase:version": "npx -y supabase@2.109.0 --version",
     "supabase:start": "npx -y supabase@2.109.0 start",
-    "supabase:reset": "npx -y supabase@2.109.0 db reset",
-    "supabase:functions": "npx -y supabase@2.109.0 functions serve api",
-    "check:functions": "npx -y deno@2.9.1 check --config supabase/functions/api/deno.json supabase/functions/api/index.ts",
-    "fmt:functions": "npx -y deno@2.9.1 fmt supabase/functions/api/index.ts supabase/functions/api/deno.json"
+    "supabase:reset": "npx -y supabase@2.109.0 db reset"
   }
 }
