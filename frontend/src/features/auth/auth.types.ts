@@ -7,7 +7,11 @@ export type SignupRequest = {
 
 export type SignupResponse = {
   user: unknown;
-  accessToken?: string;
+  session: {
+    accessToken: string | null;
+    refreshToken: string | null;
+    expiresAt: number | null;
+  };
 };
 
 export type LoginRequest = {
@@ -17,5 +21,7 @@ export type LoginRequest = {
 
 export type LoginResponse = {
   accessToken: string;
+  refreshToken: string;
+  expiresAt: number | null;
   user: unknown;
 };

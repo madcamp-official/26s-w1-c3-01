@@ -19,5 +19,14 @@ export const meetingsApi = {
       method: "POST",
       body: JSON.stringify(body)
     });
+  },
+  getLatestRecommendation(meetingId: number) {
+    return apiRequest(`/meetings/${meetingId}/recommendations/latest`);
+  },
+  selectMenu(meetingId: number, menuId: number) {
+    return apiRequest(`/meetings/${meetingId}/selected-menu`, {
+      method: "PATCH",
+      body: JSON.stringify({ menuId })
+    });
   }
 };
