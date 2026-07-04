@@ -11,5 +11,5 @@
     "skipLibCheck": true,
     "types": ["node", "express"]
   },
-  "include": ["src/**/*.ts", "prisma/**/*.ts"]
+  "include": ["src/**/*.ts"]
 }

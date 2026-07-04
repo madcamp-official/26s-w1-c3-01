@@ -4,7 +4,7 @@ import { mealHistoryService } from "./mealHistory.service.js";
 
 export const createMealHistory: RequestHandler = async (req, res, next) => {
   try {
-    sendSuccess(res, await mealHistoryService.create(req.auth!.userId, req.body), 201, "식사 기록이 저장되었습니다.");
+    sendSuccess(res, await mealHistoryService.create(req.auth!.profile!.userId, req.body), 201, "식사 기록이 저장되었습니다.");
   } catch (error) {
     next(error);
   }

@@ -18,7 +18,31 @@ export const getMenu: RequestHandler = async (req, res, next) => {
   }
 };
 
-export const listMenuCategories: RequestHandler = (_req, res) => sendSuccess(res, []);
-export const listTags: RequestHandler = (_req, res) => sendSuccess(res, []);
-export const listAllergies: RequestHandler = (_req, res) => sendSuccess(res, []);
-export const listMeetingPurposes: RequestHandler = (_req, res) => sendSuccess(res, []);
+export const listMenuCategories: RequestHandler = async (_req, res, next) => {
+  try {
+    sendSuccess(res, await masterDataService.listMenuCategories());
+  } catch (error) {
+    next(error);
+  }
+};
+export const listTags: RequestHandler = async (_req, res, next) => {
+  try {
+    sendSuccess(res, await masterDataService.listTags());
+  } catch (error) {
+    next(error);
+  }
+};
+export const listAllergies: RequestHandler = async (_req, res, next) => {
+  try {
+    sendSuccess(res, await masterDataService.listAllergies());
+  } catch (error) {
+    next(error);
+  }
+};
+export const listMeetingPurposes: RequestHandler = async (_req, res, next) => {
+  try {
+    sendSuccess(res, await masterDataService.listMeetingPurposes());
+  } catch (error) {
+    next(error);
+  }
+};

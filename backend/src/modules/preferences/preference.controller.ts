@@ -4,7 +4,7 @@ import { preferenceService } from "./preference.service.js";
 
 export const getMyPreferences: RequestHandler = async (req, res, next) => {
   try {
-    sendSuccess(res, await preferenceService.getMyPreferences(req.auth!.userId));
+    sendSuccess(res, await preferenceService.getMyPreferences(req.auth!.profile!.userId));
   } catch (error) {
     next(error);
   }
@@ -12,7 +12,7 @@ export const getMyPreferences: RequestHandler = async (req, res, next) => {
 
 export const replaceMyPreferences: RequestHandler = async (req, res, next) => {
   try {
-    sendSuccess(res, await preferenceService.replaceMyPreferences(req.auth!.userId, req.body));
+    sendSuccess(res, await preferenceService.replaceMyPreferences(req.auth!.profile!.userId, req.body));
   } catch (error) {
     next(error);
   }

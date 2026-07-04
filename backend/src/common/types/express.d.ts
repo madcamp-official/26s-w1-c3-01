@@ -1,9 +1,18 @@
-import type { AccessTokenPayload } from "../utils/jwt.js";
+import type { User } from "@supabase/supabase-js";
 
 declare global {
   namespace Express {
     interface Request {
-      auth?: AccessTokenPayload;
+      auth?: {
+        accessToken: string;
+        user: User;
+        profile?: {
+          userId: number;
+          email: string;
+          nickname: string;
+          userType: string | null;
+        };
+      };
     }
   }
 }

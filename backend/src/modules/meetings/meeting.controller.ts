@@ -4,7 +4,7 @@ import { meetingService } from "./meeting.service.js";
 
 export const createMeeting: RequestHandler = async (req, res, next) => {
   try {
-    sendSuccess(res, await meetingService.createMeeting(req.auth!.userId, req.body), 201, "모임이 생성되었습니다.");
+    sendSuccess(res, await meetingService.createMeeting(req.auth!.profile!.userId, req.body), 201, "모임이 생성되었습니다.");
   } catch (error) {
     next(error);
   }

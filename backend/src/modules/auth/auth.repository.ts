@@ -1,19 +1,45 @@
-import { prisma } from "../../config/db.js";
-import type { SignupRequest } from "./auth.dto.js";
+import { supabaseAdmin } from "../../config/supabase.js";
+import type { LoginRequest, SignupRequest } from "./auth.dto.js";
 
 export const authRepository = {
-  createUser(input: SignupRequest & { passwordHash: string }) {
-    return prisma.user.create({
-      data: {
-        email: input.email,
-        passwordHash: input.passwordHash,
-        nickname: input.nickname,
-        userType: input.userType ?? "PERSONAL"
+  async signUp(input: SignupRequest) {
+    return supabaseAdmin.auth.signUp({
+      email: input.email,
+      password: input.password,
+      options: {
+        data: {
+          nickname: input.nickname,
+          user_type: input.userType ?? "PERSONAL"
+        }
       }
     });
   },
 
-  findUserByEmail(email: string) {
-    return prisma.user.findUnique({ where: { email } });
+  async signInWithPassword(input: LoginRequest) {
+    return supabaseAdmin.auth.signInWithPassword({
+      email: input.email,
+      password: input.password
+    });
+  },
+
+  async upsertProfile(input: {
+    authUserId: string;
+    email: string;
+    nickname: string;
+    userType?: string;
+  }) {
+    const { data, error } = await supabaseAdmin
+      .from("users")
+      .upsert({
+        auth_user_id: input.authUserId,
+        email: input.email,
+        nickname: input.nickname,
+        user_type: input.userType ?? "PERSONAL"
+      }, { onConflict: "auth_user_id" })
+      .select("user_id, auth_user_id, email, nickname, user_type")
+      .single();
+
+    if (error) throw error;
+    return data;
   }
 };

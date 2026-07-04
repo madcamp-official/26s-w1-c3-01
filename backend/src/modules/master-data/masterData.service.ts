@@ -7,5 +7,21 @@ export const masterDataService = {
 
   getMenu(menuId: number) {
     return masterDataRepository.findMenuById(menuId);
+  },
+
+  listMenuCategories() {
+    return masterDataRepository.listTable("menu_categories");
+  },
+
+  listTags() {
+    return masterDataRepository.listTable("tags");
+  },
+
+  listAllergies() {
+    return masterDataRepository.listTable("allergies");
+  },
+
+  listMeetingPurposes() {
+    return masterDataRepository.listTable("meeting_purposes");
   }
 };
