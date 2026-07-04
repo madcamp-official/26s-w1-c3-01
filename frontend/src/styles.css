@@ -28,6 +28,107 @@ body {
   min-height: 100vh;
 }
 
+a {
+  color: var(--orange-dark);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+
+header nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+header button,
+.api-page button {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--white);
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.api-page {
+  width: min(900px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 28px 0 48px;
+}
+
+.api-form {
+  display: grid;
+  gap: 12px;
+  max-width: 520px;
+  margin: 16px 0;
+}
+
+.api-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.api-form input,
+.api-form select {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--white);
+  color: var(--ink);
+}
+
+.api-form button,
+.api-actions button {
+  background: var(--orange);
+  color: white;
+  border-color: var(--orange);
+}
+
+.api-message {
+  color: var(--orange-dark);
+  font-weight: 800;
+}
+
+.api-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+
+.api-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.api-list article,
+.api-page pre {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--white);
+}
+
+.api-page pre {
+  overflow: auto;
+}
+
 button,
 select {
   font: inherit;

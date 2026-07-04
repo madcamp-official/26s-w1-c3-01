@@ -10,5 +10,10 @@ export const mealHistoryApi = {
       method: "POST",
       body: JSON.stringify(body)
     });
+  },
+  remove(historyId: number) {
+    return apiRequest(`/meal-history/${historyId}`, {
+      method: "DELETE"
+    });
   }
 };
