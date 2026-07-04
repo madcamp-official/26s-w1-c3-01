@@ -2,5 +2,5 @@ import { app } from "./app.js";
 import { env } from "./config/env.js";
 
 app.listen(env.port, () => {
-  console.log(`Backend server listening on port ${env.port}`);
+  console.log(`MUK PICK backend listening on port ${env.port}`);
 });
