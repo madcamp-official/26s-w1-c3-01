@@ -556,7 +556,7 @@ button {
   overflow: hidden;
   border: 0;
   border-radius: 0;
-  background: var(--paper) url("/mukpick-home-bg.png") center / cover no-repeat;
+  background: var(--paper) url("/mukpick-home-bg.png") top center / cover no-repeat;
   box-shadow: none;
 }
 
@@ -760,10 +760,7 @@ button {
 .home-screen {
   height: calc(100% - 226px);
   padding: 0 18px 24px;
-  background:
-    radial-gradient(circle at 0 3%, rgba(112, 161, 82, 0.13) 0 74px, transparent 76px),
-    radial-gradient(circle at 100% 4%, rgba(238, 90, 24, 0.12) 0 80px, transparent 82px),
-    var(--paper);
+  background: transparent;
 }
 
 .home-title {
