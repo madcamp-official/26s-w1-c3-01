@@ -1124,6 +1124,7 @@ function AuthFlow({
   return (
     <StartScreen
       onOAuthStart={onOAuthStart}
+      onSignupStart={() => onFlowChange("signup-name")}
       onGuestStart={() => onFlowChange("guest-categories")}
       isLoading={authBusy}
       errorMessage={authError}
@@ -1174,11 +1175,13 @@ function AuthHeader({ step, onBack }: { step?: string; onBack?: () => void }) {
 
 function StartScreen({
   onOAuthStart,
+  onSignupStart,
   onGuestStart,
   isLoading,
   errorMessage
 }: {
   onOAuthStart: (provider: OAuthProvider) => void;
+  onSignupStart: () => void;
   onGuestStart: () => void;
   isLoading: boolean;
   errorMessage: string;
@@ -1202,6 +1205,10 @@ function StartScreen({
           <button className="social-button google" aria-label="Google로 시작하기" onClick={() => onOAuthStart("google")} disabled={isLoading}>
             <span>G</span>
             {isLoading ? "소셜 로그인 연결 중" : "Google로 시작하기"}
+          </button>
+          <button className="social-button signup" aria-label="일반 회원가입" onClick={onSignupStart} disabled={isLoading}>
+            <span>+</span>
+            일반 회원가입
           </button>
           {errorMessage ? <p className="auth-error" role="alert">{errorMessage}</p> : null}
         </div>

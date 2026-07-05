@@ -167,6 +167,17 @@ button {
   background: #f7f8fb;
 }
 
+.social-button.signup {
+  color: var(--orange-dark);
+  background: #fff2e8;
+  border: 1px solid rgba(238, 90, 24, 0.18);
+}
+
+.social-button.signup span {
+  color: white;
+  background: var(--orange);
+}
+
 .guest-link {
   min-height: 36px;
   border: 0;
