@@ -21,6 +21,7 @@ import { authApi } from "./api/auth.api";
 import { masterDataApi } from "./api/masterData.api";
 import { mealHistoryApi } from "./api/mealHistory.api";
 import { meetingsApi } from "./api/meetings.api";
+import { clearOAuthCallbackUrl, readOAuthCallback, startOAuthLogin, type OAuthProvider } from "./api/oauth.api";
 import { preferencesApi } from "./api/preferences.api";
 import { recommendationsApi } from "./api/recommendations.api";
 import { usersApi } from "./api/users.api";
@@ -89,7 +90,6 @@ const navItems: Array<{ id: "meeting" | "home" | "profile"; label: string; icon:
 ];
 
 const DEV_AUTH_PASSWORD = "Mukpick-dev-2026!";
-const DEV_EXISTING_EMAIL = "mukpick.dev.user@example.com";
 
 function defaultDateTimeLocal() {
   const date = new Date();
@@ -113,6 +113,15 @@ function persistAccessToken(response: { accessToken?: string }) {
     throw new Error("인증 토큰을 받지 못했습니다. Supabase 이메일 인증 설정을 확인해주세요.");
   }
   tokenStorage.set(response.accessToken);
+}
+
+function hasPreferenceRows(preferences: any) {
+  return Boolean(
+    preferences?.categoryPreferences?.length ||
+      preferences?.tagPreferences?.length ||
+      preferences?.menuPreferences?.length ||
+      preferences?.allergyIds?.length
+  );
 }
 
 export function App() {
@@ -258,9 +267,61 @@ export function App() {
     []
   );
 
+  const completeOAuthLogin = useCallback(
+    async (accessToken: string) => {
+      tokenStorage.set(accessToken);
+      sessionStorageMeta.set({ isGuest: false });
+      setApiStatus("authenticating");
+      setAuthError("");
+      setApiError("");
+
+      try {
+        const userPayload = await usersApi.getMe();
+        const user = (userPayload as any)?.user ?? userPayload;
+        const currentNickname = readString(user, ["nickname", "name", "email"]) ?? "";
+        const preferences = await preferencesApi.getMine();
+        const hasPreferences = hasPreferenceRows(preferences);
+
+        setIsGuestSession(false);
+        setProfileName(currentNickname || "밥");
+        await loadApiData({ syncPreferences: hasPreferences });
+
+        if (hasPreferences) {
+          setFlow("app");
+          setActiveTab("home");
+          showToast("소셜 로그인으로 접속했습니다.");
+        } else {
+          setNickname("");
+          setFlow("signup-name");
+          setApiStatus("ready");
+          showToast("닉네임과 선호도를 설정해주세요.");
+        }
+      } catch (error) {
+        tokenStorage.clear();
+        sessionStorageMeta.clear();
+        setApiStatus("error");
+        setAuthError(errorMessage(error));
+      }
+    },
+    [loadApiData, showToast]
+  );
+
   useEffect(() => {
     if (restoreAttemptedRef.current) return;
     restoreAttemptedRef.current = true;
+
+    const oauthCallback = readOAuthCallback();
+    if (oauthCallback.type === "error") {
+      clearOAuthCallbackUrl();
+      setAuthError(oauthCallback.message);
+      return;
+    }
+
+    if (oauthCallback.type === "session") {
+      clearOAuthCallbackUrl();
+      void completeOAuthLogin(oauthCallback.accessToken);
+      return;
+    }
 
     // 새로고침 후에도 저장된 토큰과 세션 메타로 마지막 화면을 복원합니다.
     const token = tokenStorage.get();
@@ -311,36 +372,7 @@ export function App() {
     };
 
     void restoreSession();
-  }, [loadApiData]);
-
-  const authenticateExisting = async () => {
-    tokenStorage.clear();
-    sessionStorageMeta.clear();
-    try {
-      const loginResponse = await authApi.login({
-        email: DEV_EXISTING_EMAIL,
-        password: DEV_AUTH_PASSWORD
-      });
-      persistAccessToken(loginResponse);
-      return;
-    } catch {
-      const signupResponse = await authApi.signup({
-        email: DEV_EXISTING_EMAIL,
-        password: DEV_AUTH_PASSWORD,
-        nickname: "밥",
-        userType: "USER"
-      });
-      if (signupResponse.accessToken) {
-        persistAccessToken(signupResponse);
-        return;
-      }
-      const loginResponse = await authApi.login({
-        email: DEV_EXISTING_EMAIL,
-        password: DEV_AUTH_PASSWORD
-      });
-      persistAccessToken(loginResponse);
-    }
-  };
+  }, [completeOAuthLogin, loadApiData]);
 
   const authenticateOnboarding = async (nextNickname: string) => {
     const email = `mukpick-${slugifyNickname(nextNickname)}-${Date.now()}@example.com`;
@@ -359,24 +391,17 @@ export function App() {
     return email;
   };
 
-  const handleExistingMember = async () => {
+  const handleOAuthStart = (provider: OAuthProvider) => {
     setAuthBusy(true);
     setAuthError("");
     setApiStatus("authenticating");
     try {
-      await authenticateExisting();
-      sessionStorageMeta.set({ isGuest: false });
-      setFlow("app");
-      setActiveTab("home");
-      setIsGuestSession(false);
-      await loadApiData();
-      showToast("백엔드 API에 연결했습니다.");
+      startOAuthLogin(provider);
     } catch (error) {
       const message = errorMessage(error);
       setApiStatus("error");
       setAuthError(message);
       setApiError(message);
-    } finally {
       setAuthBusy(false);
     }
   };
@@ -386,7 +411,14 @@ export function App() {
     setAuthError("");
     setApiStatus("authenticating");
     try {
-      await authenticateOnboarding(nickname);
+      if (tokenStorage.get()) {
+        await usersApi.updateMe({
+          nickname: nickname.trim() || "밥",
+          userType: "PERSONAL"
+        });
+      } else {
+        await authenticateOnboarding(nickname);
+      }
       sessionStorageMeta.set({ isGuest: false });
       setProfileName(nickname.trim() || "밥");
       setIsGuestSession(false);
@@ -736,7 +768,7 @@ export function App() {
         pickData={pickData}
         authBusy={authBusy || apiStatus === "loading"}
         authError={authError}
-        onExistingMember={handleExistingMember}
+        onOAuthStart={handleOAuthStart}
         onCompleteSignup={handleSignupComplete}
         onCompleteGuestPreferences={handleGuestPreferenceComplete}
         onPreviewGuestMeeting={handlePreviewGuestMeeting}
@@ -886,7 +918,7 @@ function AuthFlow({
   guestPreviewMeeting,
   onGuestDisplayNameChange,
   onGuestMeetingIdChange,
-  onExistingMember,
+  onOAuthStart,
   onCompleteSignup,
   onCompleteGuestPreferences,
   onPreviewGuestMeeting,
@@ -916,7 +948,7 @@ function AuthFlow({
   onRecentDuplicateDaysChange: (value: number) => void;
   onGuestDisplayNameChange: (value: string) => void;
   onGuestMeetingIdChange: (value: string) => void;
-  onExistingMember: () => Promise<void>;
+  onOAuthStart: (provider: OAuthProvider) => void;
   onCompleteSignup: () => Promise<void>;
   onCompleteGuestPreferences: () => Promise<void>;
   onPreviewGuestMeeting: () => Promise<void>;
@@ -1091,9 +1123,8 @@ function AuthFlow({
 
   return (
     <StartScreen
-      onSignup={() => onFlowChange("signup-name")}
+      onOAuthStart={onOAuthStart}
       onGuestStart={() => onFlowChange("guest-categories")}
-      onExistingMember={onExistingMember}
       isLoading={authBusy}
       errorMessage={authError}
     />
@@ -1142,15 +1173,13 @@ function AuthHeader({ step, onBack }: { step?: string; onBack?: () => void }) {
 }
 
 function StartScreen({
-  onSignup,
+  onOAuthStart,
   onGuestStart,
-  onExistingMember,
   isLoading,
   errorMessage
 }: {
-  onSignup: () => void;
+  onOAuthStart: (provider: OAuthProvider) => void;
   onGuestStart: () => void;
-  onExistingMember: () => Promise<void>;
   isLoading: boolean;
   errorMessage: string;
 }) {
@@ -1166,13 +1195,13 @@ function StartScreen({
             <Sparkles size={18} />
           </div>
           <p>빠른 가입 없이 간편하게 시작하고<br />내가 고른 메뉴를 추천받아보세요.</p>
-          <button className="social-button kakao" aria-label="카카오로 시작하기" onClick={onSignup} disabled={isLoading}>
+          <button className="social-button kakao" aria-label="카카오로 시작하기" onClick={() => onOAuthStart("kakao")} disabled={isLoading}>
             <span>K</span>
             카카오로 시작하기
           </button>
-          <button className="social-button naver" aria-label="네이버로 시작하기" onClick={onExistingMember} disabled={isLoading}>
-            <span>N</span>
-            {isLoading ? "API 연결 중" : "네이버로 시작하기"}
+          <button className="social-button google" aria-label="Google로 시작하기" onClick={() => onOAuthStart("google")} disabled={isLoading}>
+            <span>G</span>
+            {isLoading ? "소셜 로그인 연결 중" : "Google로 시작하기"}
           </button>
           {errorMessage ? <p className="auth-error" role="alert">{errorMessage}</p> : null}
         </div>

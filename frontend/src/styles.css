@@ -156,13 +156,15 @@ button {
   background: rgba(33, 27, 23, 0.12);
 }
 
-.social-button.naver {
-  color: white;
-  background: #18c762;
+.social-button.google {
+  color: var(--ink);
+  background: white;
+  border: 1px solid var(--line);
 }
 
-.social-button.naver span {
-  background: rgba(255, 255, 255, 0.16);
+.social-button.google span {
+  color: #4285f4;
+  background: #f7f8fb;
 }
 
 .guest-link {
