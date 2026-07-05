@@ -63,7 +63,10 @@
 
 > 서비스의 전체 페이지 구조와 페이지 간 이동 흐름; 각 페이지의 주요 UI 구성, 입력 요소, 버튼, 사용자 행동 흐름 등을 간단한 와이어프레임 형태로 정리
 
-<!-- Figma 링크 또는 이미지 첨부 -->
+- [프론트엔드 아키텍처](docs/frontend-architecture.md)
+- [프론트엔드 라우팅 및 화면 흐름](docs/frontend-routing.md)
+- [프론트엔드 컴포넌트 설계](docs/frontend-components.md)
+- [프론트엔드 API 및 상태 계약](docs/frontend-api-state.md)
 
 ---
 
@@ -91,7 +94,7 @@
 frontend/   # React + Vite 클라이언트
 backend/    # Express API 서버
 supabase/   # Supabase DB migration, seed, local config
-docs/       # 기능/API/DB 문서
+docs/       # 기능/API/DB/프론트엔드 설계 문서
 assets/     # 문서용 이미지
 ```
 
