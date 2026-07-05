@@ -1,184 +1,89 @@
-import type {
-  PersonalRecommendationRequest,
-  RecommendationBaseData,
-  RecommendationResult
-} from "./recommendation.dto.js";
+import type { PersonalRecommendationRequest, RecommendationResult } from "./recommendation.dto.js";
 
-export function rankPersonalMenus(
-  input: PersonalRecommendationRequest,
-  base: RecommendationBaseData
-): RecommendationResult[] {
-  const limit = input.limit ?? 10;
-  const excludeRecentDays = input.excludeRecentDays ?? 14;
-  const includeNewMenu = input.includeNewMenu ?? true;
+type RecommendationBase = {
+  menus: any[];
+  menuTags: any[];
+  menuAllergies: any[];
+  categoryPreferences: any[];
+  tagPreferences: any[];
+  menuPreferences: any[];
+  userAllergies: any[];
+  history: any[];
+};
 
-  const menuPreferenceMap = toPreferenceMap(base.userMenuPreferences, "menu_id");
-  const categoryPreferenceMap = toPreferenceMap(base.userCategoryPreferences, "category_id");
-  const tagPreferenceMap = toPreferenceMap(base.userTagPreferences, "tag_id");
+const DEFAULT_LIMIT = 3;
+const DEFAULT_RECENT_DUPLICATE_DAYS = 3;
 
-  const menuTagsMap = groupIdsByMenu(base.menuTags, "tag_id");
-  const menuAllergiesMap = groupIdsByMenu(base.menuAllergies, "allergy_id");
-  const userAllergySet = new Set(base.userAllergies.map((row) => Number(row.allergy_id)));
+export function rankPersonalMenus(input: PersonalRecommendationRequest, base: RecommendationBase): RecommendationResult[] {
+  const limit = input.limit ?? DEFAULT_LIMIT;
+  const recentDuplicateDays = input.recentDuplicateDays ?? input.excludeRecentDays ?? DEFAULT_RECENT_DUPLICATE_DAYS;
+  const categoryScoreById = new Map(base.categoryPreferences.map((row) => [Number(row.category_id), Number(row.preference_score)]));
+  const tagScoreById = new Map(base.tagPreferences.map((row) => [Number(row.tag_id), Number(row.preference_score)]));
+  const menuScoreById = new Map(base.menuPreferences.map((row) => [Number(row.menu_id), Number(row.preference_score)]));
+  const allergyIds = new Set(base.userAllergies.map((row) => Number(row.allergy_id)));
+  const historyByMenuId = new Map<number, any[]>();
 
-  const recentMenuSet = getRecentMenuSet(base.mealHistory, excludeRecentDays);
-  const eatenMenuSet = new Set(base.mealHistory.map((row) => Number(row.menu_id)));
-  const ratingAverageMap = getRatingAverageMap(base.mealHistory);
-  const purposeSuitabilityMap = getPurposeSuitabilityMap(base, input.meetingPurposeId);
+  for (const row of base.history) {
+    const menuId = Number(row.menu_id);
+    historyByMenuId.set(menuId, [...(historyByMenuId.get(menuId) ?? []), row]);
+  }
 
-  const scoredMenus = base.menus
-    .filter((menu) => !hasUserAllergy(menu.menu_id, menuAllergiesMap, userAllergySet))
-    .filter((menu) => !recentMenuSet.has(Number(menu.menu_id)))
-    .map((menu) => {
+  return base.menus
+    .flatMap((menu) => {
       const menuId = Number(menu.menu_id);
-      const tagIds = menuTagsMap.get(menuId) ?? [];
-      const reasons: string[] = [];
-
-      let score = 0;
-
-      const menuPreference = menuPreferenceMap.get(menuId) ?? 0;
-      if (menuPreference !== 0) {
-        score += menuPreference * 20;
-        reasons.push(menuPreference > 0 ? "선호 메뉴" : "비선호 메뉴 반영");
+      const menuAllergyIds = base.menuAllergies
+        .filter((row) => Number(row.menu_id) === menuId)
+        .map((row) => Number(row.allergy_id));
+      if (menuAllergyIds.some((allergyId) => allergyIds.has(allergyId))) {
+        return [];
       }
 
-      const categoryPreference = categoryPreferenceMap.get(Number(menu.category_id)) ?? 0;
-      if (categoryPreference !== 0) {
-        score += categoryPreference * 10;
-        reasons.push(categoryPreference > 0 ? "선호 카테고리" : "비선호 카테고리 반영");
+      const relatedTagIds = base.menuTags
+        .filter((row) => Number(row.menu_id) === menuId)
+        .map((row) => Number(row.tag_id));
+      const categoryScore = categoryScoreById.get(Number(menu.category_id)) ?? 0;
+      const tagScore = relatedTagIds.reduce((sum, tagId) => sum + (tagScoreById.get(tagId) ?? 0), 0);
+      const menuScore = menuScoreById.get(menuId) ?? 0;
+      const histories = historyByMenuId.get(menuId) ?? [];
+      const latestHistory = histories[0];
+      const recentPenalty = latestHistory && isWithinDays(latestHistory.eaten_at, recentDuplicateDays) ? 8 : 0;
+      const ratingBonus = histories.reduce((sum, row) => sum + (Number(row.rating) || 0), 0);
+      const isNewSuggestion = histories.length === 0;
+
+      if (input.includeNewMenu === false && isNewSuggestion && menuScore === 0) {
+        return [];
       }
 
-      const tagScore = tagIds.reduce((sum, tagId) => sum + (tagPreferenceMap.get(tagId) ?? 0), 0);
-      if (tagScore !== 0) {
-        score += tagScore * 6;
-        reasons.push(tagScore > 0 ? "선호 태그 포함" : "비선호 태그 반영");
-      }
+      const rawScore = 50 + categoryScore * 6 + tagScore * 4 + menuScore * 8 + ratingBonus - recentPenalty;
+      const totalScore = Math.max(0, Math.min(100, Number(rawScore.toFixed(2))));
+      const categoryName = menu.menu_categories?.name ?? "메뉴";
+      const reasonParts = [
+        categoryScore !== 0 ? `${categoryName} 선호도 ${categoryScore > 0 ? "+" : ""}${categoryScore}` : null,
+        tagScore !== 0 ? `태그 선호 합산 ${tagScore > 0 ? "+" : ""}${tagScore}` : null,
+        menuScore !== 0 ? `메뉴 선호도 ${menuScore > 0 ? "+" : ""}${menuScore}` : null,
+        recentPenalty > 0 ? `최근 ${recentDuplicateDays}일 내 식사로 감점` : null,
+        isNewSuggestion ? "새 메뉴 후보" : null
+      ].filter(Boolean);
 
-      const purposeScore = purposeSuitabilityMap.get(menuId) ?? 0;
-      if (purposeScore > 0) {
-        score += purposeScore * 8;
-        reasons.push("식사 목적에 적합");
-      }
-
-      const ratingAverage = ratingAverageMap.get(menuId);
-      if (ratingAverage !== undefined) {
-        score += (ratingAverage - 3) * 8;
-        reasons.push("과거 평점 반영");
-      }
-
-      const isNewSuggestion = !eatenMenuSet.has(menuId);
-      if (includeNewMenu && isNewSuggestion) {
-        score += 5;
-        reasons.push("새 메뉴 추천");
-      }
-
-      return {
+      return [{
         rankNo: 0,
         menuId,
         menuName: menu.name,
-        totalScore: roundScore(score),
-        reason: reasons.length > 0 ? reasons.join(", ") : "기본 추천 후보",
+        totalScore,
+        categoryName,
+        reason: reasonParts.join(", ") || "기본 메뉴 데이터와 현재 선호도를 기준으로 계산했습니다.",
         isNewSuggestion
-      };
+      }];
     })
-    .sort((a, b) => {
-      if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
-      return a.menuId - b.menuId;
-    })
-    .slice(0, limit);
-
-  return scoredMenus.map((item, index) => ({
-    ...item,
-    rankNo: index + 1
-  }));
+    .sort((left, right) => right.totalScore - left.totalScore || left.menuName.localeCompare(right.menuName, "ko"))
+    .slice(0, limit)
+    .map((item, index) => ({ ...item, rankNo: index + 1 }));
 }
 
-function toPreferenceMap<T extends Record<string, unknown>>(rows: T[], idKey: keyof T) {
-  return new Map(
-    rows.map((row) => [
-      Number(row[idKey]),
-      Number(row.preference_score ?? 0)
-    ])
-  );
-}
-
-function groupIdsByMenu<T extends Record<string, unknown>>(rows: T[], idKey: keyof T) {
-  const map = new Map<number, number[]>();
-
-  for (const row of rows) {
-    const menuId = Number(row.menu_id);
-    const value = Number(row[idKey]);
-
-    if (!map.has(menuId)) {
-      map.set(menuId, []);
-    }
-
-    map.get(menuId)!.push(value);
-  }
-
-  return map;
-}
-
-function hasUserAllergy(
-  menuId: number,
-  menuAllergiesMap: Map<number, number[]>,
-  userAllergySet: Set<number>
-) {
-  const allergyIds = menuAllergiesMap.get(Number(menuId)) ?? [];
-  return allergyIds.some((allergyId) => userAllergySet.has(allergyId));
-}
-
-function getRecentMenuSet(mealHistory: RecommendationBaseData["mealHistory"], excludeRecentDays: number) {
-  if (excludeRecentDays <= 0) {
-    return new Set<number>();
-  }
-
-  const cutoff = Date.now() - excludeRecentDays * 24 * 60 * 60 * 1000;
-
-  return new Set(
-    mealHistory
-      .filter((row) => new Date(row.eaten_at).getTime() >= cutoff)
-      .map((row) => Number(row.menu_id))
-  );
-}
-
-function getRatingAverageMap(mealHistory: RecommendationBaseData["mealHistory"]) {
-  const ratings = new Map<number, { total: number; count: number }>();
-
-  for (const row of mealHistory) {
-    if (row.rating === null || row.rating === undefined) continue;
-
-    const menuId = Number(row.menu_id);
-    const current = ratings.get(menuId) ?? { total: 0, count: 0 };
-
-    ratings.set(menuId, {
-      total: current.total + Number(row.rating),
-      count: current.count + 1
-    });
-  }
-
-  return new Map(
-    Array.from(ratings.entries()).map(([menuId, value]) => [
-      menuId,
-      value.total / value.count
-    ])
-  );
-}
-
-function getPurposeSuitabilityMap(
-  base: RecommendationBaseData,
-  meetingPurposeId?: number
-) {
-  if (!meetingPurposeId) {
-    return new Map<number, number>();
-  }
-
-  return new Map(
-    base.purposeSuitability
-      .filter((row) => Number(row.meeting_purpose_id) === meetingPurposeId)
-      .map((row) => [Number(row.menu_id), Number(row.suitability_score)])
-  );
-}
-
-function roundScore(score: number) {
-  return Math.round(score * 100) / 100;
+function isWithinDays(value: string, days: number) {
+  if (days <= 0) return false;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+  const diffMs = Date.now() - date.getTime();
+  return diffMs >= 0 && diffMs <= days * 24 * 60 * 60 * 1000;
 }

@@ -24,9 +24,12 @@ export const tagAssets = {
   spicy: storageAsset("tags/spicy.png"),
   soup: storageAsset("tags/soup.png"),
   grilled: storageAsset("tags/grilled.png"),
+  braised: storageAsset("tags/braised.png"),
   fried: storageAsset("tags/fried.png"),
   stirfried: storageAsset("tags/stir-fried.png"),
-  steamed: storageAsset("tags/steamed.png")
+  steamed: storageAsset("tags/steamed.png"),
+  boiled: storageAsset("tags/boiled.png"),
+  raw: storageAsset("tags/raw.png")
 };
 
 export const allergyAssets = {
@@ -35,5 +38,18 @@ export const allergyAssets = {
   milk: storageAsset("allergies/milk.png"),
   wheat: storageAsset("allergies/wheat.png"),
   peanut: storageAsset("allergies/peanut.png"),
-  egg: storageAsset("allergies/egg.png")
+  egg: storageAsset("allergies/egg.png"),
+  mackerel: storageAsset("allergies/mackerel.png"),
+  chicken: storageAsset("allergies/chicken.png"),
+  soy: storageAsset("allergies/soy.png"),
+  pork: storageAsset("allergies/pork.png"),
+  buckwheat: storageAsset("allergies/buckwheat.png"),
+  peach: storageAsset("allergies/peach.png"),
+  sulfites: storageAsset("allergies/sulfites.png"),
+  squid: storageAsset("allergies/squid.png"),
+  beef: storageAsset("allergies/beef.png"),
+  pineNut: storageAsset("allergies/pine-nut.png"),
+  shellfish: storageAsset("allergies/shellfish.png"),
+  tomato: storageAsset("allergies/tomato.png"),
+  walnut: storageAsset("allergies/walnut.png")
 };

@@ -5,10 +5,6 @@ import type { PersonalRecommendationRequest } from "./recommendation.dto.js";
 export const recommendationService = {
   async createPersonalRecommendation(userId: number, input: PersonalRecommendationRequest) {
     const base = await recommendationRepository.loadRecommendationBase(userId);
-
-    return {
-      userId,
-      results: rankPersonalMenus(input, base)
-    };
+    return { userId, results: rankPersonalMenus(input, base) };
   }
 };

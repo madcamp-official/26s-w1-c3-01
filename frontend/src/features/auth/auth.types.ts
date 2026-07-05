@@ -7,10 +7,9 @@ export type SignupRequest = {
 
 export type SignupResponse = {
   user: unknown;
-  session: {
-    accessToken: string | null;
-    refreshToken: string | null;
-    expiresAt: number | null;
+  accessToken?: string;
+  session?: {
+    accessToken?: string;
   };
 };
 
@@ -21,7 +20,12 @@ export type LoginRequest = {
 
 export type LoginResponse = {
   accessToken: string;
-  refreshToken: string;
-  expiresAt: number | null;
   user: unknown;
+};
+
+export type GuestSignupResponse = {
+  guest: true;
+  nickname: string;
+  user: unknown;
+  accessToken: string;
 };

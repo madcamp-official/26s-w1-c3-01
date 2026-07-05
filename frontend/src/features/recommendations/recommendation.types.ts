@@ -1,5 +1,6 @@
 export type PersonalRecommendationRequest = {
   meetingPurposeId?: number;
+  recentDuplicateDays?: number;
   excludeRecentDays?: number;
   limit?: number;
   includeNewMenu?: boolean;

@@ -18,8 +18,9 @@ export function SignupPage() {
 
     try {
       const data = await authApi.signup({ email, password, nickname, userType: "PERSONAL" });
-      if (data.session.accessToken) {
-        authStore.setAccessToken(data.session.accessToken);
+      const accessToken = data.accessToken ?? data.session?.accessToken;
+      if (accessToken) {
+        authStore.setAccessToken(accessToken);
       }
       navigate("/onboarding/preferences");
     } catch (error) {

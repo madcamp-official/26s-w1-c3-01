@@ -1,6 +1,10 @@
 import { apiRequest } from "./client";
 
 export const usersApi = {
+  list(query = "") {
+    const search = query.trim() ? `?query=${encodeURIComponent(query.trim())}` : "";
+    return apiRequest(`/users${search}`);
+  },
   getMe() {
     return apiRequest("/users/me");
   },

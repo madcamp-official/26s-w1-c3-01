@@ -10,28 +10,13 @@ export type LoginRequest = {
   password: string;
 };
 
-export type AuthProfileResponse = {
-  userId: number;
-  authUserId: string;
-  email: string;
-  nickname: string;
-  userType: string | null;
+export type GuestSignupRequest = {
+  displayName?: string;
 };
 
-export type AuthSessionResponse = {
-  accessToken: string | null;
-  refreshToken: string | null;
-  expiresAt: number | null;
-};
-
-export type SignupResponse = {
-  user: AuthProfileResponse | null;
-  session: AuthSessionResponse;
-};
-
-export type LoginResponse = {
+export type AuthUserResponse = {
   accessToken: string;
-  refreshToken: string;
-  expiresAt: number | null;
-  user: AuthProfileResponse;
+  refreshToken?: string;
+  expiresAt?: number;
+  user: unknown;
 };

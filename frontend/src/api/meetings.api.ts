@@ -14,6 +14,21 @@ export const meetingsApi = {
   get(meetingId: number) {
     return apiRequest(`/meetings/${meetingId}`);
   },
+  preview(meetingId: number) {
+    return apiRequest(`/meetings/${meetingId}/preview`);
+  },
+  addParticipant(meetingId: number, userId: number, displayName?: string) {
+    return apiRequest(`/meetings/${meetingId}/participants`, {
+      method: "POST",
+      body: JSON.stringify({ userId, displayName })
+    });
+  },
+  join(meetingId: number, displayName: string) {
+    return apiRequest(`/meetings/${meetingId}/join`, {
+      method: "POST",
+      body: JSON.stringify({ displayName })
+    });
+  },
   createRecommendation(meetingId: number, body: unknown) {
     return apiRequest(`/meetings/${meetingId}/recommendations`, {
       method: "POST",
