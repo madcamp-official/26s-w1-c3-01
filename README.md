@@ -81,7 +81,7 @@
 > API 주소, 요청 방식, 요청값, 응답값, 에러 상황을 정리
 
 - [백엔드 구조 및 API 문서](docs/backend.md)
-- [기능 명세서](docs/기능명세서.md)
+- [기능 명세서](docs/기능명세서.md)
 
 ---
 
@@ -105,8 +105,19 @@ assets/     # 문서용 이미지
 - **실행 방법:**
 
 ```bash
-# 실행 방법 작성
+npm --prefix backend install
+npm --prefix frontend install
+
+# 백엔드 실행
+cp backend/.env.example backend/.env
+npm run backend:dev
+
+# 프론트엔드 실행
+cp frontend/.env.example frontend/.env
+npm run frontend:dev
 ```
+
+프론트엔드 단독 배포 시에는 배포 환경 변수에 `VITE_API_BASE_URL`을 실제 백엔드 주소로 설정해야 한다. 이 값이 없으면 기본값 `/api/v1`을 사용하므로, 백엔드가 같은 도메인에 없을 때 Vite/배포 서버의 HTML 응답을 API JSON으로 파싱하려는 오류가 발생할 수 있다.
 
 ---
 

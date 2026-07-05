@@ -20,7 +20,20 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}) 
     ...options,
     headers
   });
-  const payload = (await response.json()) as ApiResponse<T>;
+
+  const responseText = await response.text();
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    // Vite fallback HTML이나 배포 환경의 잘못된 API 주소가 JSON 파싱 에러로 UI를 깨지 않게 합니다.
+    throw new Error(`API 서버 응답이 JSON이 아닙니다. VITE_API_BASE_URL 또는 백엔드 서버 상태를 확인해주세요. (${response.status})`);
+  }
+
+  let payload: ApiResponse<T>;
+  try {
+    payload = JSON.parse(responseText) as ApiResponse<T>;
+  } catch {
+    throw new Error("API 응답을 JSON으로 해석하지 못했습니다.");
+  }
 
   if (!payload.success) {
     throw new Error(payload.error.message);

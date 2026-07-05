@@ -48,16 +48,19 @@
 | Attribute | Type | Key | Null | 설명 |
 |---|---|---|---|---|
 | `user_id` | `BIGINT` | PK | NOT NULL | 사용자 고유 ID |
+| `auth_user_id` | `UUID` | UNIQUE, FK | NOT NULL | Supabase Auth 사용자 ID |
 | `email` | `VARCHAR(100)` | UNIQUE | NOT NULL | 로그인 이메일 |
-| `password_hash` | `VARCHAR(255)` |  | NOT NULL | 해싱된 비밀번호 |
-| `nickname` | `VARCHAR(50)` |  | NOT NULL | 사용자 닉네임 |
-| `user_type` | `VARCHAR(20)` |  | NULL | 사용자 유형. 예: `STUDENT`, `WORKER`, `OTHER` |
+| `password_hash` | `VARCHAR(255)` |  | NULL | Supabase Auth 사용 시 앱 DB에는 저장하지 않음 |
+| `nickname` | `VARCHAR(50)` | UNIQUE | NOT NULL | 사용자 닉네임. 회원과 게스트 내부 닉네임 모두 전체 DB에서 중복 불가 |
+| `user_type` | `VARCHAR(20)` |  | NULL | 사용자 유형. 예: `USER`, `GUEST` |
 | `created_at` | `DATETIME` |  | NOT NULL | 가입 일시 |
 | `updated_at` | `DATETIME` |  | NOT NULL | 사용자 정보 수정 일시 |
 
 비고:
 
-- 외부 인증 서비스(Firebase Auth, Supabase Auth 등)를 사용한다면 `password_hash`는 앱 DB에 저장하지 않을 수 있다.
+- Supabase Auth를 사용하므로 `auth.users.id`를 `auth_user_id`에 저장한다.
+- 게스트 시작 시 서버가 `guest-{random}` 형식의 `nickname`을 생성한다.
+- 게스트가 모임에서 입력하는 이름은 `users.nickname`이 아니라 `meeting_participants.display_name`에 저장한다.
 - 로그인 상태 자체는 DB의 `is_logged_in` 같은 컬럼으로 관리하지 않고, 세션 또는 JWT 토큰으로 관리한다.
 
 ---
@@ -398,15 +401,15 @@ MVP에서는 반복 그룹 기능을 제외하므로 `group_id`는 사용하지 
 |---|---|---|---|---|
 | `participant_id` | `BIGINT` | PK | NOT NULL | 약속 참여자 고유 ID |
 | `meeting_id` | `BIGINT` | FK | NOT NULL | 약속 ID |
-| `user_id` | `BIGINT` | FK | NULL | 가입 사용자 ID. 게스트 참여자는 NULL |
-| `display_name` | `VARCHAR(50)` |  | NOT NULL | 화면에 표시할 참여자 이름 |
+| `user_id` | `BIGINT` | FK | NULL | 가입 사용자 또는 게스트 사용자 ID. 게스트 계정 삭제 후에는 NULL |
+| `display_name` | `VARCHAR(50)` | UNIQUE(`meeting_id`, `display_name`) | NOT NULL | 화면에 표시할 참여자 이름. 같은 모임 안에서 중복 불가 |
 | `attendance_status` | `VARCHAR(20)` |  | NOT NULL | 참여 상태 |
 | `joined_at` | `DATETIME` |  | NULL | 약속 참여 응답 일시 |
 
 관계:
 
 - `meeting_participants.meeting_id` → `meetings.meeting_id`
-- `meeting_participants.user_id` → `users.user_id`
+- `meeting_participants.user_id` → `users.user_id` (`ON DELETE SET NULL`)
 
 `attendance_status` 예시:
 
@@ -417,6 +420,8 @@ MVP에서는 반복 그룹 기능을 제외하므로 `group_id`는 사용하지 
 추천 시 사용 방식:
 
 - 일반적으로 `attendance_status = 'JOINED'`인 참여자만 추천 계산에 반영한다.
+- 모임 상세 화면에서 구성원 칩을 끄면 해당 `user_id`는 추천 계산 요청의 `participantUserIds`에서 제외한다.
+- 모임 메뉴가 확정되면 게스트의 `users`/Auth 계정은 삭제되지만, `display_name`은 남아 과거 참여 기록을 표시할 수 있다.
 
 ---
 
@@ -620,6 +625,6 @@ meeting_recommendations
 메뉴 이름, 설명, 장소와 같은 정보는 `VARCHAR` 또는 `TEXT`로 저장하지만, 추천 계산에 직접 사용되는 선호도, 매운맛, 가격대, 목적 적합도 등은 `INT` 또는 `DECIMAL` 형태로 수치화한다.
 
 개정안에서는 MVP 구현 범위를 고려해 반복 그룹, 시간대 추천, 투표 기능을 제외하고 약속방 중심 구조로 단순화했다.
-또한 게스트 참여자를 처리하기 위해 `meeting_participants`에 `participant_id`를 도입했고, 추천 결과는 `recommendation_runs`와 `meeting_recommendations`로 분리하여 같은 약속에서 추천을 여러 번 실행하더라도 결과를 구분할 수 있도록 설계했다.
+또한 게스트 참여자를 처리하기 위해 `meeting_participants`에 `participant_id`와 `display_name` 스냅샷을 도입했고, 추천 결과는 `recommendation_runs`와 `meeting_recommendations`로 분리하여 같은 약속에서 추천을 여러 번 실행하더라도 결과를 구분할 수 있도록 설계했다.
 
 이를 통해 개인 추천뿐만 아니라 집단 약속 상황에서도 메뉴별 점수를 계산하고, 최종적으로 랭킹 형태의 추천 결과와 추천 이유를 제공할 수 있다.
