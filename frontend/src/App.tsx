@@ -24,12 +24,33 @@ import { meetingsApi } from "./api/meetings.api";
 import { preferencesApi } from "./api/preferences.api";
 import { recommendationsApi } from "./api/recommendations.api";
 import { usersApi } from "./api/users.api";
+import type { PickItem } from "./data";
 import {
-  allergies as fallbackAllergies,
-  categories as fallbackCategories,
-  PickItem,
-  tags as fallbackTags
-} from "./data";
+  buildPreferencePayload,
+  fallbackPickData,
+  mapCreatedMeeting,
+  mapHistories,
+  mapMeetingPurposes,
+  mapMeetings,
+  mapMenus,
+  mapPickItems,
+  mapRecommendations,
+  mapUsers,
+  readString,
+  scoreMapFromPreferenceRows,
+  selectedAllergyIdsFromPreferences,
+  selectedIdsFromPreferenceRows,
+  type DisplayHistory,
+  type DisplayMeeting,
+  type DisplayMember,
+  type DisplayRecommendation,
+  type MeetingPurpose,
+  type PickData,
+  type PreferenceScoreMap,
+  type RecommendationRefreshValue,
+  type RemoteMenu,
+  type UserOption
+} from "./domain/appModel";
 import { sessionStorageMeta, tokenStorage } from "./utils/storage";
 
 type Tab = "home" | "preferences" | "personal" | "meeting" | "history" | "profile";
@@ -48,50 +69,6 @@ type Flow =
   | "guest-join-meeting"
   | "app";
 type ApiStatus = "idle" | "authenticating" | "loading" | "ready" | "error";
-type ApiPickItem = PickItem & { apiId?: number };
-type PickData = {
-  categories: ApiPickItem[];
-  tags: ApiPickItem[];
-  allergies: ApiPickItem[];
-};
-type RemoteMenu = {
-  menuId: number;
-  name: string;
-  categoryName?: string;
-};
-type DisplayRecommendation = {
-  rank: number;
-  menuId?: number;
-  menu: string;
-  score: number;
-  category: string;
-  reason: string;
-};
-type DisplayMember = {
-  userId: number | null;
-  name: string;
-};
-type DisplayMeeting = {
-  id?: number;
-  title: string;
-  status: string;
-  time: string;
-  place: string;
-  members: DisplayMember[];
-};
-type SortableDisplayMeeting = DisplayMeeting & { rawTime: string };
-type UserOption = {
-  userId: number;
-  nickname: string;
-  email?: string;
-};
-type DisplayHistory = {
-  id?: number;
-  date: string;
-  menu: string;
-  memo: string;
-  image?: string;
-};
 type MealHistoryFormValue = {
   menuId: number;
   rating: number;
@@ -104,20 +81,6 @@ type MeetingFormValue = {
   meetingPurposeId: number;
   participantUserIds: number[];
 };
-type MeetingPurpose = {
-  id: number;
-  name: string;
-};
-type PreferencePayload = {
-  categoryPreferences: Array<{ categoryId: number; preferenceScore: number }>;
-  tagPreferences: Array<{ tagId: number; preferenceScore: number }>;
-  allergyIds: number[];
-};
-type PreferenceScoreMap = Record<string, number>;
-type RecommendationRefreshValue = {
-  recentDuplicateDays: number;
-  includeNewMenu: boolean;
-};
 
 const navItems: Array<{ id: "meeting" | "home" | "profile"; label: string; icon: typeof Home }> = [
   { id: "meeting", label: "모임", icon: Users },
@@ -125,184 +88,8 @@ const navItems: Array<{ id: "meeting" | "home" | "profile"; label: string; icon:
   { id: "profile", label: "프로필", icon: UserRound }
 ];
 
-const fallbackPickData: PickData = {
-  categories: fallbackCategories,
-  tags: fallbackTags,
-  allergies: fallbackAllergies
-};
-
 const DEV_AUTH_PASSWORD = "Mukpick-dev-2026!";
 const DEV_EXISTING_EMAIL = "mukpick.dev.user@example.com";
-
-function normalizeLabel(value: unknown) {
-  return String(value ?? "")
-    .trim()
-    .replace(/\s+/g, "")
-    .toLowerCase();
-}
-
-function readNumber(row: any, keys: string[]) {
-  for (const key of keys) {
-    const value = row?.[key];
-    if (typeof value === "number") return value;
-    if (typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value))) return Number(value);
-  }
-  return undefined;
-}
-
-function readString(row: any, keys: string[]) {
-  for (const key of keys) {
-    const value = row?.[key];
-    if (typeof value === "string" && value.trim()) return value;
-  }
-  return undefined;
-}
-
-function apiIdKeys(kind: keyof PickData) {
-  if (kind === "categories") return ["categoryId", "category_id", "id"];
-  if (kind === "tags") return ["tagId", "tag_id", "id"];
-  return ["allergyId", "allergy_id", "id"];
-}
-
-function mapPickItems(rows: unknown, fallbackItems: ApiPickItem[], kind: keyof PickData): ApiPickItem[] {
-  if (!Array.isArray(rows) || rows.length === 0) return fallbackItems;
-  return rows.map((row, index) => {
-    const label = readString(row, ["name", "label", "title"]) ?? fallbackItems[index]?.label ?? `항목 ${index + 1}`;
-    const fallback = fallbackItems.find((item) => normalizeLabel(item.label) === normalizeLabel(label));
-    return {
-      id: fallback?.id ?? `${kind}-${readNumber(row, apiIdKeys(kind)) ?? index}`,
-      label,
-      description: fallback?.description ?? "API에서 불러온 항목",
-      image: fallback?.image ?? fallbackItems[index % fallbackItems.length]?.image ?? "",
-      apiId: readNumber(row, apiIdKeys(kind))
-    };
-  });
-}
-
-function mapMenus(rows: unknown): RemoteMenu[] {
-  const items = Array.isArray(rows) ? rows : Array.isArray((rows as any)?.items) ? (rows as any).items : [];
-  return items
-    .map((row: any) => ({
-      menuId: readNumber(row, ["menuId", "menu_id", "id"]) ?? 0,
-      name: readString(row, ["name", "menuName", "menu_name"]) ?? "메뉴",
-      categoryName: row?.menu_categories?.name ?? row?.category?.name
-    }))
-    .filter((menu: RemoteMenu) => menu.menuId > 0);
-}
-
-function mapMeetingPurposes(rows: unknown): MeetingPurpose[] {
-  if (!Array.isArray(rows)) return [];
-  return rows
-    .map((row: any) => ({
-      id: readNumber(row, ["meetingPurposeId", "meeting_purpose_id", "purpose_id", "id"]) ?? 0,
-      name: readString(row, ["name", "title"]) ?? "식사"
-    }))
-    .filter((purpose) => purpose.id > 0);
-}
-
-function mapUsers(payload: unknown): UserOption[] {
-  const rows = Array.isArray((payload as any)?.items) ? (payload as any).items : Array.isArray(payload) ? payload : [];
-  return rows
-    .map((row: any) => ({
-      userId: readNumber(row, ["userId", "user_id", "id"]) ?? 0,
-      nickname: readString(row, ["nickname", "name", "email"]) ?? "사용자",
-      email: readString(row, ["email"])
-    }))
-    .filter((user: UserOption) => user.userId > 0);
-}
-
-function mapRecommendations(payload: unknown): DisplayRecommendation[] {
-  const rows = Array.isArray((payload as any)?.results) ? (payload as any).results : [];
-  return rows.map((row: any, index: number) => ({
-    rank: readNumber(row, ["rankNo", "rank_no", "rank"]) ?? index + 1,
-    menuId: readNumber(row, ["menuId", "menu_id"]),
-    menu: readString(row, ["menuName", "menu_name", "name"]) ?? "추천 메뉴",
-    score: Math.round(readNumber(row, ["totalScore", "total_score", "score"]) ?? 0),
-    category: readString(row, ["category", "categoryName", "category_name"]) ?? "API",
-    reason: readString(row, ["reason", "description"]) ?? "백엔드 추천 API가 반환한 결과입니다."
-  }));
-}
-
-function mapMeetings(payload: unknown): DisplayMeeting[] {
-  const rows = Array.isArray((payload as any)?.items) ? (payload as any).items : Array.isArray(payload) ? payload : [];
-  return rows
-    .map((row: any, index: number): SortableDisplayMeeting => ({
-      id: readNumber(row, ["meetingId", "meeting_id", "id"]) ?? index,
-      title: readString(row, ["title", "name"]) ?? "모임",
-      status: readString(row, ["status"]) ?? "참여자 입력 중",
-      rawTime: readString(row, ["meetingTime", "meeting_time", "time"]) ?? "",
-      time: formatDateLabel(readString(row, ["meetingTime", "meeting_time", "time"]) ?? ""),
-      place: readString(row, ["location", "place"]) ?? "장소 미정",
-      members: Array.isArray(row?.participants)
-        ? row.participants.map(mapParticipantMember)
-        : Array.isArray(row?.members)
-          ? row.members.map((member: any) =>
-              typeof member === "string" ? { userId: null, name: member } : mapParticipantMember(member)
-            )
-          : [{ userId: null, name: "나" }]
-    }))
-    .sort((left: SortableDisplayMeeting, right: SortableDisplayMeeting) => {
-      const doneDiff = Number(isMeetingDone(left.status)) - Number(isMeetingDone(right.status));
-      if (doneDiff !== 0) return doneDiff;
-      return new Date(left.rawTime).getTime() - new Date(right.rawTime).getTime();
-    })
-    .map(({ rawTime: _rawTime, ...meeting }: SortableDisplayMeeting) => meeting);
-}
-
-function mapCreatedMeeting(row: any): DisplayMeeting {
-  return {
-    id: readNumber(row, ["meetingId", "meeting_id", "id"]),
-    title: readString(row, ["title", "name"]) ?? "새 모임",
-    status: readString(row, ["status"]) ?? "CREATED",
-    time: formatDateLabel(readString(row, ["meetingTime", "meeting_time"]) ?? new Date().toISOString()),
-    place: readString(row, ["location", "place"]) ?? "장소 미정",
-    members: Array.isArray(row?.participants)
-      ? row.participants.map(mapParticipantMember)
-      : [{ userId: null, name: "나" }]
-  };
-}
-
-function mapParticipantMember(participant: any): DisplayMember {
-  return {
-    userId: readNumber(participant, ["userId", "user_id"]) ?? null,
-    name: readString(participant, ["displayName", "display_name", "name", "nickname"]) ?? "참여자"
-  };
-}
-
-function mapHistories(payload: unknown, menus: RemoteMenu[]): DisplayHistory[] {
-  const rows = Array.isArray((payload as any)?.items) ? (payload as any).items : Array.isArray(payload) ? payload : [];
-  return rows.map((row: any) => {
-    const menuId = readNumber(row, ["menuId", "menu_id"]);
-    const menu = menus.find((item) => item.menuId === menuId);
-    return {
-      id: readNumber(row, ["historyId", "history_id", "id"]),
-      date: formatShortDate(readString(row, ["eatenAt", "eaten_at", "date"]) ?? ""),
-      menu: menu?.name ?? readString(row, ["menuName", "menu_name"]) ?? "식사 기록",
-      memo: readString(row, ["memo"]) ?? `만족도 ${readNumber(row, ["rating"]) ?? "-"}`,
-      image: imageForMenu(menu?.name)
-    };
-  });
-}
-
-function imageForMenu(menuName?: string) {
-  if (!menuName) return fallbackCategories[0].image;
-  if (menuName.includes("파스타") || menuName.includes("올리오")) return fallbackCategories[2].image;
-  if (menuName.includes("찌개") || menuName.includes("비빔")) return fallbackCategories[0].image;
-  if (menuName.includes("돈") || menuName.includes("카츠")) return fallbackCategories[3].image;
-  return fallbackCategories[0].image;
-}
-
-function formatDateLabel(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value || "시간 미정";
-  return new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(date);
-}
-
-function formatShortDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "최근";
-  return new Intl.DateTimeFormat("ko-KR", { month: "2-digit", day: "2-digit" }).format(date).replace(/\.$/, "");
-}
 
 function defaultDateTimeLocal() {
   const date = new Date();
@@ -310,78 +97,6 @@ function defaultDateTimeLocal() {
   date.setHours(12, 30, 0, 0);
   const offsetMs = date.getTimezoneOffset() * 60 * 1000;
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
-}
-
-function selectedApiIds(selected: string[], items: ApiPickItem[]) {
-  return selected
-    .map((id) => items.find((item) => item.id === id)?.apiId)
-    .filter((id): id is number => typeof id === "number");
-}
-
-function selectedIdsFromPreferenceRows(rows: unknown, items: ApiPickItem[], keys: string[]) {
-  if (!Array.isArray(rows)) return [];
-  const apiIds = new Set(
-    rows
-      .map((row) => readNumber(row, keys))
-      .filter((id): id is number => typeof id === "number")
-  );
-  return items.filter((item) => typeof item.apiId === "number" && apiIds.has(item.apiId)).map((item) => item.id);
-}
-
-function selectedAllergyIdsFromPreferences(rows: unknown, items: ApiPickItem[]) {
-  if (!Array.isArray(rows)) return [];
-  const apiIds = new Set(
-    rows
-      .map((value) => (typeof value === "number" ? value : readNumber(value, ["allergyId", "allergy_id", "id"])))
-      .filter((id): id is number => typeof id === "number")
-  );
-  return items.filter((item) => typeof item.apiId === "number" && apiIds.has(item.apiId)).map((item) => item.id);
-}
-
-function scoreMapFromPreferenceRows(rows: unknown, items: ApiPickItem[], keys: string[]) {
-  if (!Array.isArray(rows)) return {};
-  const scoreByApiId = new Map<number, number>();
-  for (const row of rows) {
-    const apiId = readNumber(row, keys);
-    const score = readNumber(row, ["preferenceScore", "preference_score"]);
-    if (typeof apiId === "number" && typeof score === "number") {
-      scoreByApiId.set(apiId, score);
-    }
-  }
-  return items.reduce<PreferenceScoreMap>((acc, item) => {
-    if (typeof item.apiId === "number" && scoreByApiId.has(item.apiId)) {
-      acc[item.id] = scoreByApiId.get(item.apiId)!;
-    }
-    return acc;
-  }, {});
-}
-
-function buildPreferencePayload({
-  selectedCategories,
-  selectedTags,
-  selectedAllergies,
-  pickData,
-  categoryScores,
-  tagScores
-}: {
-  selectedCategories: string[];
-  selectedTags: string[];
-  selectedAllergies: string[];
-  pickData: PickData;
-  categoryScores: PreferenceScoreMap;
-  tagScores: PreferenceScoreMap;
-}): PreferencePayload {
-  return {
-    categoryPreferences: selectedApiIds(selectedCategories, pickData.categories).map((categoryId) => ({
-      categoryId,
-      preferenceScore: categoryScores[pickData.categories.find((item) => item.apiId === categoryId)?.id ?? ""] ?? 5
-    })),
-    tagPreferences: selectedApiIds(selectedTags, pickData.tags).map((tagId) => ({
-      tagId,
-      preferenceScore: tagScores[pickData.tags.find((item) => item.apiId === tagId)?.id ?? ""] ?? 5
-    })),
-    allergyIds: selectedApiIds(selectedAllergies, pickData.allergies)
-  };
 }
 
 function slugifyNickname(value: string) {
