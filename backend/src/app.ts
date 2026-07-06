@@ -12,7 +12,14 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/health", (_req, res) => {
-  sendSuccess(res, { status: "ok" });
+  sendSuccess(res, {
+    status: "ok",
+    features: {
+      personalRecommendationFeedback: true,
+      menuInteractions: true,
+      userPreferences: true
+    }
+  });
 });
 
 app.use("/api/v1", apiRouter);
