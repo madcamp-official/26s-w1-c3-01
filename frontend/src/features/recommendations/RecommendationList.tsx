@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { EmptyState } from "../../components/feedback/EmptyState";
 import type { DisplayRecommendation } from "../../domain/mapper";
 
@@ -34,7 +35,7 @@ export function RecommendationList({
             key={`${item.rank}-${item.menu}`}
             onClick={() => onSelect?.(item)}
           >
-            <div className="rank-mark">{item.rank}</div>
+            <RecommendationMedia item={item} />
             <div className="recommendation-body">
               <div className="recommendation-title">
                 <strong>{item.menu}</strong>
@@ -69,6 +70,21 @@ export function RecommendationList({
           </article>
         );
       })}
+    </div>
+  );
+}
+
+function RecommendationMedia({ item }: { item: DisplayRecommendation }) {
+  const [hasError, setHasError] = useState(false);
+
+  if (!item.image || hasError) {
+    return <div className="rank-mark">{item.rank}</div>;
+  }
+
+  return (
+    <div className="recommendation-media">
+      <img src={item.image} alt="" loading="lazy" onError={() => setHasError(true)} />
+      <span className="rank-mark">{item.rank}</span>
     </div>
   );
 }
