@@ -26,6 +26,7 @@ export type DisplayRecommendation = {
   score: number;
   category: string;
   reason: string;
+  scores?: RecommendationScoreBreakdown;
 };
 
 export type DisplayMember = {
@@ -82,6 +83,19 @@ export type PreferenceScoreMap = Record<string, number>;
 export type RecommendationRefreshValue = {
   recentDuplicateDays: number;
   includeNewMenu: boolean;
+  budgetMin: number | null;
+  budgetMax: number | null;
+};
+
+export type RecommendationScoreBreakdown = {
+  categoryScore?: number;
+  ratingScore?: number;
+  reviewConfidenceScore?: number;
+  priceScore?: number;
+  popularityScore?: number;
+  noveltyScore?: number;
+  repeatScore?: number;
+  negativeFeedbackScore?: number;
 };
 
 export const fallbackPickData: PickData = {
@@ -174,10 +188,26 @@ export function mapRecommendations(payload: unknown): DisplayRecommendation[] {
     rank: readNumber(row, ["rankNo", "rank_no", "rank"]) ?? index + 1,
     menuId: readNumber(row, ["menuId", "menu_id"]),
     menu: readString(row, ["menuName", "menu_name", "name"]) ?? "추천 메뉴",
-    score: Math.round(readNumber(row, ["totalScore", "total_score", "score"]) ?? 0),
+    score: Math.round((readNumber(row, ["totalScore", "total_score", "score"]) ?? 0) * 10) / 10,
     category: readString(row, ["category", "categoryName", "category_name"]) ?? "API",
-    reason: readString(row, ["reason", "description"]) ?? "백엔드 추천 API가 반환한 결과입니다."
+    reason: readString(row, ["reason", "description"]) ?? "백엔드 추천 API가 반환한 결과입니다.",
+    scores: mapRecommendationScores(row?.scores)
   }));
+}
+
+function mapRecommendationScores(scores: any): RecommendationScoreBreakdown | undefined {
+  if (!scores || typeof scores !== "object") return undefined;
+
+  return {
+    categoryScore: readNumber(scores, ["categoryScore", "category_score"]),
+    ratingScore: readNumber(scores, ["ratingScore", "rating_score"]),
+    reviewConfidenceScore: readNumber(scores, ["reviewConfidenceScore", "review_confidence_score"]),
+    priceScore: readNumber(scores, ["priceScore", "price_score"]),
+    popularityScore: readNumber(scores, ["popularityScore", "popularity_score"]),
+    noveltyScore: readNumber(scores, ["noveltyScore", "novelty_score"]),
+    repeatScore: readNumber(scores, ["repeatScore", "repeat_score"]),
+    negativeFeedbackScore: readNumber(scores, ["negativeFeedbackScore", "negative_feedback_score"])
+  };
 }
 
 // 완료된 모임은 목록 끝으로 보내서 진행 중인 모임을 먼저 보이게 합니다.

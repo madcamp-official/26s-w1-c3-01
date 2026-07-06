@@ -9,6 +9,7 @@ type RecommendationListProps = {
   onAction?: (item: DisplayRecommendation) => void;
   selectedMenuId?: number;
   onSelect?: (item: DisplayRecommendation) => void;
+  onFeedback?: (item: DisplayRecommendation, interactionType: "like" | "dislike" | "bookmark") => void;
 };
 
 export function RecommendationList({
@@ -18,7 +19,8 @@ export function RecommendationList({
   actionLabel,
   onAction,
   selectedMenuId,
-  onSelect
+  onSelect,
+  onFeedback
 }: RecommendationListProps) {
   if (!items.length) {
     return <EmptyState title="추천 결과가 없습니다" description={emptyMessage} compact={compact} />;
@@ -41,8 +43,52 @@ export function RecommendationList({
                 <span>{item.score}점</span>
               </div>
               <p>{item.reason}</p>
+              {item.scores ? (
+                <div className="score-breakdown" aria-label={`${item.menu} 추천 점수 상세`}>
+                  <span>카테고리 {formatScore(item.scores.categoryScore)}</span>
+                  <span>평점 {formatScore(item.scores.ratingScore)}</span>
+                  <span>가격 {formatScore(item.scores.priceScore)}</span>
+                  <span>인기 {formatScore(item.scores.popularityScore)}</span>
+                  <span>새로움 {formatScore(item.scores.noveltyScore)}</span>
+                  <span>반복 {formatScore(item.scores.repeatScore)}</span>
+                </div>
+              ) : null}
               <div className="tag-row">
                 <span>{item.category}</span>
+                {onFeedback ? (
+                  <div className="feedback-actions" aria-label={`${item.menu} 피드백`}>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onFeedback(item, "like");
+                      }}
+                      disabled={!item.menuId}
+                    >
+                      좋아요
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onFeedback(item, "dislike");
+                      }}
+                      disabled={!item.menuId}
+                    >
+                      싫어요
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onFeedback(item, "bookmark");
+                      }}
+                      disabled={!item.menuId}
+                    >
+                      저장
+                    </button>
+                  </div>
+                ) : null}
                 {actionLabel && onAction ? (
                   <button
                     onClick={(event) => {
@@ -61,4 +107,8 @@ export function RecommendationList({
       })}
     </div>
   );
+}
+
+function formatScore(value?: number) {
+  return typeof value === "number" ? Math.round(value * 10) / 10 : "-";
 }

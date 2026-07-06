@@ -5,10 +5,12 @@ import { errorMessage, hasPreferenceRows, isAuthSessionError, persistAccessToken
 import { authApi } from "../api/auth.api";
 import { masterDataApi } from "../api/masterData.api";
 import { mealHistoryApi } from "../api/mealHistory.api";
+import { menuInteractionsApi, type MenuInteractionType } from "../api/menuInteractions.api";
 import { meetingsApi } from "../api/meetings.api";
 import { clearOAuthCallbackUrl, readOAuthCallback, startOAuthLogin, type OAuthProvider } from "../api/oauth.api";
 import { preferencesApi } from "../api/preferences.api";
 import { recommendationsApi } from "../api/recommendations.api";
+import { userPreferencesApi } from "../api/userPreferences.api";
 import { usersApi } from "../api/users.api";
 import {
   buildPreferencePayload,
@@ -63,6 +65,8 @@ export function MukpickApp() {
   const [tagScores, setTagScores] = useState<PreferenceScoreMap>({ spicy: 5, soup: 4 });
   const [newMenuIncluded, setNewMenuIncluded] = useState(true);
   const [recentDuplicateDays, setRecentDuplicateDays] = useState(3);
+  const [budgetMin, setBudgetMin] = useState<number | null>(null);
+  const [budgetMax, setBudgetMax] = useState<number | null>(null);
   const [pickData, setPickData] = useState<PickData>(fallbackPickData);
   const [menuOptions, setMenuOptions] = useState<RemoteMenu[]>([]);
   const [meetingPurposes, setMeetingPurposes] = useState<MeetingPurpose[]>([]);
@@ -317,6 +321,14 @@ export function MukpickApp() {
         );
         setTagScores(scoreMapFromPreferenceRows(preferences?.tagPreferences, nextPickData.tags, ["tagId", "tag_id", "id"]));
         setSelectedAllergies(selectedAllergyIdsFromPreferences(preferences?.allergyIds, nextPickData.allergies));
+      }
+
+      try {
+        const userPreference = await userPreferencesApi.get();
+        setBudgetMin(userPreference.budgetMin ?? null);
+        setBudgetMax(userPreference.budgetMax ?? null);
+      } catch {
+        // 추천 설정 테이블이 아직 배포되지 않은 환경에서도 기본 기능은 유지한다.
       }
 
       if (userResult.status === "fulfilled") {
@@ -775,19 +787,32 @@ export function MukpickApp() {
 
   const handleRecommendationRefresh = async ({
     recentDuplicateDays,
-    includeNewMenu
+    includeNewMenu,
+    budgetMin,
+    budgetMax
   }: RecommendationRefreshValue) => {
     setApiStatus("loading");
     setApiError("");
     try {
+      await userPreferencesApi.update({
+        budgetMin,
+        budgetMax
+      });
+
       const response = await recommendationsApi.createPersonal({
         recentDuplicateDays,
         includeNewMenu,
         limit: 3
       });
-      setRecommendationItems(mapRecommendations(response));
+      const nextRecommendations = mapRecommendations(response);
+      setRecommendationItems(nextRecommendations);
       setSelectedPersonalRecommendation(null);
       setPersonalRecommendationReady(true);
+      await Promise.allSettled(
+        nextRecommendations
+          .filter((item) => item.menuId)
+          .map((item) => menuInteractionsApi.create(item.menuId!, "view"))
+      );
       setApiStatus("ready");
       showToast("추천 API를 다시 호출했습니다.");
     } catch (error) {
@@ -796,6 +821,37 @@ export function MukpickApp() {
       setApiError(message);
       showToast(message);
     }
+  };
+
+  const recordMenuInteraction = async (
+    item: DisplayRecommendation,
+    interactionType: MenuInteractionType,
+    successMessage?: string
+  ) => {
+    if (!item.menuId) return;
+
+    try {
+      await menuInteractionsApi.create(item.menuId, interactionType);
+      if (successMessage) showToast(successMessage);
+    } catch (error) {
+      const message = errorMessage(error);
+      setApiStatus("error");
+      setApiError(message);
+      showToast(message);
+    }
+  };
+
+  const handlePersonalRecommendationFeedback = async (
+    item: DisplayRecommendation,
+    interactionType: "like" | "dislike" | "bookmark"
+  ) => {
+    const messageByType = {
+      like: "좋아요가 추천 점수에 반영됩니다.",
+      dislike: "싫어요가 다음 추천에서 감점으로 반영됩니다.",
+      bookmark: "저장 기록이 추천 점수에 반영됩니다."
+    };
+
+    await recordMenuInteraction(item, interactionType, messageByType[interactionType]);
   };
 
   const handleCreateHistory = async ({ menuId, rating, memo }: MealHistoryFormValue) => {
@@ -862,6 +918,7 @@ export function MukpickApp() {
 
   const handleConfirmPersonalRecommendation = async () => {
     if (!selectedPersonalRecommendation?.menuId) return;
+    await recordMenuInteraction(selectedPersonalRecommendation, "pick");
     await handleCreateHistory({
       menuId: selectedPersonalRecommendation.menuId,
       rating: 5,
@@ -1099,6 +1156,8 @@ export function MukpickApp() {
       tagScores={tagScores}
       recentDuplicateDays={recentDuplicateDays}
       newMenuIncluded={newMenuIncluded}
+      budgetMin={budgetMin}
+      budgetMax={budgetMax}
       recommendationItems={recommendationItems}
       personalRecommendationReady={personalRecommendationReady}
       selectedPersonalRecommendation={selectedPersonalRecommendation}
@@ -1123,6 +1182,8 @@ export function MukpickApp() {
       setTagScores={setTagScores}
       setRecentDuplicateDays={setRecentDuplicateDays}
       setNewMenuIncluded={setNewMenuIncluded}
+      setBudgetMin={setBudgetMin}
+      setBudgetMax={setBudgetMax}
       setSelectedPersonalRecommendation={setSelectedPersonalRecommendation}
       setMeetingDialogOpen={setMeetingDialogOpen}
       setSelectedMeeting={setSelectedMeeting}
@@ -1130,6 +1191,7 @@ export function MukpickApp() {
       setExcludedMeetingUserIds={setExcludedMeetingUserIds}
       handlePreferenceSave={handlePreferenceSave}
       handleRecommendationRefresh={handleRecommendationRefresh}
+      handlePersonalRecommendationFeedback={handlePersonalRecommendationFeedback}
       handleConfirmPersonalRecommendation={handleConfirmPersonalRecommendation}
       handleOpenMeeting={handleOpenMeeting}
       handleCreateMeetingRecommendation={handleCreateMeetingRecommendation}
