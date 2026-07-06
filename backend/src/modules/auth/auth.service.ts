@@ -53,31 +53,21 @@ export const authService = {
         });
       }
 
-      if (!data.session?.access_token) {
-        const login = await authRepository.signInWithPassword({ email, password });
-        if (login.error || !login.data.session) {
-          throw Object.assign(new Error("게스트 세션을 생성하지 못했습니다. Supabase 이메일 인증 설정을 확인해주세요."), {
-            status: 400,
-            code: "VALIDATION_ERROR"
-          });
-        }
-        return {
-          guest: true,
-          nickname,
-          user: login.data.user,
-          accessToken: login.data.session.access_token,
-          refreshToken: login.data.session.refresh_token,
-          expiresAt: login.data.session.expires_at
-        };
+      const login = await authRepository.signInWithPassword({ email, password });
+      if (login.error || !login.data.session) {
+        throw Object.assign(new Error("게스트 세션을 생성하지 못했습니다. Supabase 인증 설정을 확인해주세요."), {
+          status: 400,
+          code: "VALIDATION_ERROR"
+        });
       }
 
       return {
         guest: true,
         nickname,
-        user: data.user,
-        accessToken: data.session.access_token,
-        refreshToken: data.session.refresh_token,
-        expiresAt: data.session.expires_at
+        user: login.data.user,
+        accessToken: login.data.session.access_token,
+        refreshToken: login.data.session.refresh_token,
+        expiresAt: login.data.session.expires_at
       };
     }
 

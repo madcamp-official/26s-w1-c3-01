@@ -43,8 +43,10 @@ React Router route tree가 아니라 활성 모바일 shell의 상태를 path/qu
 |---|---|---|
 | `start` | 시작 화면 | 최초 방문, 로그아웃 |
 | `login` | 이메일 로그인 | `/login`, 시작 화면 로그인 |
-| `signup-name` | 회원 닉네임 입력 | 회원 시작 |
-| `signup-categories` | 회원 카테고리 선호 입력 | 닉네임 입력 후 |
+| `signup-name` | 이메일 회원가입 입력 | 일반 회원가입 시작 |
+| `signup-email-sent` | 이메일 인증 안내 | 일반 회원가입 요청 후 |
+| `oauth-nickname` | 소셜 로그인 신규 사용자 닉네임 입력 | OAuth callback 후 선호도 없음 |
+| `signup-categories` | 회원 카테고리 선호 입력 | 이메일 인증 로그인 후 또는 OAuth 닉네임 저장 후 |
 | `signup-tags` | 회원 태그 선호 입력 | 카테고리 다음 |
 | `signup-allergies` | 회원 알러지 입력 | 태그 다음 |
 | `signup-recent-penalty` | 최근 식사 패널티 입력 | 알러지 다음 |
@@ -115,7 +117,23 @@ start
 -> app/home
 ```
 
-기존 회원은 이메일/비밀번호 로그인 또는 Kakao/Google OAuth로 진입한다. OAuth는 Supabase provider, redirect allowlist, Kakao/Google developer console 설정이 배포 URL과 일치해야 실제 성공한다.
+기존 회원은 이메일/비밀번호 로그인 또는 Google OAuth로 진입한다. OAuth 시작은 `@supabase/supabase-js`의 `signInWithOAuth()`를 사용한다.
+
+소셜 로그인 신규 사용자는 이메일/비밀번호를 다시 입력하지 않는다. OAuth callback으로 세션을 받은 뒤 `oauth-nickname`에서 닉네임만 입력하고, 이후 동일한 선호도 조사 흐름으로 이동한다.
+
+```text
+start
+-> OAuth callback
+-> oauth-nickname
+-> signup-categories
+-> signup-tags
+-> signup-allergies
+-> signup-recent-penalty
+-> signup-complete
+-> app/home
+```
+
+OAuth는 Supabase provider, Supabase Redirect URLs allowlist, Google Cloud OAuth 설정이 배포 URL과 일치해야 실제 성공한다. Google Cloud Console에는 프론트 URL이 아니라 Supabase callback URL인 `https://{project-ref}.supabase.co/auth/v1/callback`을 OAuth redirect URI로 등록한다.
 
 ### 7.3 게스트 모임 참여
 

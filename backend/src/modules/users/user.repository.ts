@@ -13,9 +13,10 @@ export const userRepository = {
     if (selectError) throw selectError;
     if (existing) return toCamelProfile(existing);
 
-    const nickname = typeof user.user_metadata?.nickname === "string"
+    const nicknameBase = typeof user.user_metadata?.nickname === "string"
       ? user.user_metadata.nickname
       : user.email?.split("@")[0] ?? "user";
+    const nickname = await createUniqueNickname(nicknameBase);
     const userType = typeof user.user_metadata?.user_type === "string"
       ? user.user_metadata.user_type
       : "PERSONAL";
@@ -46,6 +47,17 @@ export const userRepository = {
     return data ? toCamelProfile(data) : null;
   },
 
+  async findByNickname(nickname: string) {
+    const { data, error } = await supabaseAdmin
+      .from("users")
+      .select("user_id, auth_user_id, email, nickname, user_type")
+      .eq("nickname", nickname)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data ? toCamelProfile(data) : null;
+  },
+
   async search(query = "") {
     const builder = supabaseAdmin
       .from("users")
@@ -63,12 +75,13 @@ export const userRepository = {
   },
 
   async update(userId: number, input: UpdateUserRequest) {
+    const updatePayload: Record<string, string> = {};
+    if (input.nickname !== undefined) updatePayload.nickname = input.nickname;
+    if (input.userType !== undefined) updatePayload.user_type = input.userType;
+
     const { data, error } = await supabaseAdmin
       .from("users")
-      .update({
-        nickname: input.nickname,
-        user_type: input.userType
-      })
+      .update(updatePayload)
       .eq("user_id", userId)
       .select("user_id, auth_user_id, email, nickname, user_type")
       .single();
@@ -86,4 +99,22 @@ function toCamelProfile(row: any) {
     nickname: row.nickname,
     userType: row.user_type
   };
+}
+
+async function createUniqueNickname(baseNickname: string) {
+  const normalized = normalizeNickname(baseNickname);
+
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const suffix = attempt === 0 ? "" : `-${attempt + 1}`;
+    const candidate = `${normalized.slice(0, 50 - suffix.length)}${suffix}`;
+    const existing = await userRepository.findByNickname(candidate);
+    if (!existing) return candidate;
+  }
+
+  return `user-${Date.now().toString(36)}`;
+}
+
+function normalizeNickname(value: string) {
+  const normalized = value.trim().slice(0, 50);
+  return normalized || "user";
 }

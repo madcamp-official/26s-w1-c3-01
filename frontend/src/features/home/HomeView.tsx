@@ -1,7 +1,11 @@
-import { ArrowRight, ChevronRight, Clock, UserRound, Users } from "lucide-react";
+import ArrowRight from "lucide-react/dist/esm/icons/arrow-right";
+import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
+import Clock from "lucide-react/dist/esm/icons/clock";
+import UserRound from "lucide-react/dist/esm/icons/user-round";
+import Users from "lucide-react/dist/esm/icons/users";
 import { EmptyState } from "../../components/feedback/EmptyState";
 import type { ApiStatus } from "../../app/app.types";
-import { fallbackPickData, type DisplayHistory, type PickData } from "../../domain/appModel";
+import { fallbackPickData, type DisplayHistory, type PickData } from "../../domain/mapper";
 
 type HomeViewProps = {
   pickData: PickData;

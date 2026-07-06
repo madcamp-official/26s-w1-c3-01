@@ -1,7 +1,9 @@
-import { Clock, MapPin, Plus } from "lucide-react";
+import Clock from "lucide-react/dist/esm/icons/clock";
+import MapPin from "lucide-react/dist/esm/icons/map-pin";
+import Plus from "lucide-react/dist/esm/icons/plus";
 import { EmptyState } from "../../components/feedback/EmptyState";
 import { ScreenTitle } from "../../components/navigation/ScreenTitle";
-import type { DisplayMeeting } from "../../domain/appModel";
+import type { DisplayMeeting } from "../../domain/mapper";
 import { JoinMeetingPanel } from "./JoinMeetingPanel";
 import { MeetingIdRow } from "./MeetingIdRow";
 import { isMeetingDone, statusLabel } from "./meetingStatus";

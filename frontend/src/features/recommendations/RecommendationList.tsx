@@ -1,5 +1,5 @@
 import { EmptyState } from "../../components/feedback/EmptyState";
-import type { DisplayRecommendation } from "../../domain/appModel";
+import type { DisplayRecommendation } from "../../domain/mapper";
 
 type RecommendationListProps = {
   compact?: boolean;

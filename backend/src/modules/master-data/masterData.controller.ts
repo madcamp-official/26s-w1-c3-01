@@ -31,6 +31,39 @@ export const getMenu: RequestHandler = async (req, res, next) => {
   }
 };
 
+export const createMenu: RequestHandler = async (req, res, next) => {
+  try {
+    const userId = req.auth!.profile!.userId;
+    const data = await masterDataService.createMenu(userId, req.body);
+
+    sendSuccess(res, data, 201, "메뉴가 등록되었습니다.");
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateMenu: RequestHandler = async (req, res, next) => {
+  try {
+    const userId = req.auth!.profile!.userId;
+    const data = await masterDataService.updateMenu(userId, Number(req.params.menuId), req.body);
+
+    sendSuccess(res, data, 200, "메뉴가 수정되었습니다.");
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteMenu: RequestHandler = async (req, res, next) => {
+  try {
+    const userId = req.auth!.profile!.userId;
+    const data = await masterDataService.deleteMenu(userId, Number(req.params.menuId));
+
+    sendSuccess(res, data, 200, "메뉴가 삭제되었습니다.");
+  } catch (error) {
+    next(error);
+  }
+};
+
 // 음식 카테고리 목록을 조회한다.
 // 예: 한식, 중식, 양식, 일식 등
 export const listMenuCategories: RequestHandler = async (_req, res, next) => {

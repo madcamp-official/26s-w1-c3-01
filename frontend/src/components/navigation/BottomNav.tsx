@@ -1,4 +1,6 @@
-import { Home, UserRound, Users } from "lucide-react";
+import Home from "lucide-react/dist/esm/icons/home";
+import UserRound from "lucide-react/dist/esm/icons/user-round";
+import Users from "lucide-react/dist/esm/icons/users";
 import type { Tab } from "../../app/app.types";
 
 const navItems: Array<{ id: "meeting" | "home" | "profile"; label: string; icon: typeof Home }> = [

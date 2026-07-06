@@ -1,18 +1,22 @@
-import { SUPABASE_URL } from "../assets";
+import { createSupabaseAuthClient } from "../lib/supabase";
 
-export type OAuthProvider = "kakao" | "google";
+export type OAuthProvider = "google";
 
 type OAuthCallbackResult =
   | { type: "session"; accessToken: string; refreshToken?: string; expiresAt?: number }
   | { type: "error"; message: string }
   | { type: "none" };
 
-export function startOAuthLogin(provider: OAuthProvider) {
+export async function startOAuthLogin(provider: OAuthProvider) {
   const redirectTo = `${window.location.origin}${window.location.pathname}`;
-  const authUrl = new URL(`${SUPABASE_URL}/auth/v1/authorize`);
-  authUrl.searchParams.set("provider", provider);
-  authUrl.searchParams.set("redirect_to", redirectTo);
-  window.location.assign(authUrl.toString());
+  const { error } = await createSupabaseAuthClient().auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo
+    }
+  });
+
+  if (error) throw error;
 }
 
 export function readOAuthCallback(): OAuthCallbackResult {

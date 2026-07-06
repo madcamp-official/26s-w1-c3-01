@@ -1,7 +1,7 @@
-import { Sparkles } from "lucide-react";
+import Sparkles from "lucide-react/dist/esm/icons/sparkles";
 import { EmptyState } from "../../components/feedback/EmptyState";
 import { ScreenTitle } from "../../components/navigation/ScreenTitle";
-import type { DisplayRecommendation, RecommendationRefreshValue } from "../../domain/appModel";
+import type { DisplayRecommendation, RecommendationRefreshValue } from "../../domain/mapper";
 import { RecommendationList } from "./RecommendationList";
 
 type PersonalViewProps = {

@@ -1,7 +1,12 @@
 import { useState, type FormEvent } from "react";
-import { ArrowLeft, Check, Clock, MapPin, Pencil, X } from "lucide-react";
+import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left";
+import Check from "lucide-react/dist/esm/icons/check";
+import Clock from "lucide-react/dist/esm/icons/clock";
+import MapPin from "lucide-react/dist/esm/icons/map-pin";
+import Pencil from "lucide-react/dist/esm/icons/pencil";
+import X from "lucide-react/dist/esm/icons/x";
 import { ScreenTitle } from "../../components/navigation/ScreenTitle";
-import type { DisplayMeeting, DisplayMember, DisplayRecommendation, MeetingPurpose } from "../../domain/appModel";
+import type { DisplayMeeting, DisplayMember, DisplayRecommendation, MeetingPurpose } from "../../domain/mapper";
 import { RecommendationList } from "../recommendations/RecommendationList";
 import type { MeetingFormValue } from "./MeetingCreateDialog";
 import { MeetingIdRow } from "./MeetingIdRow";
@@ -43,6 +48,7 @@ export function MeetingDetail({
   isGuestSession
 }: MeetingDetailProps) {
   const [editing, setEditing] = useState(false);
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
   const isDecided = selectedMeeting.status === "DECIDED" || selectedMeeting.status === "CLOSED";
   const isCreator = typeof selectedMeeting.createdBy === "number" && selectedMeeting.createdBy === currentUserId;
   const canManage = isCreator && !isGuestSession;
@@ -82,11 +88,19 @@ export function MeetingDetail({
           <span className={isCreator ? "role-chip owner" : "role-chip"}>{roleLabel}</span>
           <small>{selectedMeeting.creatorNickname ? `모임장 ${selectedMeeting.creatorNickname}` : "권한 정보를 확인했습니다."}</small>
         </div>
-        {selectedMeeting.id ? <MeetingIdRow meetingId={selectedMeeting.id} /> : null}
-        <div className="meeting-meta">
+        <div className="meeting-compact-meta">
+          {selectedMeeting.id ? <MeetingIdRow meetingId={selectedMeeting.id} /> : null}
           <span><Clock size={15} />{selectedMeeting.time}</span>
           <span><MapPin size={15} />{selectedMeeting.place}</span>
         </div>
+        <button
+          className="meeting-detail-toggle"
+          type="button"
+          onClick={() => setDetailsExpanded((value) => !value)}
+          aria-expanded={detailsExpanded}
+        >
+          {detailsExpanded ? "참여자 접기" : `참여자 ${selectedMeeting.members.length}명 보기`}
+        </button>
         {canManage && !isDecided && selectedMeeting.id ? (
           <button className="secondary-button meeting-edit-button" type="button" onClick={() => setEditing((value) => !value)}>
             {editing ? <X size={15} /> : <Pencil size={15} />}
@@ -102,30 +116,34 @@ export function MeetingDetail({
             onSubmit={(value) => onUpdateMeeting(selectedMeeting.id!, value).then(() => setEditing(false))}
           />
         ) : null}
-        <div className="member-row selectable-members" aria-label="추천 계산에 포함할 구성원">
-          {selectedMeeting.members.map((member) => (
-            <button
-              type="button"
-              key={`${member.userId ?? "member"}-${member.name}`}
-              className={[
-                typeof member.userId === "number" && excludedUserIds.includes(member.userId) ? "excluded" : "",
-                typeof member.userId === "number" && member.userId === selectedMeeting.createdBy ? "creator" : "",
-                typeof member.userId === "number" && member.userId === currentUserId ? "self" : ""
-              ].filter(Boolean).join(" ")}
-              onClick={() => toggleMember(member)}
-              disabled={!canManage || isDecided || typeof member.userId !== "number"}
-              aria-pressed={typeof member.userId === "number" && !excludedUserIds.includes(member.userId)}
-            >
-              <span>{member.name}</span>
-              {typeof member.userId === "number" && member.userId === selectedMeeting.createdBy ? <small>모임장</small> : null}
-              {typeof member.userId === "number" && member.userId === currentUserId ? <small>나</small> : null}
-            </button>
-          ))}
-        </div>
-        {!canManage ? (
-          <p className="meeting-permission-note">참여자는 추천 결과를 확인할 수 있고, 추천 계산과 메뉴 확정은 모임장이 진행합니다.</p>
+        {detailsExpanded || editing ? (
+          <>
+            <div className="member-row selectable-members" aria-label="추천 계산에 포함할 구성원">
+              {selectedMeeting.members.map((member) => (
+                <button
+                  type="button"
+                  key={`${member.userId ?? "member"}-${member.name}`}
+                  className={[
+                    typeof member.userId === "number" && excludedUserIds.includes(member.userId) ? "excluded" : "",
+                    typeof member.userId === "number" && member.userId === selectedMeeting.createdBy ? "creator" : "",
+                    typeof member.userId === "number" && member.userId === currentUserId ? "self" : ""
+                  ].filter(Boolean).join(" ")}
+                  onClick={() => toggleMember(member)}
+                  disabled={!canManage || isDecided || typeof member.userId !== "number"}
+                  aria-pressed={typeof member.userId === "number" && !excludedUserIds.includes(member.userId)}
+                >
+                  <span>{member.name}</span>
+                  {typeof member.userId === "number" && member.userId === selectedMeeting.createdBy ? <small>모임장</small> : null}
+                  {typeof member.userId === "number" && member.userId === currentUserId ? <small>나</small> : null}
+                </button>
+              ))}
+            </div>
+            {!canManage ? (
+              <p className="meeting-permission-note">참여자는 추천 결과를 확인할 수 있고, 추천 계산과 메뉴 확정은 모임장이 진행합니다.</p>
+            ) : null}
+            {!isDecided ? <p className="meeting-live-note">참여자 정보는 주기적으로 자동 갱신됩니다.</p> : null}
+          </>
         ) : null}
-        {!isDecided ? <p className="meeting-live-note">참여자 정보는 주기적으로 자동 갱신됩니다.</p> : null}
       </section>
       <section className="section-block group-result">
         <div className="section-heading">

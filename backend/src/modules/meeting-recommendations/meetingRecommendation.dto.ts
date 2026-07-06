@@ -3,6 +3,7 @@ export type MeetingRecommendationRequest = {
   limit?: number;
   recentDuplicateDays?: number;
   excludeRecentDays?: number;
+  participantUserIds?: number[];
 };
 
 export type MeetingRecommendationResult = {
@@ -23,4 +24,5 @@ export type MeetingRecommendationConfig = {
   strongDislikeScore: number;
   recentDuplicateDays: number;
   resultLimit: number;
+  participantUserIds?: number[];
 };
