@@ -23,6 +23,19 @@ export const meetingRecommendationRepository = {
     return data;
   },
 
+  async isMeetingParticipant(meetingId: number, userId: number) {
+    const { data, error } = await supabaseAdmin
+      .from("meeting_participants")
+      .select("participant_id")
+      .eq("meeting_id", meetingId)
+      .eq("user_id", userId)
+      .neq("attendance_status", "DECLINED")
+      .maybeSingle();
+
+    if (error) throw error;
+    return Boolean(data);
+  },
+
   async loadMeetingRecommendationBase(meetingId: number) {
     const meeting = await this.findMeetingById(meetingId);
     if (!meeting) return null;

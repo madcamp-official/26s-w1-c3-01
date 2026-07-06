@@ -33,7 +33,7 @@ export const meetingRecommendationService = {
     const meeting = await meetingRecommendationRepository.findMeetingById(meetingId);
     if (!meeting) throwNotFound("모임을 찾을 수 없습니다.");
 
-    assertMeetingOwner(meeting, userId);
+    await assertMeetingReadable(meeting, userId, meetingId);
 
     const run = await meetingRecommendationRepository.findLatestRun(meetingId);
     if (!run) {
@@ -127,6 +127,19 @@ function assertMeetingOwner(meeting: { created_by: number }, userId: number) {
       status: 403,
       code: ERROR_CODES.FORBIDDEN,
       message: "모임 추천을 관리할 권한이 없습니다."
+    };
+  }
+}
+
+async function assertMeetingReadable(meeting: { created_by: number }, userId: number, meetingId: number) {
+  if (Number(meeting.created_by) === userId) return;
+
+  const isParticipant = await meetingRecommendationRepository.isMeetingParticipant(meetingId, userId);
+  if (!isParticipant) {
+    throw {
+      status: 403,
+      code: ERROR_CODES.FORBIDDEN,
+      message: "이 모임의 추천 결과를 확인할 권한이 없습니다."
     };
   }
 }
