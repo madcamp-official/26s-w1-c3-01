@@ -43,6 +43,7 @@ type AuthFlowProps = {
   onOAuthStart: (provider: OAuthProvider) => void;
   onLogin: () => Promise<void>;
   onCheckNickname: (nickname: string) => Promise<boolean>;
+  onCreateEmailSignup: () => Promise<void>;
   onCompleteSignup: () => Promise<void>;
   onCompleteGuestPreferences: () => Promise<void>;
   onPreviewGuestMeeting: () => Promise<void>;
@@ -92,6 +93,7 @@ export function AuthFlow({
   onOAuthStart,
   onLogin,
   onCheckNickname,
+  onCreateEmailSignup,
   onCompleteSignup,
   onCompleteGuestPreferences,
   onPreviewGuestMeeting,
@@ -171,6 +173,8 @@ export function AuthFlow({
         onBack={() => onFlowChange("guest-tags")}
         onNext={onCompleteGuestPreferences}
         nextLabel="완료"
+        isLoading={authBusy}
+        errorMessage={authError}
         danger
       />
     );
@@ -198,8 +202,19 @@ export function AuthFlow({
         onChange={onNicknameChange}
         onCredentialsChange={onSignupCredentialsChange}
         onCheckNickname={onCheckNickname}
-        onNext={() => onFlowChange("signup-categories")}
+        onNext={onCreateEmailSignup}
         isLoading={authBusy}
+        errorMessage={authError}
+      />
+    );
+  }
+
+  if (flow === "signup-email-sent") {
+    return (
+      <EmailVerificationScreen
+        email={signupCredentials.email}
+        onBack={() => onFlowChange("signup-name")}
+        onGoLogin={() => onFlowChange("login")}
         errorMessage={authError}
       />
     );
@@ -542,6 +557,43 @@ function GuestJoinMeetingScreen({
   );
 }
 
+function EmailVerificationScreen({
+  email,
+  onBack,
+  onGoLogin,
+  errorMessage
+}: {
+  email: string;
+  onBack: () => void;
+  onGoLogin: () => void;
+  errorMessage: string;
+}) {
+  return (
+    <main className="auth-screen">
+      <section className="auth-card complete-card account-card">
+        <button className="ghost-icon-button back-floating" aria-label="이전 화면" onClick={onBack}>
+          <ArrowLeft size={20} />
+        </button>
+        <img src={logoAssets.startKo} alt="먹픽" className="complete-logo account-logo" />
+        <div className="auth-copy">
+          <h1>이메일 인증이 필요해요</h1>
+          <p>{email || "입력한 이메일"}로 보낸 인증 링크를 먼저 눌러주세요.</p>
+        </div>
+        <div className="preference-summary-list">
+          <SummaryLine label="다음 단계" values={["메일 인증", "이메일 로그인", "선호도 조사"]} emptyText="메일 인증" />
+        </div>
+        {errorMessage ? <p className="auth-error" role="alert">{errorMessage}</p> : null}
+        <button className="secondary-button" onClick={onBack}>
+          이메일 다시 입력
+        </button>
+        <button className="primary-button" onClick={onGoLogin}>
+          인증 후 로그인하기
+        </button>
+      </section>
+    </main>
+  );
+}
+
 function NicknameStep({
   nickname,
   credentials,
@@ -559,7 +611,7 @@ function NicknameStep({
   onChange: (value: string) => void;
   onCredentialsChange: (value: SignupCredentials) => void;
   onCheckNickname: (nickname: string) => Promise<boolean>;
-  onNext: () => void;
+  onNext: () => Promise<void>;
   isLoading: boolean;
   errorMessage: string;
 }) {
@@ -593,7 +645,7 @@ function NicknameStep({
     if (nicknameStatus !== "available" && !(await checkNickname())) {
       return;
     }
-    onNext();
+    await onNext();
   };
 
   return (
@@ -681,6 +733,8 @@ function OnboardingPickStep({
   onBack,
   onNext,
   nextLabel = "다음",
+  isLoading = false,
+  errorMessage = "",
   danger = false
 }: {
   step: string;
@@ -692,8 +746,10 @@ function OnboardingPickStep({
   onChange: (value: string[]) => void;
   onScoreChange?: (value: PreferenceScoreMap) => void;
   onBack: () => void;
-  onNext: () => void;
+  onNext: () => void | Promise<void>;
   nextLabel?: string;
+  isLoading?: boolean;
+  errorMessage?: string;
   danger?: boolean;
 }) {
   return (
@@ -709,10 +765,11 @@ function OnboardingPickStep({
           <PreferenceScoreControls items={items} selected={selected} scores={scores} onChange={onScoreChange} compact />
         ) : null}
         <div className="step-actions">
-          <button className="primary-button" onClick={onNext}>
-            {nextLabel === "완료" ? "선택완료" : "선택완료"}
+          {errorMessage ? <p className="auth-error" role="alert">{errorMessage}</p> : null}
+          <button className="primary-button" onClick={() => void onNext()} disabled={isLoading}>
+            {isLoading ? "저장 중" : nextLabel === "완료" ? "선택완료" : "선택완료"}
           </button>
-          <button className="skip-link" onClick={onNext}>아직 결정하지 못했어요</button>
+          <button className="skip-link" onClick={() => void onNext()} disabled={isLoading}>아직 결정하지 못했어요</button>
         </div>
       </section>
     </main>

@@ -27,14 +27,13 @@ export const authRepository = {
   },
 
   async signUpGuest(input: { email: string; password: string; nickname: string }) {
-    return createAuthClient().auth.signUp({
+    return supabaseAdmin.auth.admin.createUser({
       email: input.email,
       password: input.password,
-      options: {
-        data: {
-          nickname: input.nickname,
-          user_type: "GUEST"
-        }
+      email_confirm: true,
+      user_metadata: {
+        nickname: input.nickname,
+        user_type: "GUEST"
       }
     });
   },

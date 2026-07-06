@@ -4,6 +4,7 @@ export type Flow =
   | "start"
   | "login"
   | "signup-name"
+  | "signup-email-sent"
   | "signup-categories"
   | "signup-tags"
   | "signup-allergies"

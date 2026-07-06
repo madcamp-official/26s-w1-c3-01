@@ -453,15 +453,13 @@ export function MukpickApp() {
     void restoreSession();
   }, [applyRouteState, completeOAuthLogin, loadApiData, restoreMeetingDetail]);
 
-  const authenticateOnboarding = async (nextNickname: string) => {
-    const signupResponse = await authApi.signup({
+  const requestEmailSignup = async (nextNickname: string) => {
+    return authApi.signup({
       email: signupCredentials.email.trim(),
       password: signupCredentials.password,
       nickname: nextNickname.trim() || "밥",
       userType: "USER"
     });
-    persistAccessToken(signupResponse);
-    return signupCredentials.email.trim();
   };
 
   const handleLogin = async () => {
@@ -476,10 +474,19 @@ export function MukpickApp() {
       persistAccessToken(loginResponse);
       sessionStorageMeta.set({ isGuest: false });
       setIsGuestSession(false);
-      await loadApiData();
-      setFlow("app");
-      await applyRouteState(readAppRoute(), { restoreStoredFallback: true });
-      showToast("로그인했습니다.");
+      const preferences = await preferencesApi.getMine().catch(() => null);
+      const hasPreferences = hasPreferenceRows(preferences);
+      await loadApiData({ syncPreferences: hasPreferences });
+
+      if (hasPreferences) {
+        setFlow("app");
+        await applyRouteState(readAppRoute(), { restoreStoredFallback: true });
+        showToast("로그인했습니다.");
+      } else {
+        setFlow("signup-categories");
+        setApiStatus("ready");
+        showToast("이메일 인증이 완료되었습니다. 선호도를 설정해주세요.");
+      }
     } catch (error) {
       const message = errorMessage(error);
       setApiStatus("error");
@@ -504,6 +511,46 @@ export function MukpickApp() {
       setApiStatus("error");
       setAuthError(errorMessage(error));
       return false;
+    }
+  };
+
+  const handleCreateEmailSignup = async () => {
+    setAuthBusy(true);
+    setAuthError("");
+    setApiStatus("authenticating");
+    try {
+      if (!signupCredentials.email.trim() || signupCredentials.password.length < 6) {
+        throw new Error("이메일과 6자 이상 비밀번호를 입력해주세요.");
+      }
+      if (signupCredentials.password !== signupCredentials.passwordConfirm) {
+        throw new Error("비밀번호 확인이 일치하지 않습니다.");
+      }
+      if (!(await handleCheckNickname(nickname))) return;
+
+      const signupResponse = await requestEmailSignup(nickname);
+      setProfileName(nickname.trim() || "밥");
+      setIsGuestSession(false);
+      sessionStorageMeta.set({ isGuest: false });
+
+      if (signupResponse.accessToken) {
+        persistAccessToken(signupResponse);
+        await loadApiData({ syncPreferences: false });
+        setFlow("signup-categories");
+        setApiStatus("ready");
+        showToast("선호도 설정을 계속해주세요.");
+        return;
+      }
+
+      setFlow("signup-email-sent");
+      setApiStatus("ready");
+      showToast("인증 메일을 보냈습니다. 이메일 인증 후 로그인해주세요.");
+    } catch (error) {
+      const message = errorMessage(error);
+      setApiStatus("error");
+      setAuthError(message);
+      setApiError(message);
+    } finally {
+      setAuthBusy(false);
     }
   };
 
@@ -534,14 +581,7 @@ export function MukpickApp() {
           userType: "PERSONAL"
         });
       } else {
-        if (!signupCredentials.email.trim() || signupCredentials.password.length < 6) {
-          throw new Error("이메일과 6자 이상 비밀번호를 입력해주세요.");
-        }
-        if (signupCredentials.password !== signupCredentials.passwordConfirm) {
-          throw new Error("비밀번호 확인이 일치하지 않습니다.");
-        }
-        if (!(await handleCheckNickname(nickname))) return;
-        await authenticateOnboarding(nickname);
+        throw new Error("이메일 인증 후 로그인하면 선호도 저장을 계속할 수 있습니다.");
       }
       sessionStorageMeta.set({ isGuest: false });
       setProfileName(nickname.trim() || "밥");
@@ -988,6 +1028,7 @@ export function MukpickApp() {
         onOAuthStart={handleOAuthStart}
         onLogin={handleLogin}
         onCheckNickname={handleCheckNickname}
+        onCreateEmailSignup={handleCreateEmailSignup}
         onCompleteSignup={handleSignupComplete}
         onCompleteGuestPreferences={handleGuestPreferenceComplete}
         onPreviewGuestMeeting={handlePreviewGuestMeeting}
