@@ -48,6 +48,8 @@ type AppScreensProps = {
   tagScores: PreferenceScoreMap;
   recentDuplicateDays: number;
   newMenuIncluded: boolean;
+  budgetMin: number | null;
+  budgetMax: number | null;
   recommendationItems: DisplayRecommendation[];
   personalRecommendationReady: boolean;
   selectedPersonalRecommendation: DisplayRecommendation | null;
@@ -72,13 +74,24 @@ type AppScreensProps = {
   setTagScores: (value: PreferenceScoreMap) => void;
   setRecentDuplicateDays: (value: number) => void;
   setNewMenuIncluded: (value: boolean) => void;
+  setBudgetMin: (value: number | null) => void;
+  setBudgetMax: (value: number | null) => void;
   setSelectedPersonalRecommendation: (value: DisplayRecommendation | null) => void;
   setMeetingDialogOpen: (value: boolean) => void;
   setSelectedMeeting: (value: DisplayMeeting | null) => void;
   setSelectedMeetingRecommendation: (value: DisplayRecommendation | null) => void;
   setExcludedMeetingUserIds: (value: number[]) => void;
   handlePreferenceSave: () => Promise<void>;
-  handleRecommendationRefresh: (value: { recentDuplicateDays: number; includeNewMenu: boolean }) => Promise<void>;
+  handleRecommendationRefresh: (value: {
+    recentDuplicateDays: number;
+    includeNewMenu: boolean;
+    budgetMin: number | null;
+    budgetMax: number | null;
+  }) => Promise<void>;
+  handlePersonalRecommendationFeedback: (
+    item: DisplayRecommendation,
+    interactionType: "like" | "dislike" | "bookmark"
+  ) => Promise<void>;
   handleConfirmPersonalRecommendation: () => Promise<void>;
   handleOpenMeeting: (meeting: DisplayMeeting) => Promise<void>;
   handleCreateMeetingRecommendation: (meetingId: number, participantUserIds?: number[]) => Promise<void>;
@@ -105,6 +118,8 @@ export function AppScreens({
   tagScores,
   recentDuplicateDays,
   newMenuIncluded,
+  budgetMin,
+  budgetMax,
   recommendationItems,
   personalRecommendationReady,
   selectedPersonalRecommendation,
@@ -129,6 +144,8 @@ export function AppScreens({
   setTagScores,
   setRecentDuplicateDays,
   setNewMenuIncluded,
+  setBudgetMin,
+  setBudgetMax,
   setSelectedPersonalRecommendation,
   setMeetingDialogOpen,
   setSelectedMeeting,
@@ -136,6 +153,7 @@ export function AppScreens({
   setExcludedMeetingUserIds,
   handlePreferenceSave,
   handleRecommendationRefresh,
+  handlePersonalRecommendationFeedback,
   handleConfirmPersonalRecommendation,
   handleOpenMeeting,
   handleCreateMeetingRecommendation,
@@ -192,12 +210,17 @@ export function AppScreens({
               setNewMenuIncluded={setNewMenuIncluded}
               recentDuplicateDays={recentDuplicateDays}
               setRecentDuplicateDays={setRecentDuplicateDays}
+              budgetMin={budgetMin}
+              budgetMax={budgetMax}
+              setBudgetMin={setBudgetMin}
+              setBudgetMax={setBudgetMax}
               recommendationsData={recommendationItems}
               hasResults={personalRecommendationReady}
               isLoading={apiStatus === "loading"}
               onRefresh={handleRecommendationRefresh}
               selectedItem={selectedPersonalRecommendation}
               onSelectItem={setSelectedPersonalRecommendation}
+              onFeedback={handlePersonalRecommendationFeedback}
               onConfirmSelection={handleConfirmPersonalRecommendation}
             />
           ) : null}

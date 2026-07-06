@@ -1915,6 +1915,22 @@ body.modal-open {
   word-break: keep-all;
 }
 
+.score-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.score-breakdown span {
+  border-radius: 999px;
+  padding: 5px 7px;
+  color: #7a5b45;
+  background: #fff8f0;
+  font-size: 11px;
+  font-weight: 900;
+}
+
 .tag-row {
   display: flex;
   flex-wrap: wrap;
@@ -1938,6 +1954,17 @@ body.modal-open {
 
 .tag-row button:disabled {
   opacity: 0.5;
+}
+
+.feedback-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.feedback-actions button {
+  color: var(--orange-dark);
+  background: #fff3e8;
 }
 
 .final-choice-bar {
