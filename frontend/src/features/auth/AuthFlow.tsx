@@ -541,20 +541,41 @@ function GuestJoinMeetingScreen({
 
 function NicknameStep({
   nickname,
+  credentials,
   onBack,
   onChange,
-  onNext
+  onCredentialsChange,
+  onCheckNickname,
+  onNext,
+  isLoading,
+  errorMessage
 }: {
   nickname: string;
+  credentials: SignupCredentials;
   onBack: () => void;
   onChange: (value: string) => void;
+  onCredentialsChange: (value: SignupCredentials) => void;
+  onCheckNickname: (nickname: string) => Promise<boolean>;
   onNext: () => void;
+  isLoading: boolean;
+  errorMessage: string;
 }) {
+  const [localError, setLocalError] = useState("");
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (nickname.trim()) {
-      onNext();
+    setLocalError("");
+    if (credentials.password !== credentials.passwordConfirm) {
+      setLocalError("비밀번호 확인이 일치하지 않습니다.");
+      return;
     }
+    void onCheckNickname(nickname).then((available) => {
+      if (!available) {
+        setLocalError("이미 사용 중인 닉네임입니다.");
+        return;
+      }
+      onNext();
+    });
   };
 
   return (
@@ -566,13 +587,52 @@ function NicknameStep({
         <img src={logoAssets.startKo} alt="먹픽" className="nickname-logo" />
         <form className="nickname-form" onSubmit={handleSubmit}>
           <label className="text-field">
+            <span>이메일</span>
+            <input
+              type="email"
+              value={credentials.email}
+              onChange={(event) => onCredentialsChange({ ...credentials, email: event.target.value })}
+              placeholder="email@example.com"
+              autoComplete="email"
+              required
+            />
+          </label>
+          <label className="text-field">
+            <span>비밀번호</span>
+            <input
+              type="password"
+              value={credentials.password}
+              onChange={(event) => onCredentialsChange({ ...credentials, password: event.target.value })}
+              autoComplete="new-password"
+              minLength={6}
+              required
+            />
+          </label>
+          <label className="text-field">
+            <span>비밀번호 확인</span>
+            <input
+              type="password"
+              value={credentials.passwordConfirm}
+              onChange={(event) => onCredentialsChange({ ...credentials, passwordConfirm: event.target.value })}
+              autoComplete="new-password"
+              minLength={6}
+              required
+            />
+          </label>
+          <label className="text-field">
             <div>
               <UserRound size={18} />
               <input value={nickname} onChange={(event) => onChange(event.target.value)} placeholder="nickname" />
             </div>
             <span>닉네임을 설정해주세요</span>
           </label>
-          <button className="inline-next" type="submit" disabled={!nickname.trim()} aria-label="닉네임 다음">
+          {localError || errorMessage ? <p className="auth-error" role="alert">{localError || errorMessage}</p> : null}
+          <button
+            className="inline-next"
+            type="submit"
+            disabled={isLoading || !nickname.trim() || !credentials.email.trim() || !credentials.password || !credentials.passwordConfirm}
+            aria-label="닉네임 다음"
+          >
             <ChevronRight size={18} />
           </button>
         </form>

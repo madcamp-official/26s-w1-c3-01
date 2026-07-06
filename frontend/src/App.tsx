@@ -36,7 +36,7 @@ import {
   type RemoteMenu,
   type UserOption
 } from "./domain/appModel";
-import { AuthFlow } from "./features/auth/AuthFlow";
+import { AuthFlow, type LoginCredentials, type SignupCredentials } from "./features/auth/AuthFlow";
 import { HomeView } from "./features/home/HomeView";
 import { HistoryView } from "./features/mealHistory/HistoryView";
 import type { MealHistoryFormValue } from "./features/mealHistory/MealHistoryDialog";
@@ -52,6 +52,8 @@ export function App() {
   const [flow, setFlow] = useState<Flow>("start");
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [nickname, setNickname] = useState("");
+  const [signupCredentials, setSignupCredentials] = useState<SignupCredentials>({ email: "", password: "", passwordConfirm: "" });
+  const [loginCredentials, setLoginCredentials] = useState<LoginCredentials>({ email: "", password: "" });
   const [guestDisplayName, setGuestDisplayName] = useState("");
   const [guestMeetingId, setGuestMeetingId] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>(["korean", "japanese"]);
@@ -298,10 +300,14 @@ export function App() {
   }, [completeOAuthLogin, loadApiData]);
 
   const authenticateOnboarding = async (nextNickname: string) => {
-    const email = `mukpick-${slugifyNickname(nextNickname)}-${Date.now()}@example.com`;
+    const email = signupCredentials.email.trim() || `mukpick-${slugifyNickname(nextNickname)}-${Date.now()}@example.com`;
+    const password = signupCredentials.password || DEV_AUTH_PASSWORD;
+    if (signupCredentials.password && signupCredentials.password !== signupCredentials.passwordConfirm) {
+      throw new Error("비밀번호 확인이 일치하지 않습니다.");
+    }
     const signupResponse = await authApi.signup({
       email,
-      password: DEV_AUTH_PASSWORD,
+      password,
       nickname: nextNickname.trim() || "밥",
       userType: "USER"
     });
@@ -309,10 +315,38 @@ export function App() {
       persistAccessToken(signupResponse);
       return email;
     }
-    const loginResponse = await authApi.login({ email, password: DEV_AUTH_PASSWORD });
+    const loginResponse = await authApi.login({ email, password });
     persistAccessToken(loginResponse);
     return email;
   };
+
+  const handleLogin = async () => {
+    setAuthBusy(true);
+    setAuthError("");
+    setApiStatus("authenticating");
+    try {
+      const loginResponse = await authApi.login({
+        email: loginCredentials.email.trim(),
+        password: loginCredentials.password
+      });
+      persistAccessToken(loginResponse);
+      sessionStorageMeta.set({ isGuest: false });
+      setIsGuestSession(false);
+      await loadApiData();
+      setFlow("app");
+      setActiveTab("home");
+      showToast("로그인했습니다.");
+    } catch (error) {
+      const message = errorMessage(error);
+      setApiStatus("error");
+      setAuthError(message);
+      setApiError(message);
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const handleCheckNickname = async () => true;
 
   const handleOAuthStart = (provider: OAuthProvider) => {
     setAuthBusy(true);
@@ -669,6 +703,8 @@ export function App() {
       <AuthFlow
         flow={flow}
         nickname={nickname}
+        signupCredentials={signupCredentials}
+        loginCredentials={loginCredentials}
         selectedCategories={selectedCategories}
         selectedTags={selectedTags}
         selectedAllergies={selectedAllergies}
@@ -677,6 +713,8 @@ export function App() {
         recentDuplicateDays={recentDuplicateDays}
         onFlowChange={setFlow}
         onNicknameChange={setNickname}
+        onSignupCredentialsChange={setSignupCredentials}
+        onLoginCredentialsChange={setLoginCredentials}
         onSelectedCategoriesChange={setSelectedCategories}
         onSelectedTagsChange={setSelectedTags}
         onSelectedAllergiesChange={setSelectedAllergies}
@@ -692,6 +730,8 @@ export function App() {
         authBusy={authBusy || apiStatus === "loading"}
         authError={authError}
         onOAuthStart={handleOAuthStart}
+        onLogin={handleLogin}
+        onCheckNickname={handleCheckNickname}
         onCompleteSignup={handleSignupComplete}
         onCompleteGuestPreferences={handleGuestPreferenceComplete}
         onPreviewGuestMeeting={handlePreviewGuestMeeting}
