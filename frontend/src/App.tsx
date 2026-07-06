@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent, type MouseEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -7,7 +7,6 @@ import {
   ChevronRight,
   Clock,
   Home,
-  MapPin,
   Plus,
   SlidersHorizontal,
   Sparkles,
@@ -46,7 +45,6 @@ import {
   selectedIdsFromPreferenceRows,
   type DisplayHistory,
   type DisplayMeeting,
-  type DisplayMember,
   type DisplayRecommendation,
   type MeetingPurpose,
   type PickData,
@@ -55,6 +53,8 @@ import {
   type RemoteMenu,
   type UserOption
 } from "./domain/appModel";
+import { MeetingCreateDialog, type MeetingFormValue } from "./features/meetings/MeetingCreateDialog";
+import { MeetingView } from "./features/meetings/MeetingView";
 import { RecommendationList } from "./features/recommendations/RecommendationList";
 import { sessionStorageMeta, tokenStorage } from "./utils/storage";
 
@@ -79,13 +79,6 @@ type MealHistoryFormValue = {
   rating: number;
   memo: string;
 };
-type MeetingFormValue = {
-  title: string;
-  meetingTime: string;
-  place: string;
-  meetingPurposeId: number;
-  participantUserIds: number[];
-};
 
 const navItems: Array<{ id: "meeting" | "home" | "profile"; label: string; icon: typeof Home }> = [
   { id: "meeting", label: "모임", icon: Users },
@@ -94,14 +87,6 @@ const navItems: Array<{ id: "meeting" | "home" | "profile"; label: string; icon:
 ];
 
 const DEV_AUTH_PASSWORD = "Mukpick-dev-2026!";
-
-function defaultDateTimeLocal() {
-  const date = new Date();
-  date.setDate(date.getDate() + 1);
-  date.setHours(12, 30, 0, 0);
-  const offsetMs = date.getTimezoneOffset() * 60 * 1000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
-}
 
 function slugifyNickname(value: string) {
   const slug = value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -1832,380 +1817,6 @@ function PersonalView({
         />
       )}
     </section>
-  );
-}
-
-function MeetingView({
-  meetingsData,
-  selectedMeeting,
-  meetingRecommendations,
-  selectedRecommendation,
-  excludedUserIds,
-  onCreateMeeting,
-  onOpenMeeting,
-  onCloseMeeting,
-  onCreateRecommendation,
-  onDecideMenu,
-  onSelectRecommendation,
-  onExcludedUserIdsChange,
-  onJoinMeeting,
-  onLogout,
-  isLoading,
-  currentUserName,
-  isGuestSession
-}: {
-  meetingsData: DisplayMeeting[];
-  selectedMeeting: DisplayMeeting | null;
-  meetingRecommendations: DisplayRecommendation[];
-  selectedRecommendation: DisplayRecommendation | null;
-  excludedUserIds: number[];
-  onCreateMeeting: () => void;
-  onOpenMeeting: (meeting: DisplayMeeting) => void;
-  onCloseMeeting: () => void;
-  onCreateRecommendation: (meetingId: number, participantUserIds?: number[]) => void;
-  onDecideMenu: (meetingId: number, item: DisplayRecommendation) => void;
-  onSelectRecommendation: (item: DisplayRecommendation) => void;
-  onExcludedUserIdsChange: (userIds: number[]) => void;
-  onJoinMeeting: (meetingId: string, displayName: string) => Promise<void>;
-  onLogout: () => Promise<void>;
-  isLoading: boolean;
-  currentUserName: string;
-  isGuestSession: boolean;
-}) {
-  if (selectedMeeting) {
-    const isDecided = selectedMeeting.status === "DECIDED" || selectedMeeting.status === "CLOSED";
-    const includedUserIds = selectedMeeting.members
-      .map((member) => member.userId)
-      .filter((userId): userId is number => typeof userId === "number" && !excludedUserIds.includes(userId));
-    const toggleMember = (member: DisplayMember) => {
-      if (isDecided || typeof member.userId !== "number") return;
-      onExcludedUserIdsChange(
-        excludedUserIds.includes(member.userId)
-          ? excludedUserIds.filter((userId) => userId !== member.userId)
-          : [...excludedUserIds, member.userId]
-      );
-    };
-    return (
-      <section className={`screen meeting-detail-screen ${isGuestSession ? "guest-meeting-detail" : ""}`}>
-        {!isGuestSession ? (
-          <button className="back-row-button" onClick={onCloseMeeting}>
-            <ArrowLeft size={17} />
-            모임 목록
-          </button>
-        ) : (
-          <button className="back-row-button" onClick={onLogout}>
-            <ArrowLeft size={17} />
-            나가기
-          </button>
-        )}
-        <ScreenTitle title={selectedMeeting.title} description="참여자 정보와 이 모임의 추천 결과를 확인합니다." />
-        <section className="section-block meeting-detail-card">
-          <div className="meeting-topline">
-            <strong>{statusLabel(selectedMeeting.status)}</strong>
-            <span>{isDecided ? "완료된 모임" : "진행 중"}</span>
-          </div>
-          {selectedMeeting.id ? <MeetingIdRow meetingId={selectedMeeting.id} /> : null}
-          <div className="meeting-meta">
-            <span><Clock size={15} />{selectedMeeting.time}</span>
-            <span><MapPin size={15} />{selectedMeeting.place}</span>
-          </div>
-          <div className="member-row selectable-members" aria-label="추천 계산에 포함할 구성원">
-            {selectedMeeting.members.map((member) => (
-              <button
-                type="button"
-                key={`${member.userId ?? "member"}-${member.name}`}
-                className={typeof member.userId === "number" && excludedUserIds.includes(member.userId) ? "excluded" : ""}
-                onClick={() => toggleMember(member)}
-                disabled={isDecided || typeof member.userId !== "number"}
-                aria-pressed={typeof member.userId === "number" && !excludedUserIds.includes(member.userId)}
-              >
-                {member.name}
-              </button>
-            ))}
-          </div>
-        </section>
-        <section className="section-block group-result">
-          <div className="section-heading">
-            <h3>이 모임의 추천 메뉴</h3>
-            {selectedMeeting.id && !isDecided ? (
-              <button
-                onClick={() => onCreateRecommendation(selectedMeeting.id!, includedUserIds)}
-                disabled={isLoading || includedUserIds.length === 0}
-              >
-                {meetingRecommendations.length ? "다시 계산" : "추천 계산"}
-              </button>
-            ) : null}
-          </div>
-          <div className="meeting-recommendation-scroll">
-            <RecommendationList
-              compact
-              items={meetingRecommendations}
-              emptyMessage="아직 이 모임의 추천 결과가 없습니다."
-              selectedMenuId={selectedRecommendation?.menuId}
-              onSelect={isDecided || isGuestSession ? undefined : onSelectRecommendation}
-            />
-          </div>
-          {meetingRecommendations.length && !isGuestSession ? (
-            <div className="final-choice-bar">
-              <div>
-                <span>최종 선택</span>
-                <strong>{selectedRecommendation?.menu ?? "추천 메뉴를 하나 선택해 주세요"}</strong>
-              </div>
-              <button
-                className="primary-button"
-                onClick={() => selectedMeeting.id && selectedRecommendation && onDecideMenu(selectedMeeting.id, selectedRecommendation)}
-                disabled={isDecided || !selectedRecommendation?.menuId || isLoading}
-              >
-                {isLoading ? "저장 중" : "선택 확정"}
-              </button>
-            </div>
-          ) : null}
-          {meetingRecommendations.length && isGuestSession ? (
-            <div className="guest-confirm-note">게스트는 추천 결과 확인만 가능하며 메뉴 확정은 모임 생성자가 진행합니다.</div>
-          ) : null}
-        </section>
-      </section>
-    );
-  }
-
-  return (
-    <section className="screen">
-      <ScreenTitle title="모임 추천" description="참여자 조건을 모아 모두가 수용하기 쉬운 메뉴를 찾습니다." />
-      <button className="create-meeting" onClick={onCreateMeeting}>
-        <Plus size={19} />
-        새 모임 만들기
-      </button>
-      <JoinMeetingPanel
-        currentUserName={currentUserName}
-        isGuestSession={isGuestSession}
-        isLoading={isLoading}
-        onJoinMeeting={onJoinMeeting}
-      />
-      {meetingsData.length ? (
-        <div className="meeting-list">
-          {meetingsData.map((meeting) => (
-          <button
-            className={`meeting-card meeting-card-button ${isMeetingDone(meeting.status) ? "done" : ""}`}
-            key={meeting.id ?? meeting.title}
-            onClick={() => onOpenMeeting(meeting)}
-          >
-            <div className="meeting-topline">
-              <strong>{meeting.title}</strong>
-              <span>{statusLabel(meeting.status)}</span>
-            </div>
-            {meeting.id ? <MeetingIdRow meetingId={meeting.id} compact /> : null}
-            <div className="meeting-meta">
-              <span>
-                <Clock size={15} />
-                {meeting.time}
-              </span>
-              <span>
-                <MapPin size={15} />
-                {meeting.place}
-              </span>
-            </div>
-            <div className="member-row">
-              {meeting.members.map((member) => (
-                <span key={`${member.userId ?? "member"}-${member.name}`}>{member.name}</span>
-              ))}
-            </div>
-          </button>
-          ))}
-        </div>
-      ) : (
-        <EmptyState title="생성된 모임이 없습니다" description="모임 목록 API가 아직 빈 목록을 반환했습니다." />
-      )}
-    </section>
-  );
-}
-
-function MeetingIdRow({ meetingId, compact = false }: { meetingId: number; compact?: boolean }) {
-  const copyMeetingId = (event: MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-    void navigator.clipboard?.writeText(String(meetingId));
-  };
-
-  return (
-    <div className={`meeting-id-row ${compact ? "compact" : ""}`}>
-      <span>모임 ID {meetingId}</span>
-      <button type="button" onClick={copyMeetingId}>복사</button>
-    </div>
-  );
-}
-
-function JoinMeetingPanel({
-  currentUserName,
-  isGuestSession,
-  isLoading,
-  onJoinMeeting
-}: {
-  currentUserName: string;
-  isGuestSession: boolean;
-  isLoading: boolean;
-  onJoinMeeting: (meetingId: string, displayName: string) => Promise<void>;
-}) {
-  const [meetingId, setMeetingId] = useState("");
-  const [displayName, setDisplayName] = useState(currentUserName);
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    onJoinMeeting(meetingId, displayName || currentUserName);
-  };
-
-  return (
-    <form className="join-meeting-panel" onSubmit={handleSubmit}>
-      <div>
-        <strong>모임 ID로 참여</strong>
-        <span>{isGuestSession ? "게스트 표시 이름으로 참여합니다." : "초대받은 ID를 입력하면 목록에 추가됩니다."}</span>
-      </div>
-      <label className="text-field">
-        <span>모임 ID</span>
-        <input
-          inputMode="numeric"
-          pattern="[0-9]*"
-          value={meetingId}
-          onChange={(event) => setMeetingId(event.target.value)}
-          placeholder="예: 12"
-        />
-      </label>
-      <label className="text-field">
-        <span>표시 이름</span>
-        <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} maxLength={50} />
-      </label>
-      <button className="secondary-button" type="submit" disabled={isLoading || !meetingId.trim() || !displayName.trim()}>
-        참여하기
-      </button>
-    </form>
-  );
-}
-
-function statusLabel(status: string) {
-  const labels: Record<string, string> = {
-    CREATED: "생성됨",
-    COLLECTING: "참여자 입력 중",
-    RECOMMENDED: "추천 완료",
-    DECIDED: "메뉴 확정",
-    CLOSED: "종료"
-  };
-  return labels[status] ?? status;
-}
-
-function isMeetingDone(status: string) {
-  return status === "DECIDED" || status === "CLOSED";
-}
-
-function MeetingCreateDialog({
-  open,
-  onClose,
-  onCreate,
-  isSaving,
-  meetingPurposes,
-  users,
-  currentUserName
-}: {
-  open: boolean;
-  onClose: () => void;
-  onCreate: (meeting: MeetingFormValue) => Promise<void>;
-  isSaving: boolean;
-  meetingPurposes: MeetingPurpose[];
-  users: UserOption[];
-  currentUserName: string;
-}) {
-  const [title, setTitle] = useState("새 점심 모임");
-  const [meetingTime, setMeetingTime] = useState(defaultDateTimeLocal());
-  const [place, setPlace] = useState("대전 유성구");
-  const [purposeId, setPurposeId] = useState("");
-  const [participantUserIds, setParticipantUserIds] = useState<number[]>([]);
-
-  if (!open) {
-    return null;
-  }
-
-  const purposeOptions = meetingPurposes.length ? meetingPurposes : [{ id: 1, name: "식사" }];
-  const selectedPurposeId = Number(purposeId || purposeOptions[0]?.id || 1);
-  const toggleParticipant = (userId: number) => {
-    setParticipantUserIds((current) =>
-      current.includes(userId) ? current.filter((id) => id !== userId) : [...current, userId]
-    );
-  };
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    onCreate({
-      title: title.trim() || "새 모임",
-      meetingTime,
-      place: place.trim() || "장소 미정",
-      meetingPurposeId: selectedPurposeId,
-      participantUserIds
-    });
-  };
-
-  return (
-    <div className="modal-backdrop" role="presentation">
-      <section className="meeting-dialog" role="dialog" aria-modal="true" aria-labelledby="meeting-dialog-title">
-        <div className="dialog-heading">
-          <div>
-            <p>MEETING</p>
-            <h2 id="meeting-dialog-title">새 모임 만들기</h2>
-          </div>
-          <button className="ghost-icon-button" aria-label="모임 만들기 닫기" onClick={onClose}>
-            <X size={20} />
-          </button>
-        </div>
-        <form className="dialog-form" onSubmit={handleSubmit}>
-          <label className="text-field">
-            <span>모임 이름</span>
-            <input value={title} onChange={(event) => setTitle(event.target.value)} />
-          </label>
-          <label className="text-field">
-            <span>시간</span>
-            <input type="datetime-local" value={meetingTime} onChange={(event) => setMeetingTime(event.target.value)} required />
-          </label>
-          <label className="text-field">
-            <span>모임 목적</span>
-            <select value={String(selectedPurposeId)} onChange={(event) => setPurposeId(event.target.value)}>
-              {purposeOptions.map((purpose) => (
-                <option key={purpose.id} value={String(purpose.id)}>
-                  {purpose.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-field">
-            <span>장소</span>
-            <input value={place} onChange={(event) => setPlace(event.target.value)} />
-          </label>
-          <section className="participant-picker" aria-label="참여자 선택">
-            <div className="participant-picker-heading">
-              <span>참여자</span>
-              <small>나: {currentUserName}</small>
-            </div>
-            <div className="participant-options">
-              {users.length ? (
-                users.map((user) => (
-                  <button
-                    type="button"
-                    key={user.userId}
-                    className={`participant-option ${participantUserIds.includes(user.userId) ? "selected" : ""}`}
-                    onClick={() => toggleParticipant(user.userId)}
-                    aria-pressed={participantUserIds.includes(user.userId)}
-                  >
-                    <UserRound size={15} />
-                    <span>{user.nickname}</span>
-                  </button>
-                ))
-              ) : (
-                <small className="participant-empty">사용자 목록 API에 표시할 계정이 없습니다.</small>
-              )}
-            </div>
-          </section>
-          <button className="primary-button" type="submit" disabled={isSaving}>
-            <Plus size={18} />
-            {isSaving ? "API 저장 중" : "모임 추가"}
-          </button>
-        </form>
-      </section>
-    </div>
   );
 }
 
