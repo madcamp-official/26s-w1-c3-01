@@ -26,9 +26,13 @@ VITE_API_BASE_URL + path
 
 ```text
 VITE_API_BASE_URL=https://{backend-domain}/api/v1
+VITE_SUPABASE_URL=https://{project-ref}.supabase.co
+VITE_SUPABASE_ANON_KEY={supabase-anon-or-publishable-key}
 ```
 
 이 값이 없고 같은 도메인에 backend가 없다면 `/api/v1` 요청이 HTML 문서를 반환할 수 있다. 프론트는 이 경우 JSON 파싱 에러 대신 API 서버 설정 문제로 안내한다.
+
+`VITE_SUPABASE_ANON_KEY`는 브라우저에서 사용하는 공개 anon/publishable key다. `service_role` key는 절대 프론트 환경변수에 넣지 않는다.
 
 ## 4. API 응답 포맷
 
@@ -84,6 +88,7 @@ type SessionMeta = {
 | 파일 | 책임 |
 |---|---|
 | `auth.api.ts` | signup, login, refresh, nickname availability, guest, logout |
+| `oauth.api.ts` | Supabase SDK 기반 Kakao/Google OAuth 시작, callback token parsing |
 | `users.api.ts` | 내 정보, 사용자 목록, 프로필 수정 |
 | `masterData.api.ts` | 메뉴, 카테고리, 태그, 알러지, 모임 목적 |
 | `preferences.api.ts` | 내 선호도 조회/저장 |

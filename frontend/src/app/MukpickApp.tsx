@@ -558,15 +558,13 @@ export function MukpickApp() {
     setAuthBusy(true);
     setAuthError("");
     setApiStatus("authenticating");
-    try {
-      startOAuthLogin(provider);
-    } catch (error) {
+    void startOAuthLogin(provider).catch((error) => {
       const message = errorMessage(error);
       setApiStatus("error");
       setAuthError(message);
       setApiError(message);
       setAuthBusy(false);
-    }
+    });
   };
 
   const handleSignupComplete = async () => {

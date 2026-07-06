@@ -115,7 +115,9 @@ start
 -> app/home
 ```
 
-기존 회원은 이메일/비밀번호 로그인 또는 Kakao/Google OAuth로 진입한다. OAuth는 Supabase provider, redirect allowlist, Kakao/Google developer console 설정이 배포 URL과 일치해야 실제 성공한다.
+기존 회원은 이메일/비밀번호 로그인 또는 Kakao/Google OAuth로 진입한다. OAuth 시작은 `@supabase/supabase-js`의 `signInWithOAuth()`를 사용한다.
+
+OAuth는 Supabase provider, Supabase Redirect URLs allowlist, Kakao/Google developer console 설정이 배포 URL과 일치해야 실제 성공한다. Kakao/Google 개발자 콘솔에는 프론트 URL이 아니라 Supabase callback URL인 `https://{project-ref}.supabase.co/auth/v1/callback`을 OAuth redirect URI로 등록한다.
 
 ### 7.3 게스트 모임 참여
 

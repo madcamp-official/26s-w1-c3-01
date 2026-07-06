@@ -52,8 +52,8 @@
 
 ## 3. 인증, 회원가입, 로그아웃
 
-- [x] Kakao OAuth 시작 버튼과 Supabase OAuth authorize URL 생성 코드가 있다.
-- [x] Google OAuth 시작 버튼과 Supabase OAuth authorize URL 생성 코드가 있다.
+- [x] Kakao OAuth 시작 버튼과 Supabase SDK `signInWithOAuth()` 호출 코드가 있다.
+- [x] Google OAuth 시작 버튼과 Supabase SDK `signInWithOAuth()` 호출 코드가 있다.
 - [x] OAuth callback URL fragment에서 `access_token`, `refresh_token`, `expires_at`을 읽고 localStorage에 저장하는 코드가 있다.
 - [x] 일반 회원가입은 이메일, 비밀번호, 닉네임 입력 form을 사용한다.
 - [x] 이메일/비밀번호 로그인 form이 모바일 시작 화면에서 진입 가능하다.
@@ -189,7 +189,7 @@
 - [x] 프론트는 Vercel 등 정적 배포 환경에서 열릴 수 있는 React/Vite 구조다.
 - [x] frontend-only 배포 시 backend base URL을 환경변수로 지정해야 한다는 기준이 문서화되어 있다.
 - [x] Kakao OAuth는 Kakao Developers의 Redirect URI, Web domain, Supabase callback URL 설정이 배포 URL과 일치해야 성공한다.
-- [x] Google OAuth는 Google Cloud OAuth client와 Supabase provider 설정이 배포 URL과 일치해야 성공한다.
+- [x] Google OAuth는 Google Cloud OAuth client와 Supabase provider 설정, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`가 배포 환경에 있어야 성공한다.
 - [x] Supabase Auth provider 설정과 redirect allowlist는 dashboard 배포 체크리스트로 관리한다.
 - [△] frontend와 backend를 한 Vercel 프로젝트의 Services로 같이 배포할지, frontend만 배포하고 backend를 별도 배포할지 최종 배포 전략은 아직 프로젝트 설정에 따라 달라진다.
 

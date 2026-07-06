@@ -1,4 +1,4 @@
-import { SUPABASE_URL } from "../assets";
+import { assertSupabaseAuthConfigured, supabase } from "../lib/supabase";
 
 export type OAuthProvider = "kakao" | "google";
 
@@ -7,12 +7,17 @@ type OAuthCallbackResult =
   | { type: "error"; message: string }
   | { type: "none" };
 
-export function startOAuthLogin(provider: OAuthProvider) {
+export async function startOAuthLogin(provider: OAuthProvider) {
+  assertSupabaseAuthConfigured();
   const redirectTo = `${window.location.origin}${window.location.pathname}`;
-  const authUrl = new URL(`${SUPABASE_URL}/auth/v1/authorize`);
-  authUrl.searchParams.set("provider", provider);
-  authUrl.searchParams.set("redirect_to", redirectTo);
-  window.location.assign(authUrl.toString());
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo
+    }
+  });
+
+  if (error) throw error;
 }
 
 export function readOAuthCallback(): OAuthCallbackResult {
