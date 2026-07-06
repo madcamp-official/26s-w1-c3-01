@@ -16,11 +16,16 @@ export const recommendationRepository = {
       userCategoryPreferences,
       userTagPreferences,
       userAllergies,
-      mealHistory
+      mealHistory,
+      allMealRatings,
+      reviews,
+      userPreference,
+      userMenuInteractions,
+      allMenuInteractions
     ] = await Promise.all([
       supabaseAdmin
         .from("menus")
-        .select("menu_id, category_id, name, description, spicy_level, price_level, calorie")
+        .select("menu_id, category_id, name, description, spicy_level, price_level, calorie, menu_categories(category_id, name)")
         .order("menu_id"),
 
       supabaseAdmin
@@ -60,7 +65,31 @@ export const recommendationRepository = {
         .from("meal_history")
         .select("menu_id, rating, eaten_at")
         .eq("user_id", userId)
-        .order("eaten_at", { ascending: false })
+        .order("eaten_at", { ascending: false }),
+
+      supabaseAdmin
+        .from("meal_history")
+        .select("menu_id, rating, eaten_at")
+        .not("rating", "is", null),
+
+      supabaseAdmin
+        .from("reviews")
+        .select("menu_id, rating"),
+
+      supabaseAdmin
+        .from("user_preferences")
+        .select("budget_min, budget_max")
+        .eq("user_id", userId)
+        .maybeSingle(),
+
+      supabaseAdmin
+        .from("user_menu_interactions")
+        .select("user_id, menu_id, interaction_type, created_at")
+        .eq("user_id", userId),
+
+      supabaseAdmin
+        .from("user_menu_interactions")
+        .select("user_id, menu_id, interaction_type, created_at")
     ]);
 
     for (const result of [
@@ -72,7 +101,12 @@ export const recommendationRepository = {
       userCategoryPreferences,
       userTagPreferences,
       userAllergies,
-      mealHistory
+      mealHistory,
+      allMealRatings,
+      reviews,
+      userPreference,
+      userMenuInteractions,
+      allMenuInteractions
     ]) {
       if (result.error) throw result.error;
     }
@@ -86,7 +120,12 @@ export const recommendationRepository = {
       userCategoryPreferences: (userCategoryPreferences.data ?? []) as RecommendationBaseData["userCategoryPreferences"],
       userTagPreferences: (userTagPreferences.data ?? []) as RecommendationBaseData["userTagPreferences"],
       userAllergies: (userAllergies.data ?? []) as RecommendationBaseData["userAllergies"],
-      mealHistory: (mealHistory.data ?? []) as RecommendationBaseData["mealHistory"]
+      mealHistory: (mealHistory.data ?? []) as RecommendationBaseData["mealHistory"],
+      allMealRatings: (allMealRatings.data ?? []) as RecommendationBaseData["allMealRatings"],
+      reviews: (reviews.data ?? []) as RecommendationBaseData["reviews"],
+      userPreference: (userPreference.data ?? null) as RecommendationBaseData["userPreference"],
+      userMenuInteractions: (userMenuInteractions.data ?? []) as RecommendationBaseData["userMenuInteractions"],
+      allMenuInteractions: (allMenuInteractions.data ?? []) as RecommendationBaseData["allMenuInteractions"]
     };
   },
 
@@ -112,6 +151,7 @@ export const recommendationRepository = {
             menu_id: item.menuId,
             rank_no: item.rankNo,
             total_score: item.totalScore,
+            scores_json: item.scores,
             reason: item.reason,
             is_new_suggestion: item.isNewSuggestion ?? false
           }))
