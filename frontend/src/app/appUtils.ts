@@ -1,4 +1,4 @@
-import { tokenStorage } from "../utils/storage";
+import { authSessionStorage } from "../utils/storage";
 
 export const DEV_AUTH_PASSWORD = "Mukpick-dev-2026!";
 
@@ -15,7 +15,11 @@ export function persistAccessToken(response: { accessToken?: string; refreshToke
   if (!response.accessToken) {
     throw new Error("인증 토큰을 받지 못했습니다. Supabase 이메일 인증 설정을 확인해주세요.");
   }
-  tokenStorage.set(response.accessToken);
+  authSessionStorage.set({
+    accessToken: response.accessToken,
+    refreshToken: response.refreshToken,
+    expiresAt: response.expiresAt
+  });
 }
 
 export function hasPreferenceRows(preferences: any) {
@@ -25,4 +29,9 @@ export function hasPreferenceRows(preferences: any) {
       preferences?.menuPreferences?.length ||
       preferences?.allergyIds?.length
   );
+}
+
+export function isAuthSessionError(error: unknown) {
+  const message = errorMessage(error);
+  return /세션|토큰|token|jwt|unauthorized|인증|만료|invalid/i.test(message);
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { buildAppUrl, readAppRoute, type AppRouteState } from "./app/appNavigation";
 import type { ApiStatus, Flow, Tab } from "./app/app.types";
-import { DEV_AUTH_PASSWORD, errorMessage, hasPreferenceRows, persistAccessToken, slugifyNickname } from "./app/appUtils";
+import { errorMessage, hasPreferenceRows, isAuthSessionError, persistAccessToken } from "./app/appUtils";
 import { authApi } from "./api/auth.api";
 import { masterDataApi } from "./api/masterData.api";
 import { mealHistoryApi } from "./api/mealHistory.api";
@@ -9,6 +10,7 @@ import { clearOAuthCallbackUrl, readOAuthCallback, startOAuthLogin, type OAuthPr
 import { preferencesApi } from "./api/preferences.api";
 import { recommendationsApi } from "./api/recommendations.api";
 import { usersApi } from "./api/users.api";
+import { ApiFeedback } from "./components/feedback/ApiFeedback";
 import { AppHeader } from "./components/navigation/AppHeader";
 import { BottomNav } from "./components/navigation/BottomNav";
 import {
@@ -22,6 +24,7 @@ import {
   mapPickItems,
   mapRecommendations,
   mapUsers,
+  readNumber,
   readString,
   scoreMapFromPreferenceRows,
   selectedAllergyIdsFromPreferences,
@@ -45,14 +48,21 @@ import { MeetingView } from "./features/meetings/MeetingView";
 import { PreferencesView } from "./features/preferences/PreferencesView";
 import { PersonalView } from "./features/recommendations/PersonalView";
 import { ProfileView } from "./features/user/ProfileView";
-import { sessionStorageMeta, tokenStorage } from "./utils/storage";
+import { appUiStateStorage, authSessionStorage, sessionStorageMeta, tokenStorage } from "./utils/storage";
 
 export function App() {
   const restoreAttemptedRef = useRef(false);
+  const routeSyncReadyRef = useRef(false);
+  const applyingPopStateRef = useRef(false);
+  const lastSyncedUrlRef = useRef("");
   const [flow, setFlow] = useState<Flow>("start");
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [nickname, setNickname] = useState("");
-  const [signupCredentials, setSignupCredentials] = useState<SignupCredentials>({ email: "", password: "", passwordConfirm: "" });
+  const [signupCredentials, setSignupCredentials] = useState<SignupCredentials>({
+    email: "",
+    password: "",
+    passwordConfirm: ""
+  });
   const [loginCredentials, setLoginCredentials] = useState<LoginCredentials>({ email: "", password: "" });
   const [guestDisplayName, setGuestDisplayName] = useState("");
   const [guestMeetingId, setGuestMeetingId] = useState("");
@@ -84,6 +94,7 @@ export function App() {
   const [authError, setAuthError] = useState("");
   const [meetingSaving, setMeetingSaving] = useState(false);
   const [profileName, setProfileName] = useState("밥");
+  const [profileUserId, setProfileUserId] = useState<number | null>(null);
   const [isGuestSession, setIsGuestSession] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
@@ -91,6 +102,140 @@ export function App() {
     setToastMessage(message);
     window.setTimeout(() => setToastMessage(""), 2200);
   }, []);
+
+  const clearGuestFinalizedSession = useCallback(() => {
+    authSessionStorage.clear();
+    sessionStorageMeta.clear();
+    appUiStateStorage.clear();
+    routeSyncReadyRef.current = false;
+    setFlow("start");
+    setActiveTab("home");
+    setIsGuestSession(false);
+    setSelectedMeeting(null);
+    setGuestPreviewMeeting(null);
+    setMeetingRecommendations([]);
+    setSelectedMeetingRecommendation(null);
+    setExcludedMeetingUserIds([]);
+    setApiStatus("idle");
+    setApiError("");
+    setAuthError("");
+    showToast("모임 메뉴가 확정되어 게스트 세션을 종료했습니다.");
+  }, [showToast]);
+
+  const restoreMeetingDetail = useCallback(async (meetingId: number, selectedMenuId?: number) => {
+    const meeting = mapCreatedMeeting(await meetingsApi.get(meetingId));
+    setSelectedMeeting(meeting.id ? meeting : null);
+    setActiveTab("meeting");
+    setMeetingRecommendations([]);
+    setSelectedMeetingRecommendation(null);
+
+    try {
+      const latest = mapRecommendations(await meetingsApi.getLatestRecommendation(meetingId));
+      setMeetingRecommendations(latest);
+      setSelectedMeetingRecommendation(latest.find((item) => item.menuId === selectedMenuId) ?? null);
+    } catch {
+      setMeetingRecommendations([]);
+    }
+  }, []);
+
+  const syncSelectedMeeting = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      if (!selectedMeeting?.id) return;
+
+      try {
+        const nextMeeting = mapCreatedMeeting(await meetingsApi.get(selectedMeeting.id));
+        const wasOpen = selectedMeeting.status !== "DECIDED" && selectedMeeting.status !== "CLOSED";
+        const isNowDone = nextMeeting.status === "DECIDED" || nextMeeting.status === "CLOSED";
+
+        setSelectedMeeting(nextMeeting.id ? nextMeeting : null);
+        setMeetingItems((current) =>
+          current.map((meeting) => (meeting.id === nextMeeting.id ? { ...meeting, ...nextMeeting } : meeting))
+        );
+
+        try {
+          const latest = mapRecommendations(await meetingsApi.getLatestRecommendation(selectedMeeting.id));
+          setMeetingRecommendations(latest);
+          setSelectedMeetingRecommendation((current) =>
+            current?.menuId ? latest.find((item) => item.menuId === current.menuId) ?? current : current
+          );
+        } catch {
+          if (nextMeeting.status === "CREATED") {
+            setMeetingRecommendations([]);
+            setSelectedMeetingRecommendation(null);
+          }
+        }
+
+        if (isGuestSession && isNowDone) {
+          clearGuestFinalizedSession();
+          return;
+        }
+
+        if (wasOpen && isNowDone && !silent) {
+          showToast("모임 메뉴 확정 결과가 반영되었습니다.");
+        }
+      } catch (error) {
+        if (isGuestSession && isAuthSessionError(error)) {
+          clearGuestFinalizedSession();
+          return;
+        }
+
+        if (!silent) {
+          const message = errorMessage(error);
+          setApiStatus("error");
+          setApiError(message);
+          showToast(message);
+        }
+      }
+    },
+    [clearGuestFinalizedSession, isGuestSession, selectedMeeting, showToast]
+  );
+
+  const applyRouteState = useCallback(
+    async (route: AppRouteState, options: { restoreStoredFallback?: boolean } = {}) => {
+      const stored = appUiStateStorage.get();
+      const nextTab = route.tab ?? (options.restoreStoredFallback ? stored.activeTab : undefined);
+      const selectedMeetingId =
+        route.meetingId ?? (options.restoreStoredFallback ? stored.selectedMeetingId : undefined);
+      const selectedPersonalMenuId =
+        route.selectedPersonalMenuId ?? (options.restoreStoredFallback ? stored.selectedPersonalMenuId : undefined);
+      const selectedMeetingMenuId =
+        route.selectedMeetingMenuId ?? (options.restoreStoredFallback ? stored.selectedMeetingMenuId : undefined);
+
+      if (nextTab) setActiveTab(nextTab);
+
+      if (nextTab !== "meeting" || !selectedMeetingId) {
+        if (nextTab === "meeting") setSelectedMeeting(null);
+      } else {
+        try {
+          await restoreMeetingDetail(selectedMeetingId, selectedMeetingMenuId);
+        } catch (error) {
+          setSelectedMeeting(null);
+          setMeetingRecommendations([]);
+          setSelectedMeetingRecommendation(null);
+          setApiError(errorMessage(error));
+        }
+      }
+
+      if (nextTab === "personal") {
+        const storedRecommendations = (stored.personalRecommendations ?? []).map((item, index) => ({
+          rank: index + 1,
+          menuId: item.menuId,
+          menu: item.menu,
+          score: item.score ?? 0,
+          category: "",
+          reason: item.reason ?? ""
+        }));
+        if (storedRecommendations.length) {
+          setRecommendationItems(storedRecommendations);
+          setPersonalRecommendationReady(true);
+          setSelectedPersonalRecommendation(
+            storedRecommendations.find((item) => item.menuId === selectedPersonalMenuId) ?? null
+          );
+        }
+      }
+    },
+    [restoreMeetingDetail]
+  );
 
   const loadApiData = useCallback(
     async ({ syncPreferences = true }: { syncPreferences?: boolean } = {}) => {
@@ -175,6 +320,7 @@ export function App() {
         const userPayload = userResult.value as any;
         const user = userPayload?.user ?? userPayload;
         setProfileName(readString(user, ["nickname", "name", "email"]) ?? "밥");
+        setProfileUserId(readNumber(user, ["userId", "user_id", "id"]) ?? null);
       }
 
       const rejected = results.find((result) => result.status === "rejected");
@@ -193,8 +339,8 @@ export function App() {
   );
 
   const completeOAuthLogin = useCallback(
-    async (accessToken: string) => {
-      tokenStorage.set(accessToken);
+    async (session: { accessToken: string; refreshToken?: string; expiresAt?: number }) => {
+      persistAccessToken(session);
       sessionStorageMeta.set({ isGuest: false });
       setApiStatus("authenticating");
       setAuthError("");
@@ -204,6 +350,7 @@ export function App() {
         const userPayload = await usersApi.getMe();
         const user = (userPayload as any)?.user ?? userPayload;
         const currentNickname = readString(user, ["nickname", "name", "email"]) ?? "";
+        setProfileUserId(readNumber(user, ["userId", "user_id", "id"]) ?? null);
         const preferences = await preferencesApi.getMine();
         const hasPreferences = hasPreferenceRows(preferences);
 
@@ -213,7 +360,7 @@ export function App() {
 
         if (hasPreferences) {
           setFlow("app");
-          setActiveTab("home");
+          await applyRouteState(readAppRoute(), { restoreStoredFallback: true });
           showToast("소셜 로그인으로 접속했습니다.");
         } else {
           setNickname("");
@@ -222,13 +369,13 @@ export function App() {
           showToast("닉네임과 선호도를 설정해주세요.");
         }
       } catch (error) {
-        tokenStorage.clear();
+        authSessionStorage.clear();
         sessionStorageMeta.clear();
         setApiStatus("error");
         setAuthError(errorMessage(error));
       }
     },
-    [loadApiData, showToast]
+    [applyRouteState, loadApiData, showToast]
   );
 
   useEffect(() => {
@@ -244,13 +391,21 @@ export function App() {
 
     if (oauthCallback.type === "session") {
       clearOAuthCallbackUrl();
-      void completeOAuthLogin(oauthCallback.accessToken);
+      void completeOAuthLogin(oauthCallback);
       return;
     }
 
     // 새로고침 후에도 저장된 토큰과 세션 메타로 마지막 화면을 복원합니다.
+    const initialRoute = readAppRoute();
+    if (!tokenStorage.get() && initialRoute.flow) {
+      setFlow(initialRoute.flow);
+    }
+
     const token = tokenStorage.get();
-    if (!token) return;
+    if (!token) {
+      routeSyncReadyRef.current = true;
+      return;
+    }
 
     const restoreSession = async () => {
       const meta = sessionStorageMeta.get();
@@ -261,32 +416,29 @@ export function App() {
         const userPayload = await usersApi.getMe();
         const user = (userPayload as any)?.user ?? userPayload;
         const userType = readString(user, ["userType", "user_type"]) ?? "";
+        setProfileUserId(readNumber(user, ["userId", "user_id", "id"]) ?? null);
         const isGuest = meta?.isGuest ?? userType === "GUEST";
         const displayName = meta?.displayName ?? readString(user, ["nickname", "name", "email"]) ?? "밥";
 
         setIsGuestSession(isGuest);
         setProfileName(displayName);
         setFlow(isGuest && !meta?.meetingId ? "guest-join-meeting" : "app");
-        setActiveTab(isGuest ? "meeting" : "home");
 
         await loadApiData();
 
         if (isGuest && meta?.meetingId) {
-          const meeting = mapCreatedMeeting(await meetingsApi.get(meta.meetingId));
           setGuestMeetingId(String(meta.meetingId));
           setGuestDisplayName(displayName);
-          setSelectedMeeting(meeting.id ? meeting : null);
-          try {
-            const latest = await meetingsApi.getLatestRecommendation(meta.meetingId);
-            setMeetingRecommendations(mapRecommendations(latest));
-          } catch {
-            setMeetingRecommendations([]);
-          }
+          await restoreMeetingDetail(meta.meetingId, readAppRoute().selectedMeetingMenuId);
+        } else if (!isGuest) {
+          await applyRouteState(readAppRoute(), { restoreStoredFallback: true });
+        } else {
+          setActiveTab("meeting");
         }
 
         setApiStatus("ready");
       } catch (error) {
-        tokenStorage.clear();
+        authSessionStorage.clear();
         sessionStorageMeta.clear();
         setIsGuestSession(false);
         setSelectedMeeting(null);
@@ -297,27 +449,17 @@ export function App() {
     };
 
     void restoreSession();
-  }, [completeOAuthLogin, loadApiData]);
+  }, [applyRouteState, completeOAuthLogin, loadApiData, restoreMeetingDetail]);
 
   const authenticateOnboarding = async (nextNickname: string) => {
-    const email = signupCredentials.email.trim() || `mukpick-${slugifyNickname(nextNickname)}-${Date.now()}@example.com`;
-    const password = signupCredentials.password || DEV_AUTH_PASSWORD;
-    if (signupCredentials.password && signupCredentials.password !== signupCredentials.passwordConfirm) {
-      throw new Error("비밀번호 확인이 일치하지 않습니다.");
-    }
     const signupResponse = await authApi.signup({
-      email,
-      password,
+      email: signupCredentials.email.trim(),
+      password: signupCredentials.password,
       nickname: nextNickname.trim() || "밥",
       userType: "USER"
     });
-    if (signupResponse.accessToken) {
-      persistAccessToken(signupResponse);
-      return email;
-    }
-    const loginResponse = await authApi.login({ email, password });
-    persistAccessToken(loginResponse);
-    return email;
+    persistAccessToken(signupResponse);
+    return signupCredentials.email.trim();
   };
 
   const handleLogin = async () => {
@@ -334,7 +476,7 @@ export function App() {
       setIsGuestSession(false);
       await loadApiData();
       setFlow("app");
-      setActiveTab("home");
+      await applyRouteState(readAppRoute(), { restoreStoredFallback: true });
       showToast("로그인했습니다.");
     } catch (error) {
       const message = errorMessage(error);
@@ -346,7 +488,22 @@ export function App() {
     }
   };
 
-  const handleCheckNickname = async () => true;
+  const handleCheckNickname = async (nextNickname: string) => {
+    setAuthError("");
+    try {
+      const result = await authApi.checkNickname(nextNickname);
+      if (!result.available) {
+        setApiStatus("error");
+        setAuthError("이미 사용 중인 닉네임입니다.");
+        return false;
+      }
+      return true;
+    } catch (error) {
+      setApiStatus("error");
+      setAuthError(errorMessage(error));
+      return false;
+    }
+  };
 
   const handleOAuthStart = (provider: OAuthProvider) => {
     setAuthBusy(true);
@@ -369,11 +526,19 @@ export function App() {
     setApiStatus("authenticating");
     try {
       if (tokenStorage.get()) {
+        if (!(await handleCheckNickname(nickname))) return;
         await usersApi.updateMe({
           nickname: nickname.trim() || "밥",
           userType: "PERSONAL"
         });
       } else {
+        if (!signupCredentials.email.trim() || signupCredentials.password.length < 6) {
+          throw new Error("이메일과 6자 이상 비밀번호를 입력해주세요.");
+        }
+        if (signupCredentials.password !== signupCredentials.passwordConfirm) {
+          throw new Error("비밀번호 확인이 일치하지 않습니다.");
+        }
+        if (!(await handleCheckNickname(nickname))) return;
         await authenticateOnboarding(nickname);
       }
       sessionStorageMeta.set({ isGuest: false });
@@ -569,6 +734,47 @@ export function App() {
     }
   };
 
+  const handleUpdateHistory = async (
+    historyId: number,
+    { menuId, rating, memo, eatenAt }: MealHistoryFormValue & { eatenAt?: string }
+  ) => {
+    setApiStatus("loading");
+    setApiError("");
+    try {
+      await mealHistoryApi.update(historyId, {
+        menuId,
+        rating,
+        memo: memo.trim(),
+        eatenAt
+      });
+      await loadApiData();
+      setApiStatus("ready");
+      showToast("식사 기록을 수정했습니다.");
+    } catch (error) {
+      const message = errorMessage(error);
+      setApiStatus("error");
+      setApiError(message);
+      showToast(message);
+    }
+  };
+
+  const handleDeleteHistory = async (historyId: number) => {
+    if (!window.confirm("이 식사 기록을 삭제할까요?")) return;
+    setApiStatus("loading");
+    setApiError("");
+    try {
+      await mealHistoryApi.remove(historyId);
+      await loadApiData();
+      setApiStatus("ready");
+      showToast("식사 기록을 삭제했습니다.");
+    } catch (error) {
+      const message = errorMessage(error);
+      setApiStatus("error");
+      setApiError(message);
+      showToast(message);
+    }
+  };
+
   const handleConfirmPersonalRecommendation = async () => {
     if (!selectedPersonalRecommendation?.menuId) return;
     await handleCreateHistory({
@@ -670,6 +876,32 @@ export function App() {
     }
   };
 
+  const handleUpdateMeeting = async (meetingId: number, meeting: MeetingFormValue) => {
+    setMeetingSaving(true);
+    setApiStatus("loading");
+    setApiError("");
+    try {
+      const updated = await meetingsApi.update(meetingId, {
+        title: meeting.title,
+        meetingTime: new Date(meeting.meetingTime).toISOString(),
+        meetingPurposeId: meeting.meetingPurposeId,
+        location: meeting.place
+      });
+      const updatedMeeting = mapCreatedMeeting(updated);
+      await loadApiData();
+      setSelectedMeeting(updatedMeeting.id ? updatedMeeting : null);
+      setApiStatus("ready");
+      showToast("모임 정보를 수정했습니다.");
+    } catch (error) {
+      const message = errorMessage(error);
+      setApiStatus("error");
+      setApiError(message);
+      showToast(message);
+    } finally {
+      setMeetingSaving(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await authApi.logout();
@@ -677,11 +909,14 @@ export function App() {
       // 서버 토큰이 만료되었거나 이미 삭제된 경우에도 로컬 세션은 반드시 정리합니다.
     }
     // 로그아웃은 서버 응답과 관계없이 브라우저에 남은 세션 정보를 모두 제거합니다.
-    tokenStorage.clear();
+    authSessionStorage.clear();
     sessionStorageMeta.clear();
+    appUiStateStorage.clear();
+    routeSyncReadyRef.current = false;
     setFlow("start");
     setActiveTab("home");
     setIsGuestSession(false);
+    setProfileUserId(null);
     setSelectedMeeting(null);
     setGuestPreviewMeeting(null);
     setMeetingRecommendations([]);
@@ -697,6 +932,99 @@ export function App() {
     setAuthError("");
     setToastMessage("");
   };
+
+  useEffect(() => {
+    if (flow === "app") {
+      routeSyncReadyRef.current = true;
+    }
+  }, [flow]);
+
+  useEffect(() => {
+    if (flow !== "app") return;
+
+    appUiStateStorage.patch({
+      activeTab,
+      selectedMeetingId: selectedMeeting?.id,
+      selectedPersonalMenuId: selectedPersonalRecommendation?.menuId,
+      selectedMeetingMenuId: selectedMeetingRecommendation?.menuId,
+      personalRecommendations: recommendationItems.map((item) => ({
+        menuId: item.menuId,
+        menu: item.menu,
+        score: item.score,
+        reason: item.reason
+      }))
+    });
+  }, [
+    activeTab,
+    flow,
+    recommendationItems,
+    selectedMeeting?.id,
+    selectedMeetingRecommendation?.menuId,
+    selectedPersonalRecommendation?.menuId
+  ]);
+
+  useEffect(() => {
+    if (!routeSyncReadyRef.current || applyingPopStateRef.current) return;
+
+    const nextUrl = buildAppUrl({
+      flow,
+      activeTab,
+      isGuestSession,
+      selectedMeetingId: selectedMeeting?.id,
+      selectedPersonalMenuId: selectedPersonalRecommendation?.menuId,
+      selectedMeetingMenuId: selectedMeetingRecommendation?.menuId
+    });
+
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
+    if (nextUrl === currentUrl || nextUrl === lastSyncedUrlRef.current) return;
+
+    window.history.pushState({}, "", nextUrl);
+    lastSyncedUrlRef.current = nextUrl;
+  }, [
+    activeTab,
+    flow,
+    isGuestSession,
+    selectedMeeting?.id,
+    selectedMeetingRecommendation?.menuId,
+    selectedPersonalRecommendation?.menuId
+  ]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (flow !== "app") {
+        const route = readAppRoute();
+        setFlow(route.flow ?? "start");
+        return;
+      }
+
+      applyingPopStateRef.current = true;
+      void applyRouteState(readAppRoute()).finally(() => {
+        applyingPopStateRef.current = false;
+      });
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [applyRouteState, flow]);
+
+  useEffect(() => {
+    if (flow !== "app" || !selectedMeeting?.id) return;
+
+    const refresh = () => {
+      if (document.visibilityState === "hidden") return;
+      void syncSelectedMeeting({ silent: true });
+    };
+
+    const intervalId = window.setInterval(refresh, 5000);
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [flow, selectedMeeting?.id, syncSelectedMeeting]);
 
   if (flow !== "app") {
     return (
@@ -746,6 +1074,7 @@ export function App() {
     <div className="app-shell">
       <main className="phone-frame">
         {!isGuestSession ? <AppHeader activeTab={visibleTab} onGoPreferences={() => setActiveTab("preferences")} /> : null}
+        {visibleTab !== "home" ? <ApiFeedback status={apiStatus} error={apiError} compact /> : null}
 
         {visibleTab === "home" && (
           <HomeView
@@ -811,8 +1140,11 @@ export function App() {
             onExcludedUserIdsChange={setExcludedMeetingUserIds}
             onJoinMeeting={handleJoinMeetingById}
             onLogout={handleLogout}
+            onUpdateMeeting={handleUpdateMeeting}
             isLoading={apiStatus === "loading"}
             currentUserName={profileName}
+            currentUserId={profileUserId}
+            meetingPurposes={meetingPurposes}
             isGuestSession={isGuestSession}
           />
         )}
@@ -820,6 +1152,10 @@ export function App() {
         {visibleTab === "history" && (
           <HistoryView
             historiesData={historyItems}
+            menus={menuOptions}
+            isSaving={apiStatus === "loading"}
+            onUpdateHistory={handleUpdateHistory}
+            onDeleteHistory={handleDeleteHistory}
           />
         )}
 

@@ -37,6 +37,10 @@ button {
   cursor: pointer;
 }
 
+body.modal-open {
+  overflow: hidden;
+}
+
 .start-screen {
   min-height: 100vh;
   display: flex;
@@ -178,6 +182,17 @@ button {
   background: var(--orange);
 }
 
+.social-button.login {
+  color: var(--ink);
+  background: #f6fff9;
+  border: 1px solid rgba(37, 116, 90, 0.18);
+}
+
+.social-button.login span {
+  color: white;
+  background: var(--green);
+}
+
 .guest-link {
   min-height: 36px;
   border: 0;
@@ -279,6 +294,29 @@ button {
 .nickname-logo {
   width: min(168px, 50vw);
   filter: drop-shadow(0 18px 28px rgba(238, 90, 24, 0.14));
+}
+
+.account-card {
+  justify-content: flex-start;
+  gap: 22px;
+  padding-top: 70px;
+}
+
+.account-logo {
+  width: min(132px, 42vw);
+  margin-top: 0;
+}
+
+.account-form {
+  width: 100%;
+  max-width: 318px;
+  display: grid;
+  gap: 12px;
+}
+
+.account-form .primary-button {
+  width: 100%;
+  min-height: 48px;
 }
 
 .nickname-form {
@@ -412,6 +450,44 @@ button {
   color: var(--ink);
   background: transparent;
   font: inherit;
+}
+
+.nickname-check-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 94px;
+  gap: 8px;
+}
+
+.text-field .nickname-check-row {
+  height: auto;
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.nickname-check-row > div {
+  min-width: 0;
+}
+
+.compact-check-button {
+  min-height: 48px;
+  padding: 0 8px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.field-success,
+.field-error {
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.field-success {
+  color: var(--green);
+}
+
+.field-error {
+  color: var(--red);
 }
 
 .dialog-form .text-field > input,
@@ -712,6 +788,8 @@ button {
 .screen {
   height: calc(100% - 172px);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 8px 18px 24px;
 }
 
@@ -1718,6 +1796,37 @@ button {
   word-break: keep-all;
 }
 
+.api-feedback {
+  margin: 0 18px 10px;
+  border: 1px solid rgba(238, 90, 24, 0.18);
+  border-radius: 14px;
+  padding: 10px 12px;
+  color: var(--orange-dark);
+  background: rgba(255, 240, 232, 0.94);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.4;
+  word-break: keep-all;
+}
+
+.api-feedback.compact {
+  margin-top: -4px;
+}
+
+.api-feedback.error {
+  border-color: rgba(190, 58, 37, 0.22);
+  color: #be3a25;
+  background: rgba(255, 238, 234, 0.94);
+}
+
+.api-feedback + .screen {
+  height: calc(100% - 218px);
+}
+
+.api-feedback + .guest-meeting-detail {
+  height: calc(100% - 62px);
+}
+
 .recommendation-list {
   display: grid;
   gap: 12px;
@@ -1726,6 +1835,8 @@ button {
 .meeting-recommendation-scroll {
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding-right: 2px;
   padding-bottom: 10px;
 }
@@ -2045,17 +2156,21 @@ button {
   padding: 14px;
   background: rgba(33, 27, 23, 0.26);
   backdrop-filter: blur(8px);
+  overscroll-behavior: contain;
 }
 
 .meeting-dialog {
   width: 100%;
   max-height: 86%;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   border: 1px solid rgba(231, 220, 210, 0.9);
   border-radius: 24px;
   padding: 18px;
   background: white;
   box-shadow: 0 22px 60px rgba(33, 27, 23, 0.22);
+  outline: none;
 }
 
 .dialog-heading {
@@ -2172,6 +2287,87 @@ button {
   gap: 5px;
 }
 
+.meeting-role-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.role-chip {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 6px 9px;
+  color: var(--muted);
+  background: #f5eee7;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.role-chip.owner {
+  color: white;
+  background: var(--orange);
+}
+
+.meeting-role-row small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meeting-edit-button {
+  width: 100%;
+  min-height: 40px;
+  justify-content: center;
+  margin-top: 12px;
+  box-shadow: none;
+}
+
+.meeting-edit-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255, 250, 244, 0.86);
+}
+
+.meeting-edit-panel .text-field > input,
+.meeting-edit-panel .text-field > select,
+.history-edit-form .text-field > input,
+.history-edit-form .text-field > select {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 10px;
+  color: var(--ink);
+  background: white;
+  font: inherit;
+}
+
+.meeting-edit-actions,
+.history-edit-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.meeting-edit-actions .primary-button,
+.meeting-edit-actions .secondary-button,
+.history-edit-actions .primary-button,
+.history-edit-actions .secondary-button {
+  min-height: 42px;
+  padding: 0 10px;
+  box-shadow: none;
+}
+
 .member-row {
   display: flex;
   gap: 6px;
@@ -2187,6 +2383,9 @@ button {
 .selectable-members button {
   border: 0;
   border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   padding: 8px 11px;
   color: var(--ink);
   background: #f5eee7;
@@ -2198,6 +2397,29 @@ button {
   transform: translateY(1px);
 }
 
+.selectable-members button span {
+  color: inherit;
+  background: transparent;
+}
+
+.selectable-members button small {
+  border-radius: 999px;
+  padding: 2px 5px;
+  color: white;
+  background: rgba(33, 27, 23, 0.24);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.selectable-members button.creator {
+  color: var(--orange-dark);
+  background: #fff0e8;
+}
+
+.selectable-members button.self {
+  box-shadow: inset 0 0 0 1px rgba(244, 84, 24, 0.28);
+}
+
 .selectable-members button.excluded {
   color: rgba(255, 250, 244, 0.78);
   background: #6f655d;
@@ -2207,6 +2429,20 @@ button {
 .selectable-members button:disabled {
   cursor: default;
   opacity: 0.7;
+}
+
+.meeting-permission-note,
+.meeting-live-note {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+  word-break: keep-all;
+}
+
+.meeting-live-note {
+  color: var(--orange-dark);
 }
 
 .history-timeline {
@@ -2223,6 +2459,11 @@ button {
   padding: 14px;
 }
 
+.history-row.editing {
+  grid-template-columns: 1fr;
+  align-items: stretch;
+}
+
 .history-row time {
   color: var(--orange-dark);
   font-weight: 900;
@@ -2231,6 +2472,39 @@ button {
 .history-row div {
   display: grid;
   gap: 4px;
+}
+
+.history-row .history-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.history-actions button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: var(--orange-dark);
+  background: #fff0e8;
+}
+
+.history-actions button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.history-edit-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.history-edit-form .text-field.full,
+.history-edit-actions {
+  grid-column: 1 / -1;
 }
 
 .history-row span {

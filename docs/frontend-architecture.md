@@ -14,7 +14,7 @@
 | Icon | `lucide-react` |
 | API | Express backend `/api/v1` |
 | Auth | Supabase Auth access token을 프론트에서 보관 후 Bearer token으로 전달 |
-| Routing | 현재 활성 구조는 `App.tsx` 내부 상태 기반 모바일 앱 흐름 |
+| Routing | 현재 활성 구조는 `App.tsx` 내부 상태 기반 모바일 앱 흐름 + 주요 URL 상태 동기화 |
 
 ## 3. 현재 진입점
 
@@ -24,7 +24,7 @@
 import { App } from "./App";
 ```
 
-`frontend/src/routes/AppRouter.tsx`는 기존 React Router 기반 화면 구조가 남아 있는 레거시 코드이다. 현재 `main.tsx`에서 사용하지 않으므로, 새 작업의 기준은 `App.tsx`이다.
+기존 React Router 기반 `frontend/src/routes/AppRouter.tsx`는 제거되었다. 새 작업의 기준은 `App.tsx`와 `frontend/src/app/appNavigation.ts`의 URL 계약이다.
 
 ## 4. 레이어 구조
 
@@ -32,14 +32,14 @@ import { App } from "./App";
 frontend/src/
 ├─ main.tsx                  # React app mount
 ├─ App.tsx                   # 현재 모바일 앱 shell, flow, screen composition
+├─ app/appNavigation.ts      # 활성 shell URL <-> state mapping
 ├─ styles.css                # 현재 전체 UI 스타일
 ├─ api/                      # backend API wrapper
 ├─ utils/storage.ts          # token/session metadata storage
 ├─ assets.ts                 # Supabase/public asset URL mapping
 ├─ data.ts                   # fallback master data
-├─ features/                 # 기존 route 기반 feature modules
-├─ components/               # 기존 공통 컴포넌트
-└─ routes/AppRouter.tsx      # legacy router, 현재 비활성
+├─ features/                 # 활성 feature views와 일부 legacy route page modules
+└─ components/               # 기존 공통 컴포넌트
 ```
 
 ## 5. 현재 구현 책임
@@ -103,13 +103,14 @@ frontend/src/
 |---|---|---|
 | access token | `localStorage` | API 인증에 사용 |
 | session meta | `localStorage` | 게스트 여부, 참여 모임 ID, displayName |
-| active tab | React state | 홈/모임/프로필 탭 |
+| app UI state | `localStorage` + URL | active tab, 모임 상세, 선택 중인 추천 후보 복원 |
+| active tab | React state + URL | 홈/모임/프로필 탭 |
 | auth/onboarding flow | React state | 시작, 회원가입, 게스트, 온보딩 단계 |
 | master data | React state + fallback | 카테고리/태그/알러지/메뉴 |
 | recommendation result | React state | 개인 또는 모임 추천 랭킹 |
 | selected recommendation | React state | 최종 확정 전 사용자가 선택한 후보 |
 
-새로고침 후 복원이 필요한 상태는 `storage.ts`를 통해 저장하고, 단순 UI 선택 상태는 React state에 둔다.
+새로고침 후 복원이 필요한 상태는 `storage.ts`와 URL을 통해 저장한다. URL이 있으면 URL을 우선하고, URL에 선택 정보가 없으면 `appUiStateStorage`를 fallback으로 사용한다.
 
 ## 9. API 연동 원칙
 
@@ -134,5 +135,4 @@ frontend/src/
 2. 인증/온보딩 흐름을 `features/auth`, `features/onboarding`으로 분리한다.
 3. 개인 추천과 모임 추천 화면을 feature 단위로 분리한다.
 4. 공통 UI primitive를 정리한다.
-5. legacy `AppRouter` 사용 여부를 결정한다. 사용하지 않을 경우 제거하거나 명확히 archive 처리한다.
-
+5. legacy route page modules 중 활성 모바일 shell과 중복되는 파일을 점진 제거하거나 새 feature view로 이관한다.

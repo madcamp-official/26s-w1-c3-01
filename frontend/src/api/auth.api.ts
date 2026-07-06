@@ -1,5 +1,13 @@
 import { apiRequest } from "./client";
-import type { GuestSignupResponse, LoginRequest, LoginResponse, SignupRequest, SignupResponse } from "../features/auth/auth.types";
+import type {
+  GuestSignupResponse,
+  LoginRequest,
+  LoginResponse,
+  NicknameAvailabilityResponse,
+  RefreshResponse,
+  SignupRequest,
+  SignupResponse
+} from "../features/auth/auth.types";
 
 export const authApi = {
   signup(body: SignupRequest) {
@@ -14,6 +22,18 @@ export const authApi = {
       method: "POST",
       auth: false,
       body: JSON.stringify(body)
+    });
+  },
+  refresh(refreshToken: string) {
+    return apiRequest<RefreshResponse>("/auth/refresh", {
+      method: "POST",
+      auth: false,
+      body: JSON.stringify({ refreshToken })
+    });
+  },
+  checkNickname(nickname: string) {
+    return apiRequest<NicknameAvailabilityResponse>(`/auth/nickname?nickname=${encodeURIComponent(nickname.trim())}`, {
+      auth: false
     });
   },
   guest() {

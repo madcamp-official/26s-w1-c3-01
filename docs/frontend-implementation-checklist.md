@@ -15,20 +15,20 @@
 - [x] React + Vite + TypeScript 기반으로 구성되어 있다.
   - 근거: `frontend/src/main.tsx`가 `App`을 렌더링하고, 문서상 기술 스택도 React 19 + Vite로 정의되어 있다.
 - [x] 실제 활성 진입점은 `main.tsx -> App.tsx`이다.
-  - `frontend/src/routes/AppRouter.tsx`는 남아 있지만 `main.tsx`에서 사용하지 않는다.
+  - 기존 `frontend/src/routes/AppRouter.tsx`는 제거되었다.
 - [x] 모바일 앱 형태의 단일 화면 shell, 하단 네비게이션, 모바일 고정 폭 UI가 적용되어 있다.
 - [x] API wrapper가 `frontend/src/api/*`로 분리되어 있다.
   - `auth`, `users`, `masterData`, `preferences`, `recommendations`, `meetings`, `mealHistory`, `oauth` API 파일이 존재한다.
 - [x] API 응답을 화면 표시 모델로 바꾸는 mapper가 `frontend/src/domain/appModel.ts`로 일부 분리되어 있다.
-- [△] `App.tsx`가 여전히 인증, 온보딩, 홈, 추천, 모임, 프로필, 토스트, 로딩, 에러, 화면 컴포넌트를 대부분 직접 포함한다.
+- [△] `App.tsx`가 여전히 인증, 온보딩, 홈, 추천, 모임, 프로필, 토스트, 로딩, 에러 상태를 많이 조립한다.
   - 문서의 목표 구조는 `app/`, `features/`, `components/`, `domain/mapper`로 더 세분화하는 것이다.
-- [△] `frontend/src/features/*`와 `frontend/src/routes/AppRouter.tsx`에는 기존 route 기반 코드가 남아 있지만 현재 활성 UI 기준은 아니다.
-  - 배포 또는 진입점이 바뀌면 레거시 화면이 보일 수 있으므로 정리 또는 제거 기준이 필요하다.
+- [△] `frontend/src/features/*`에는 기존 route 기반 page 코드가 일부 남아 있지만 현재 활성 UI 기준은 아니다.
+  - 활성 진입점은 `App.tsx`이며, 남은 legacy page module은 점진 제거 또는 새 feature view로 이관한다.
 - [ ] 목표 구조인 `frontend/src/app/`, `features/home`, `features/profile`, `components/primitives`, `components/navigation`, `domain/mapper` 단위의 완전한 재구성은 아직 완료되지 않았다.
 
 ## 2. 라우팅과 화면 이동
 
-- [x] 현재 앱은 URL 라우팅이 아니라 `flow`와 `activeTab` 상태로 화면을 전환한다.
+- [x] 현재 앱은 `flow`와 `activeTab` 상태로 화면을 전환하고, 주요 상태를 URL과 동기화한다.
 - [x] 회원 시작 flow가 단계형으로 구성되어 있다.
   - 닉네임 입력
   - 카테고리 선호 선택
@@ -46,24 +46,24 @@
 - [x] 메인 하단 탭은 홈, 모임, 프로필 중심으로 구성되어 있다.
 - [x] 개인 추천, 선호도 관리, 식사 기록은 하단 탭이 아니라 홈/프로필 내부 액션으로 진입하는 구조다.
 - [x] 게스트는 모임 상세 중심으로 제한 접근한다.
-- [△] 새로고침 시 access token과 게스트 세션 메타데이터는 복원되지만, `activeTab`과 선택 중인 추천 후보까지 완전 복원되지는 않는다.
-- [△] 브라우저 뒤로가기/앞으로가기, 공유 가능한 모임 상세 URL, 특정 화면 직접 진입은 아직 URL 라우팅으로 처리되지 않는다.
-- [△] 문서에는 기존 회원 진입이 개발용 계정 방식으로 설명된 부분이 남아 있으나, 현재 코드는 OAuth와 일반 시작 버튼이 추가되어 문서 업데이트가 필요하다.
+- [x] 새로고침 시 access token, refresh token, 게스트 세션 메타데이터, activeTab, 선택 중인 추천 후보를 복원한다.
+- [x] 브라우저 뒤로가기/앞으로가기, 공유 가능한 `/meetings/{meetingId}` 상세 URL, 특정 화면 직접 진입을 URL 동기화로 처리한다.
+- [x] OAuth/일반 시작 흐름 문서는 최신 모바일 UI 기준으로 갱신되어 있다.
 
 ## 3. 인증, 회원가입, 로그아웃
 
 - [x] Kakao OAuth 시작 버튼과 Supabase OAuth authorize URL 생성 코드가 있다.
 - [x] Google OAuth 시작 버튼과 Supabase OAuth authorize URL 생성 코드가 있다.
-- [x] OAuth callback URL fragment에서 `access_token`을 읽고 localStorage에 저장하는 코드가 있다.
-- [x] 일반 회원 시작 버튼이 존재한다.
-- [x] 로그아웃 버튼이 있고, 로그아웃 시 access token과 session meta를 삭제한다.
+- [x] OAuth callback URL fragment에서 `access_token`, `refresh_token`, `expires_at`을 읽고 localStorage에 저장하는 코드가 있다.
+- [x] 일반 회원가입은 이메일, 비밀번호, 닉네임 입력 form을 사용한다.
+- [x] 이메일/비밀번호 로그인 form이 모바일 시작 화면에서 진입 가능하다.
+- [x] 로그아웃 버튼이 있고, 로그아웃 시 access token, refresh token, expiresAt, session meta를 삭제한다.
 - [x] 게스트 시작 시 `POST /auth/guest`를 호출해 임시 계정을 생성하는 흐름이 있다.
-- [△] Kakao/Google OAuth의 실제 성공 여부는 Supabase provider 설정, Kakao/Google developer console redirect URL, 배포 URL 설정에 의존한다.
-  - 코드만으로는 외부 dashboard 설정 완료 여부를 검증할 수 없다.
-- [△] 기능명세서의 U-01은 이메일, 비밀번호, 닉네임 기반 회원가입을 요구하지만 현재 모바일 UI의 일반 시작은 닉네임 기반 온보딩 흐름에 가깝다.
-- [△] 기능명세서의 U-02는 계정 정보 입력 로그인까지 포함하지만 현재 활성 모바일 시작 화면에는 별도 이메일/비밀번호 로그인 form이 충분히 노출되어 있지 않다.
-- [△] OAuth access token 저장은 구현되어 있지만 refresh token 갱신, 세션 만료 대응, 장기 세션 복구 정책은 명확하지 않다.
-- [△] nickname 중복은 backend 또는 Supabase 제약에 의해 실패할 수 있으나, 프론트에서 사전 중복 확인 UX는 아직 명확하지 않다.
+- [x] Kakao/Google OAuth는 코드상 Supabase authorize URL과 callback session 저장을 처리한다.
+  - 실제 성공을 위해 Supabase Auth provider, redirect allowlist, Kakao Developers Web domain/Redirect URI, Google Cloud OAuth redirect URI를 배포 URL과 일치시켜야 한다.
+- [x] access token 만료 전 `POST /auth/refresh`로 refresh token을 사용해 장기 세션을 복구한다.
+- [x] refresh 실패 또는 401 재시도 실패 시 로컬 세션을 삭제하고 다시 로그인하도록 안내한다.
+- [x] nickname 중복은 `GET /auth/nickname?nickname=...` 사전 확인 UX와 회원가입 완료 직전 재확인으로 처리한다.
 
 ## 4. 온보딩과 선호도 관리
 
@@ -178,9 +178,9 @@
 - [x] 프론트 아키텍처, 라우팅, 컴포넌트 설계, API 상태 계약 문서가 존재한다.
 - [x] 기능명세서에 게스트, displayName, 모임 ID 참여, 모임 메뉴 확정, 게스트 삭제 기준이 반영되어 있다.
 - [x] 백엔드 문서에 guest 생성, meeting preview, meeting join, participantUserIds 추천 계산, selected-menu 확정 API가 반영되어 있다.
-- [△] `frontend-routing.md`의 기존 회원 진입 설명은 최신 OAuth/일반 시작 흐름과 일부 다르다.
+- [x] `frontend-routing.md`의 기존 회원 진입 설명은 최신 OAuth/일반 시작 흐름을 기준으로 갱신되어 있다.
 - [△] `frontend-api-state.md`의 mapper 위치 설명은 최신 코드와 일부 다르다.
-- [△] 기능명세서의 이메일/비밀번호 회원가입과 현재 모바일 UI의 일반 시작 흐름이 완전히 일치하지 않는다.
+- [x] 기능명세서의 이메일/비밀번호 회원가입과 현재 모바일 UI의 일반 시작 흐름이 일치한다.
 - [ ] README의 배포 URL, backend URL, 팀원 정보 등 빈 항목은 아직 정리되지 않았다.
 - [ ] 프론트 화면별 상세 QA 시나리오 문서는 아직 별도 파일로 분리되어 있지 않다.
 
@@ -188,9 +188,9 @@
 
 - [x] 프론트는 Vercel 등 정적 배포 환경에서 열릴 수 있는 React/Vite 구조다.
 - [x] frontend-only 배포 시 backend base URL을 환경변수로 지정해야 한다는 기준이 문서화되어 있다.
-- [△] Kakao OAuth는 Kakao Developers의 Redirect URI, Web domain, Supabase callback URL 설정이 맞아야 성공한다.
-- [△] Google OAuth는 Google Cloud OAuth client와 Supabase provider 설정이 맞아야 성공한다.
-- [△] Supabase Auth provider 설정과 redirect allowlist는 repo 코드만으로 검증할 수 없다.
+- [x] Kakao OAuth는 Kakao Developers의 Redirect URI, Web domain, Supabase callback URL 설정이 배포 URL과 일치해야 성공한다.
+- [x] Google OAuth는 Google Cloud OAuth client와 Supabase provider 설정이 배포 URL과 일치해야 성공한다.
+- [x] Supabase Auth provider 설정과 redirect allowlist는 dashboard 배포 체크리스트로 관리한다.
 - [△] frontend와 backend를 한 Vercel 프로젝트의 Services로 같이 배포할지, frontend만 배포하고 backend를 별도 배포할지 최종 배포 전략은 아직 프로젝트 설정에 따라 달라진다.
 
 ## 14. 접근성, 사용성, 테스트
@@ -208,16 +208,13 @@
 
 1. `App.tsx` 분리
    - 추천 리스트, confirm bar, 모임 상세, 모임 생성 dialog, 선호도 step을 feature/component 단위로 분리한다.
-2. 레거시 route 정리
-   - `AppRouter`를 제거할지, 현재 모바일 flow 기준으로 다시 설계할지 결정한다.
-3. 인증 UX 정리
-   - 일반 이메일/비밀번호 회원가입과 로그인 form을 실제 명세 수준으로 맞출지 결정한다.
-   - OAuth 성공 후 닉네임 입력과 중복 처리 흐름을 명확히 한다.
-4. 실시간 또는 주기적 재조회 전략 결정
+2. 남은 legacy page module 정리
+   - 현재 활성 view와 중복되는 기존 route page module을 제거하거나 새 feature view로 이관한다.
+3. 실시간 또는 주기적 재조회 전략 결정
    - 모임 참여자 변경, 메뉴 확정, 게스트 세션 만료를 즉시 반영하려면 Supabase Realtime, polling, focus refetch 중 하나를 선택한다.
-5. 문서 업데이트
-   - OAuth/일반 시작 흐름, mapper 이동, 최신 배포 방식, QA 시나리오를 기존 문서에 반영한다.
-6. 테스트 추가
+4. 문서 업데이트
+   - mapper 이동, 최신 배포 방식, QA 시나리오를 기존 문서에 반영한다.
+5. 테스트 추가
    - 개인 추천 확정 후 식사 기록 생성
    - 모임 참여자 제외 추천 계산
    - 모임 메뉴 확정 권한 제한
@@ -228,4 +225,4 @@
 
 현재 프론트엔드는 “초기 모바일 웹앱으로 실제 API를 호출하며 개인 추천, 모임 추천, 게스트 참여, 메뉴 확정 흐름을 체험할 수 있는 수준”까지 구현되어 있다.
 
-다만 아직 “프론트엔드 개발 구조가 안정적으로 분리된 상태”는 아니다. 가장 큰 남은 작업은 `App.tsx` 비대화 해소, 레거시 라우터 정리, OAuth/일반 로그인 정책 확정, 실시간 반영 전략, 자동 테스트 추가다.
+다만 아직 “프론트엔드 개발 구조가 안정적으로 분리된 상태”는 아니다. 가장 큰 남은 작업은 `App.tsx` 비대화 해소, 남은 legacy page module 이관/삭제, 실시간 반영 전략, 자동 테스트 추가다.

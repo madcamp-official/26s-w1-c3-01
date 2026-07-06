@@ -560,39 +560,53 @@ function NicknameStep({
   isLoading: boolean;
   errorMessage: string;
 }) {
+  const [nicknameStatus, setNicknameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const [localError, setLocalError] = useState("");
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const canSubmit =
+    credentials.email.trim() &&
+    credentials.password.length >= 6 &&
+    credentials.password === credentials.passwordConfirm &&
+    nickname.trim();
+
+  const checkNickname = async () => {
     setLocalError("");
+    setNicknameStatus("checking");
+    const available = await onCheckNickname(nickname);
+    setNicknameStatus(available ? "available" : "taken");
+    return available;
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!canSubmit) {
+      setLocalError("이메일, 6자 이상 비밀번호, 닉네임을 모두 입력해주세요.");
+      return;
+    }
     if (credentials.password !== credentials.passwordConfirm) {
       setLocalError("비밀번호 확인이 일치하지 않습니다.");
       return;
     }
-    void onCheckNickname(nickname).then((available) => {
-      if (!available) {
-        setLocalError("이미 사용 중인 닉네임입니다.");
-        return;
-      }
-      onNext();
-    });
+    if (nicknameStatus !== "available" && !(await checkNickname())) {
+      return;
+    }
+    onNext();
   };
 
   return (
     <main className="auth-screen nickname-screen">
-      <section className="auth-card nickname-card">
+      <section className="auth-card nickname-card account-card">
         <button className="ghost-icon-button back-floating" aria-label="이전 화면" onClick={onBack}>
           <ArrowLeft size={20} />
         </button>
-        <img src={logoAssets.startKo} alt="먹픽" className="nickname-logo" />
-        <form className="nickname-form" onSubmit={handleSubmit}>
+        <img src={logoAssets.startKo} alt="먹픽" className="nickname-logo account-logo" />
+        <form className="account-form" onSubmit={handleSubmit}>
           <label className="text-field">
             <span>이메일</span>
             <input
               type="email"
               value={credentials.email}
               onChange={(event) => onCredentialsChange({ ...credentials, email: event.target.value })}
-              placeholder="email@example.com"
               autoComplete="email"
               required
             />
@@ -620,20 +634,31 @@ function NicknameStep({
             />
           </label>
           <label className="text-field">
-            <div>
-              <UserRound size={18} />
-              <input value={nickname} onChange={(event) => onChange(event.target.value)} placeholder="nickname" />
+            <span>닉네임</span>
+            <div className="nickname-check-row">
+              <div>
+                <UserRound size={18} />
+                <input
+                  value={nickname}
+                  onChange={(event) => {
+                    onChange(event.target.value);
+                    setNicknameStatus("idle");
+                  }}
+                  placeholder="nickname"
+                  maxLength={50}
+                  required
+                />
+              </div>
+              <button className="secondary-button compact-check-button" type="button" onClick={() => void checkNickname()} disabled={isLoading || !nickname.trim() || nicknameStatus === "checking"}>
+                {nicknameStatus === "checking" ? "확인 중" : "중복 확인"}
+              </button>
             </div>
-            <span>닉네임을 설정해주세요</span>
+            {nicknameStatus === "available" ? <small className="field-success">사용 가능한 닉네임입니다.</small> : null}
+            {nicknameStatus === "taken" ? <small className="field-error">이미 사용 중인 닉네임입니다.</small> : null}
           </label>
           {localError || errorMessage ? <p className="auth-error" role="alert">{localError || errorMessage}</p> : null}
-          <button
-            className="inline-next"
-            type="submit"
-            disabled={isLoading || !nickname.trim() || !credentials.email.trim() || !credentials.password || !credentials.passwordConfirm}
-            aria-label="닉네임 다음"
-          >
-            <ChevronRight size={18} />
+          <button className="primary-button" type="submit" disabled={isLoading || !canSubmit || nicknameStatus === "taken"}>
+            다음
           </button>
         </form>
       </section>

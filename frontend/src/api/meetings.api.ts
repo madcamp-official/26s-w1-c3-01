@@ -1,5 +1,5 @@
 import { apiRequest } from "./client";
-import type { CreateMeetingRequest } from "../features/meetings/meeting.types";
+import type { CreateMeetingRequest, UpdateMeetingRequest } from "../features/meetings/meeting.types";
 
 export const meetingsApi = {
   list() {
@@ -13,6 +13,12 @@ export const meetingsApi = {
   },
   get(meetingId: number) {
     return apiRequest(`/meetings/${meetingId}`);
+  },
+  update(meetingId: number, body: UpdateMeetingRequest) {
+    return apiRequest(`/meetings/${meetingId}`, {
+      method: "PATCH",
+      body: JSON.stringify(body)
+    });
   },
   preview(meetingId: number) {
     return apiRequest(`/meetings/${meetingId}/preview`);

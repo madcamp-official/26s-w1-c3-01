@@ -20,6 +20,24 @@ export const login: RequestHandler = async (req, res, next) => {
   }
 };
 
+export const refresh: RequestHandler = async (req, res, next) => {
+  try {
+    const data = await authService.refresh(req.body);
+    sendSuccess(res, data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const checkNickname: RequestHandler = async (req, res, next) => {
+  try {
+    const nickname = typeof req.query.nickname === "string" ? req.query.nickname : "";
+    sendSuccess(res, await authService.checkNickname(nickname));
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const guestSignup: RequestHandler = async (_req, res, next) => {
   try {
     const data = await authService.signupGuest();

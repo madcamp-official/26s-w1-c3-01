@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Plus, X } from "lucide-react";
 import type { RemoteMenu } from "../../domain/appModel";
+import { useModalA11y } from "../../hooks/useModalA11y";
 
 export type MealHistoryFormValue = {
   menuId: number;
@@ -26,6 +27,7 @@ export function MealHistoryDialog({
   const [menuId, setMenuId] = useState("");
   const [rating, setRating] = useState("4");
   const [memo, setMemo] = useState("");
+  const dialogRef = useModalA11y(open, onClose);
 
   if (!open) return null;
 
@@ -37,8 +39,17 @@ export function MealHistoryDialog({
   };
 
   return (
-    <div className="modal-backdrop" role="presentation">
-      <section className="meeting-dialog" role="dialog" aria-modal="true" aria-labelledby="history-dialog-title">
+    <div className="modal-backdrop" role="presentation" onPointerDown={(event) => {
+      if (event.target === event.currentTarget) onClose();
+    }}>
+      <section
+        className="meeting-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="history-dialog-title"
+        tabIndex={-1}
+        ref={dialogRef}
+      >
         <div className="dialog-heading">
           <div>
             <p>HISTORY</p>
