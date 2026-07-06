@@ -608,6 +608,81 @@ function EmailVerificationScreen({
   );
 }
 
+type NicknameStatus = "idle" | "checking" | "available" | "taken";
+
+function useNicknameAvailability(
+  nickname: string,
+  onCheckNickname: (nickname: string) => Promise<boolean>
+) {
+  const [nicknameStatus, setNicknameStatus] = useState<NicknameStatus>("idle");
+  const [localError, setLocalError] = useState("");
+
+  const checkNickname = async () => {
+    setLocalError("");
+    setNicknameStatus("checking");
+    const available = await onCheckNickname(nickname);
+    setNicknameStatus(available ? "available" : "taken");
+    return available;
+  };
+
+  const resetNicknameStatus = () => setNicknameStatus("idle");
+
+  return {
+    nicknameStatus,
+    localError,
+    setLocalError,
+    checkNickname,
+    resetNicknameStatus
+  };
+}
+
+function NicknameCheckField({
+  nickname,
+  onChange,
+  onCheck,
+  onReset,
+  status,
+  isLoading
+}: {
+  nickname: string;
+  onChange: (value: string) => void;
+  onCheck: () => Promise<boolean>;
+  onReset: () => void;
+  status: NicknameStatus;
+  isLoading: boolean;
+}) {
+  return (
+    <label className="text-field">
+      <span>닉네임</span>
+      <div className="nickname-check-row">
+        <div>
+          <UserRound size={18} />
+          <input
+            value={nickname}
+            onChange={(event) => {
+              onChange(event.target.value);
+              onReset();
+            }}
+            placeholder="nickname"
+            maxLength={50}
+            required
+          />
+        </div>
+        <button
+          className="secondary-button compact-check-button"
+          type="button"
+          onClick={() => void onCheck()}
+          disabled={isLoading || !nickname.trim() || status === "checking"}
+        >
+          {status === "checking" ? "확인 중" : "중복 확인"}
+        </button>
+      </div>
+      {status === "available" ? <small className="field-success">사용 가능한 닉네임입니다.</small> : null}
+      {status === "taken" ? <small className="field-error">이미 사용 중인 닉네임입니다.</small> : null}
+    </label>
+  );
+}
+
 function OAuthNicknameStep({
   nickname,
   onBack,
@@ -625,16 +700,8 @@ function OAuthNicknameStep({
   isLoading: boolean;
   errorMessage: string;
 }) {
-  const [nicknameStatus, setNicknameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
-  const [localError, setLocalError] = useState("");
-
-  const checkNickname = async () => {
-    setLocalError("");
-    setNicknameStatus("checking");
-    const available = await onCheckNickname(nickname);
-    setNicknameStatus(available ? "available" : "taken");
-    return available;
-  };
+  const { nicknameStatus, localError, setLocalError, checkNickname, resetNicknameStatus } =
+    useNicknameAvailability(nickname, onCheckNickname);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -660,29 +727,14 @@ function OAuthNicknameStep({
           <p>먹픽에서 사용할 이름만 입력하면 선호도 설정으로 넘어갑니다</p>
         </div>
         <form className="account-form" onSubmit={handleSubmit}>
-          <label className="text-field">
-            <span>닉네임</span>
-            <div className="nickname-check-row">
-              <div>
-                <UserRound size={18} />
-                <input
-                  value={nickname}
-                  onChange={(event) => {
-                    onChange(event.target.value);
-                    setNicknameStatus("idle");
-                  }}
-                  placeholder="nickname"
-                  maxLength={50}
-                  required
-                />
-              </div>
-              <button className="secondary-button compact-check-button" type="button" onClick={() => void checkNickname()} disabled={isLoading || !nickname.trim() || nicknameStatus === "checking"}>
-                {nicknameStatus === "checking" ? "확인 중" : "중복 확인"}
-              </button>
-            </div>
-            {nicknameStatus === "available" ? <small className="field-success">사용 가능한 닉네임입니다.</small> : null}
-            {nicknameStatus === "taken" ? <small className="field-error">이미 사용 중인 닉네임입니다.</small> : null}
-          </label>
+          <NicknameCheckField
+            nickname={nickname}
+            onChange={onChange}
+            onCheck={checkNickname}
+            onReset={resetNicknameStatus}
+            status={nicknameStatus}
+            isLoading={isLoading}
+          />
           {localError || errorMessage ? <p className="auth-error" role="alert">{localError || errorMessage}</p> : null}
           <button className="primary-button" type="submit" disabled={isLoading || !nickname.trim() || nicknameStatus === "taken"}>
             다음
@@ -714,22 +766,14 @@ function NicknameStep({
   isLoading: boolean;
   errorMessage: string;
 }) {
-  const [nicknameStatus, setNicknameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
-  const [localError, setLocalError] = useState("");
+  const { nicknameStatus, localError, setLocalError, checkNickname, resetNicknameStatus } =
+    useNicknameAvailability(nickname, onCheckNickname);
 
   const canSubmit =
     credentials.email.trim() &&
     credentials.password.length >= 6 &&
     credentials.password === credentials.passwordConfirm &&
     nickname.trim();
-
-  const checkNickname = async () => {
-    setLocalError("");
-    setNicknameStatus("checking");
-    const available = await onCheckNickname(nickname);
-    setNicknameStatus(available ? "available" : "taken");
-    return available;
-  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -787,29 +831,14 @@ function NicknameStep({
               required
             />
           </label>
-          <label className="text-field">
-            <span>닉네임</span>
-            <div className="nickname-check-row">
-              <div>
-                <UserRound size={18} />
-                <input
-                  value={nickname}
-                  onChange={(event) => {
-                    onChange(event.target.value);
-                    setNicknameStatus("idle");
-                  }}
-                  placeholder="nickname"
-                  maxLength={50}
-                  required
-                />
-              </div>
-              <button className="secondary-button compact-check-button" type="button" onClick={() => void checkNickname()} disabled={isLoading || !nickname.trim() || nicknameStatus === "checking"}>
-                {nicknameStatus === "checking" ? "확인 중" : "중복 확인"}
-              </button>
-            </div>
-            {nicknameStatus === "available" ? <small className="field-success">사용 가능한 닉네임입니다.</small> : null}
-            {nicknameStatus === "taken" ? <small className="field-error">이미 사용 중인 닉네임입니다.</small> : null}
-          </label>
+          <NicknameCheckField
+            nickname={nickname}
+            onChange={onChange}
+            onCheck={checkNickname}
+            onReset={resetNicknameStatus}
+            status={nicknameStatus}
+            isLoading={isLoading}
+          />
           {localError || errorMessage ? <p className="auth-error" role="alert">{localError || errorMessage}</p> : null}
           <button className="primary-button" type="submit" disabled={isLoading || !canSubmit || nicknameStatus === "taken"}>
             다음
@@ -866,7 +895,7 @@ function OnboardingPickStep({
         <div className="step-actions">
           {errorMessage ? <p className="auth-error" role="alert">{errorMessage}</p> : null}
           <button className="primary-button" onClick={() => void onNext()} disabled={isLoading}>
-            {isLoading ? "저장 중" : nextLabel === "완료" ? "선택완료" : "선택완료"}
+            {isLoading ? "저장 중" : nextLabel}
           </button>
           <button className="skip-link" onClick={() => void onNext()} disabled={isLoading}>아직 결정하지 못했어요</button>
         </div>

@@ -36,7 +36,7 @@ export const meetingRecommendationRepository = {
     return Boolean(data);
   },
 
-  async loadMeetingRecommendationBase(meetingId: number) {
+  async loadMeetingRecommendationBase(meetingId: number, selectedParticipantUserIds?: number[]) {
     const meeting = await this.findMeetingById(meetingId);
     if (!meeting) return null;
 
@@ -48,9 +48,13 @@ export const meetingRecommendationRepository = {
 
     if (participantError) throw participantError;
 
+    const selectedParticipantSet = selectedParticipantUserIds?.length
+      ? new Set(selectedParticipantUserIds.map(Number))
+      : null;
     const participantUserIds = (participants ?? [])
       .map((participant) => participant.user_id)
-      .filter((userId): userId is number => userId !== null);
+      .filter((userId): userId is number => userId !== null)
+      .filter((userId) => !selectedParticipantSet || selectedParticipantSet.has(Number(userId)));
 
     const [
       menus,

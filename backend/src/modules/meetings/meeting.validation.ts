@@ -4,7 +4,8 @@ export const createMeetingSchema = z.object({
   title: z.string().optional(),
   meetingTime: z.string().datetime(),
   meetingPurposeId: z.number().int().positive(),
-  location: z.string().optional()
+  location: z.string().optional(),
+  participantUserIds: z.array(z.coerce.number().int().positive()).optional()
 });
 
 export const updateMeetingSchema = createMeetingSchema

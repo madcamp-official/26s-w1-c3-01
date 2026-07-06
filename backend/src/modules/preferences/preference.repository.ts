@@ -1,12 +1,6 @@
 import { supabaseAdmin } from "../../config/supabase.js";
 import type { ReplacePreferenceRequest } from "./preference.dto.js";
 
-type PreferenceTable =
-  | "user_menu_preferences"
-  | "user_category_preferences"
-  | "user_tag_preferences"
-  | "user_allergies";
-
 export const preferenceRepository = {
   // 사용자 선호도 전체를 조회한다.
   // 메뉴, 카테고리, 태그, 알러지 데이터를 한 번에 내려준다.
@@ -75,69 +69,28 @@ export const preferenceRepository = {
   // 사용자 선호도 전체를 새 값으로 교체한다.
   // 각 테이블의 기존 row를 삭제한 뒤 요청 body 기준으로 다시 insert한다.
   async replaceByUserId(userId: number, input: ReplacePreferenceRequest) {
-    const now = new Date().toISOString();
-
-    await replaceRows(
-      "user_menu_preferences",
-      userId,
-      input.menuPreferences?.map((item) => ({
-        user_id: userId,
+    const { error } = await supabaseAdmin.rpc("replace_user_preferences", {
+      p_user_id: userId,
+      p_menu_preferences: input.menuPreferences?.map((item) => ({
         menu_id: item.menuId,
-        preference_score: item.preferenceScore,
-        updated_at: now
-      })) ?? []
-    );
-
-    await replaceRows(
-      "user_category_preferences",
-      userId,
-      input.categoryPreferences?.map((item) => ({
-        user_id: userId,
+        preference_score: item.preferenceScore
+      })) ?? [],
+      p_category_preferences: input.categoryPreferences?.map((item) => ({
         category_id: item.categoryId,
-        preference_score: item.preferenceScore,
-        updated_at: now
-      })) ?? []
-    );
-
-    await replaceRows(
-      "user_tag_preferences",
-      userId,
-      input.tagPreferences?.map((item) => ({
-        user_id: userId,
+        preference_score: item.preferenceScore
+      })) ?? [],
+      p_tag_preferences: input.tagPreferences?.map((item) => ({
         tag_id: item.tagId,
-        preference_score: item.preferenceScore,
-        updated_at: now
-      })) ?? []
-    );
+        preference_score: item.preferenceScore
+      })) ?? [],
+      p_allergy_ids: input.allergyIds ?? []
+    });
 
-    await replaceRows(
-      "user_allergies",
-      userId,
-      input.allergyIds?.map((allergyId) => ({
-        user_id: userId,
-        allergy_id: allergyId
-      })) ?? []
-    );
+    if (error) throw error;
 
     return { updated: true };
   }
 };
-
-// 특정 사용자 선호도 테이블을 교체 저장한다.
-// 삭제 후 insert 방식이라 구현은 단순하지만, 중간 실패 시 일부만 반영될 수 있다.
-async function replaceRows(
-  table: PreferenceTable,
-  userId: number,
-  rows: Record<string, unknown>[]
-) {
-  const deleteResult = await supabaseAdmin.from(table).delete().eq("user_id", userId);
-  if (deleteResult.error) throw deleteResult.error;
-
-  if (rows.length === 0) return;
-
-  const insertResult = await supabaseAdmin.from(table).insert(rows);
-  if (insertResult.error) throw insertResult.error;
-}
 
 // Supabase join 결과가 객체 또는 배열로 올 수 있어 공통 처리한다.
 function firstOrSelf<T>(value: T | T[] | null | undefined): T | null {
