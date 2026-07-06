@@ -28,6 +28,7 @@ type AuthFlowProps = {
   pickData: PickData;
   authBusy: boolean;
   authError: string;
+  isOAuthOnboarding: boolean;
   onFlowChange: (flow: Flow) => void;
   onNicknameChange: (value: string) => void;
   onSignupCredentialsChange: (value: SignupCredentials) => void;
@@ -44,6 +45,7 @@ type AuthFlowProps = {
   onLogin: () => Promise<void>;
   onCheckNickname: (nickname: string) => Promise<boolean>;
   onCreateEmailSignup: () => Promise<void>;
+  onCompleteOAuthNickname: () => Promise<void>;
   onCompleteSignup: () => Promise<void>;
   onCompleteGuestPreferences: () => Promise<void>;
   onPreviewGuestMeeting: () => Promise<void>;
@@ -75,6 +77,7 @@ export function AuthFlow({
   pickData,
   authBusy,
   authError,
+  isOAuthOnboarding,
   onFlowChange,
   onNicknameChange,
   onSignupCredentialsChange,
@@ -94,6 +97,7 @@ export function AuthFlow({
   onLogin,
   onCheckNickname,
   onCreateEmailSignup,
+  onCompleteOAuthNickname,
   onCompleteSignup,
   onCompleteGuestPreferences,
   onPreviewGuestMeeting,
@@ -220,6 +224,20 @@ export function AuthFlow({
     );
   }
 
+  if (flow === "oauth-nickname") {
+    return (
+      <OAuthNicknameStep
+        nickname={nickname}
+        onBack={() => onFlowChange("start")}
+        onChange={onNicknameChange}
+        onCheckNickname={onCheckNickname}
+        onNext={onCompleteOAuthNickname}
+        isLoading={authBusy}
+        errorMessage={authError}
+      />
+    );
+  }
+
   if (flow === "signup-categories") {
     return (
       <OnboardingPickStep
@@ -231,7 +249,7 @@ export function AuthFlow({
         scores={categoryScores}
         onChange={onSelectedCategoriesChange}
         onScoreChange={onCategoryScoresChange}
-        onBack={() => onFlowChange("signup-name")}
+        onBack={() => onFlowChange(isOAuthOnboarding ? "oauth-nickname" : "signup-name")}
         onNext={() => onFlowChange("signup-tags")}
       />
     );
@@ -589,6 +607,91 @@ function EmailVerificationScreen({
         <button className="primary-button" onClick={onGoLogin}>
           인증 후 로그인하기
         </button>
+      </section>
+    </main>
+  );
+}
+
+function OAuthNicknameStep({
+  nickname,
+  onBack,
+  onChange,
+  onCheckNickname,
+  onNext,
+  isLoading,
+  errorMessage
+}: {
+  nickname: string;
+  onBack: () => void;
+  onChange: (value: string) => void;
+  onCheckNickname: (nickname: string) => Promise<boolean>;
+  onNext: () => Promise<void>;
+  isLoading: boolean;
+  errorMessage: string;
+}) {
+  const [nicknameStatus, setNicknameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const [localError, setLocalError] = useState("");
+
+  const checkNickname = async () => {
+    setLocalError("");
+    setNicknameStatus("checking");
+    const available = await onCheckNickname(nickname);
+    setNicknameStatus(available ? "available" : "taken");
+    return available;
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!nickname.trim()) {
+      setLocalError("닉네임을 입력해주세요.");
+      return;
+    }
+    if (nicknameStatus !== "available" && !(await checkNickname())) {
+      return;
+    }
+    await onNext();
+  };
+
+  return (
+    <main className="auth-screen nickname-screen">
+      <section className="auth-card nickname-card account-card">
+        <button className="ghost-icon-button back-floating" aria-label="이전 화면" onClick={onBack}>
+          <ArrowLeft size={20} />
+        </button>
+        <img src={logoAssets.startKo} alt="먹픽" className="nickname-logo account-logo" />
+        <div className="auth-copy">
+          <h1>닉네임을 정해주세요</h1>
+          <p>먹픽에서 사용할 이름만 입력하면 선호도 설정으로 넘어갑니다</p>
+        </div>
+        <form className="account-form" onSubmit={handleSubmit}>
+          <label className="text-field">
+            <span>닉네임</span>
+            <div className="nickname-check-row">
+              <div>
+                <UserRound size={18} />
+                <input
+                  value={nickname}
+                  onChange={(event) => {
+                    onChange(event.target.value);
+                    setNicknameStatus("idle");
+                  }}
+                  placeholder="nickname"
+                  maxLength={50}
+                  required
+                />
+              </div>
+              <button className="secondary-button compact-check-button" type="button" onClick={() => void checkNickname()} disabled={isLoading || !nickname.trim() || nicknameStatus === "checking"}>
+                {nicknameStatus === "checking" ? "확인 중" : "중복 확인"}
+              </button>
+            </div>
+            {nicknameStatus === "available" ? <small className="field-success">사용 가능한 닉네임입니다.</small> : null}
+            {nicknameStatus === "taken" ? <small className="field-error">이미 사용 중인 닉네임입니다.</small> : null}
+          </label>
+          {localError || errorMessage ? <p className="auth-error" role="alert">{localError || errorMessage}</p> : null}
+          <button className="primary-button" type="submit" disabled={isLoading || !nickname.trim() || nicknameStatus === "taken"}>
+            다음
+          </button>
+        </form>
       </section>
     </main>
   );

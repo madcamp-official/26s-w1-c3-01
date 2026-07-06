@@ -10,7 +10,19 @@ export const userService = {
     return userRepository.search(query);
   },
 
-  updateMe(userId: number, input: UpdateUserRequest) {
-    return userRepository.update(userId, input);
+  async updateMe(userId: number, input: UpdateUserRequest) {
+    const nextInput = {
+      ...input,
+      nickname: input.nickname?.trim()
+    };
+
+    if (nextInput.nickname) {
+      const existing = await userRepository.findByNickname(nextInput.nickname);
+      if (existing && existing.userId !== userId) {
+        throw Object.assign(new Error("이미 사용 중인 닉네임입니다."), { status: 409, code: "CONFLICT" });
+      }
+    }
+
+    return userRepository.update(userId, nextInput);
   }
 };

@@ -56,6 +56,7 @@
 - [x] Google OAuth 시작 버튼과 Supabase SDK `signInWithOAuth()` 호출 코드가 있다.
 - [x] OAuth callback URL fragment에서 `access_token`, `refresh_token`, `expires_at`을 읽고 localStorage에 저장하는 코드가 있다.
 - [x] 일반 회원가입은 이메일, 비밀번호, 닉네임 입력 form을 사용한다.
+- [x] 소셜 로그인 신규 사용자는 이메일/비밀번호를 다시 받지 않고 닉네임만 입력한 뒤 선호도 조사로 이동한다.
 - [x] 이메일/비밀번호 로그인 form이 모바일 시작 화면에서 진입 가능하다.
 - [x] 로그아웃 버튼이 있고, 로그아웃 시 access token, refresh token, expiresAt, session meta를 삭제한다.
 - [x] 게스트 시작 시 `POST /auth/guest`를 호출해 임시 계정을 생성하는 흐름이 있다.

@@ -86,6 +86,7 @@ export function MukpickApp() {
   const [profileName, setProfileName] = useState("밥");
   const [profileUserId, setProfileUserId] = useState<number | null>(null);
   const [isGuestSession, setIsGuestSession] = useState(false);
+  const [isOAuthOnboarding, setIsOAuthOnboarding] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
   const showToast = useCallback((message: string) => {
@@ -361,12 +362,14 @@ export function MukpickApp() {
         await loadApiData({ syncPreferences: hasPreferences });
 
         if (hasPreferences) {
+          setIsOAuthOnboarding(false);
           setFlow("app");
           await applyRouteState(readAppRoute(), { restoreStoredFallback: true });
           showToast("소셜 로그인으로 접속했습니다.");
         } else {
           setNickname("");
-          setFlow("signup-name");
+          setIsOAuthOnboarding(true);
+          setFlow("oauth-nickname");
           setApiStatus("ready");
           showToast("닉네임과 선호도를 설정해주세요.");
         }
@@ -474,6 +477,7 @@ export function MukpickApp() {
       persistAccessToken(loginResponse);
       sessionStorageMeta.set({ isGuest: false });
       setIsGuestSession(false);
+      setIsOAuthOnboarding(false);
       const preferences = await preferencesApi.getMine().catch(() => null);
       const hasPreferences = hasPreferenceRows(preferences);
       await loadApiData({ syncPreferences: hasPreferences });
@@ -534,6 +538,7 @@ export function MukpickApp() {
 
       if (signupResponse.accessToken) {
         persistAccessToken(signupResponse);
+        setIsOAuthOnboarding(false);
         await loadApiData({ syncPreferences: false });
         setFlow("signup-categories");
         setApiStatus("ready");
@@ -542,6 +547,7 @@ export function MukpickApp() {
       }
 
       setFlow("signup-email-sent");
+      setIsOAuthOnboarding(false);
       setApiStatus("ready");
       showToast("인증 메일을 보냈습니다. 이메일 인증 후 로그인해주세요.");
     } catch (error) {
@@ -567,23 +573,62 @@ export function MukpickApp() {
     });
   };
 
+  const handleOAuthNicknameComplete = async () => {
+    setAuthBusy(true);
+    setAuthError("");
+    setApiStatus("authenticating");
+    try {
+      const normalizedNickname = nickname.trim();
+      if (!tokenStorage.get()) {
+        throw new Error("소셜 로그인 세션을 찾지 못했습니다. 다시 로그인해주세요.");
+      }
+      if (!normalizedNickname) {
+        throw new Error("닉네임을 입력해주세요.");
+      }
+      if (!(await handleCheckNickname(normalizedNickname))) return;
+
+      await usersApi.updateMe({
+        nickname: normalizedNickname,
+        userType: "PERSONAL"
+      });
+      setProfileName(normalizedNickname);
+      setIsGuestSession(false);
+      setIsOAuthOnboarding(true);
+      sessionStorageMeta.set({ isGuest: false });
+      setFlow("signup-categories");
+      setApiStatus("ready");
+      showToast("닉네임을 저장했습니다. 선호도를 설정해주세요.");
+    } catch (error) {
+      const message = errorMessage(error);
+      setApiStatus("error");
+      setAuthError(message);
+      setApiError(message);
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
   const handleSignupComplete = async () => {
     setAuthBusy(true);
     setAuthError("");
     setApiStatus("authenticating");
     try {
+      const normalizedNickname = nickname.trim() || profileName || "밥";
       if (tokenStorage.get()) {
-        if (!(await handleCheckNickname(nickname))) return;
-        await usersApi.updateMe({
-          nickname: nickname.trim() || "밥",
-          userType: "PERSONAL"
-        });
+        if (normalizedNickname !== profileName) {
+          if (!(await handleCheckNickname(normalizedNickname))) return;
+          await usersApi.updateMe({
+            nickname: normalizedNickname,
+            userType: "PERSONAL"
+          });
+        }
       } else {
         throw new Error("이메일 인증 후 로그인하면 선호도 저장을 계속할 수 있습니다.");
       }
       sessionStorageMeta.set({ isGuest: false });
-      setProfileName(nickname.trim() || "밥");
+      setProfileName(normalizedNickname);
       setIsGuestSession(false);
+      setIsOAuthOnboarding(false);
       const loaded = await loadApiData({ syncPreferences: false });
       await preferencesApi.replaceMine(
         buildPreferencePayload({
@@ -1023,10 +1068,12 @@ export function MukpickApp() {
         pickData={pickData}
         authBusy={authBusy || apiStatus === "loading"}
         authError={authError}
+        isOAuthOnboarding={isOAuthOnboarding}
         onOAuthStart={handleOAuthStart}
         onLogin={handleLogin}
         onCheckNickname={handleCheckNickname}
         onCreateEmailSignup={handleCreateEmailSignup}
+        onCompleteOAuthNickname={handleOAuthNicknameComplete}
         onCompleteSignup={handleSignupComplete}
         onCompleteGuestPreferences={handleGuestPreferenceComplete}
         onPreviewGuestMeeting={handlePreviewGuestMeeting}
