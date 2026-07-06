@@ -14,6 +14,12 @@ export type RecommendationResult = {
   isNewSuggestion?: boolean;
 };
 
+export type PersonalRecommendationResponse = {
+  userId: number;
+  runId: number;
+  results: RecommendationResult[];
+};
+
 export type MenuRow = {
   menu_id: number;
   category_id: number;

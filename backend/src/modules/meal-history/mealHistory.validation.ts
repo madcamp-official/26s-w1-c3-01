@@ -5,7 +5,8 @@ export const createMealHistorySchema = z.object({
   // Supabase timestamptz에 저장할 ISO 날짜 문자열입니다.
   eatenAt: z.string().datetime({ offset: true }).optional(),
   rating: z.coerce.number().int().min(1).max(5).optional(),
-  memo: z.string().trim().max(500).optional()
+  memo: z.string().trim().max(500).optional(),
+  personalRecommendationRunId: z.coerce.number().int().positive().optional()
 });
 
 export const updateMealHistorySchema = createMealHistorySchema

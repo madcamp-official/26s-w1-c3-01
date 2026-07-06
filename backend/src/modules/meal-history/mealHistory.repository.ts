@@ -12,6 +12,7 @@ const mealHistorySelect = `
   eaten_at,
   rating,
   memo,
+  personal_recommendation_run_id,
   created_at,
   menus(menu_id, name, description)
 `;
@@ -25,7 +26,8 @@ export const mealHistoryRepository = {
         menu_id: input.menuId,
         eaten_at: input.eatenAt ?? new Date().toISOString(),
         rating: input.rating ?? null,
-        memo: input.memo ?? null
+        memo: input.memo ?? null,
+        personal_recommendation_run_id: input.personalRecommendationRunId ?? null
       })
       .select(mealHistorySelect)
       .single();
@@ -76,7 +78,10 @@ export const mealHistoryRepository = {
       ...(input.menuId !== undefined && { menu_id: input.menuId }),
       ...(input.eatenAt !== undefined && { eaten_at: input.eatenAt }),
       ...(input.rating !== undefined && { rating: input.rating }),
-      ...(input.memo !== undefined && { memo: input.memo })
+      ...(input.memo !== undefined && { memo: input.memo }),
+      ...(input.personalRecommendationRunId !== undefined && {
+        personal_recommendation_run_id: input.personalRecommendationRunId
+      })
     };
 
     const { data, error } = await supabaseAdmin
