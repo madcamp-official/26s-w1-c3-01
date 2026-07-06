@@ -1,3 +1,4 @@
+import { ERROR_CODES } from "../../common/constants/errorCodes.js";
 import { supabaseAdmin } from "../../config/supabase.js";
 import type {
   CreateMealHistoryRequest,
@@ -19,6 +20,8 @@ const mealHistorySelect = `
 
 export const mealHistoryRepository = {
   async create(userId: number, input: CreateMealHistoryRequest) {
+    await assertPersonalRecommendationRunOwner(userId, input.personalRecommendationRunId);
+
     const { data, error } = await supabaseAdmin
       .from("meal_history")
       .insert({
@@ -73,6 +76,8 @@ export const mealHistoryRepository = {
   },
 
   async update(userId: number, historyId: number, input: UpdateMealHistoryRequest) {
+    await assertPersonalRecommendationRunOwner(userId, input.personalRecommendationRunId);
+
     // undefined인 값은 업데이트 대상에서 제외합니다.
     const patch = {
       ...(input.menuId !== undefined && { menu_id: input.menuId }),
@@ -110,3 +115,23 @@ export const mealHistoryRepository = {
     return data;
   }
 };
+
+async function assertPersonalRecommendationRunOwner(userId: number, runId?: number) {
+  if (runId === undefined) return;
+
+  const { data, error } = await supabaseAdmin
+    .from("personal_recommendation_runs")
+    .select("run_id")
+    .eq("run_id", runId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) {
+    throw {
+      status: 403,
+      code: ERROR_CODES.FORBIDDEN,
+      message: "본인의 개인 추천 기록만 식사 기록에 연결할 수 있습니다."
+    };
+  }
+}

@@ -17,7 +17,19 @@ export const userService = {
   },
 
   // 닉네임, 사용자 유형 등 수정 가능한 profile 필드를 업데이트한다.
-  updateMe(userId: number, input: UpdateUserRequest) {
+  async updateMe(userId: number, input: UpdateUserRequest) {
+    if (input.nickname !== undefined) {
+      const nicknameOwner = await userRepository.findByNickname(input.nickname);
+
+      // 닉네임은 화면 표시와 모임 참여자 식별에 쓰이므로 다른 사용자와 중복되지 않게 막는다.
+      if (nicknameOwner && nicknameOwner.userId !== userId) {
+        throw Object.assign(new Error("이미 사용 중인 닉네임입니다."), {
+          status: 409,
+          code: "CONFLICT"
+        });
+      }
+    }
+
     return userRepository.update(userId, input);
   }
 };

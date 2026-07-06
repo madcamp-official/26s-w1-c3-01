@@ -70,7 +70,8 @@ export function createMeetingRecommendationConfig(
     resultLimit:
       input.resultLimit ??
       input.limit ??
-      DEFAULT_CONFIG.resultLimit
+      DEFAULT_CONFIG.resultLimit,
+    participantUserIds: input.participantUserIds
   };
 }
 

@@ -150,6 +150,14 @@ export const meetingRecommendationRepository = {
       if (resultError) throw resultError;
     }
 
+    // 추천 결과가 생성되면 모임 상태도 추천 완료로 맞춰 이후 확정 단계와 구분한다.
+    const { error: meetingStatusError } = await supabaseAdmin
+      .from("meetings")
+      .update({ status: "RECOMMENDED" })
+      .eq("meeting_id", meetingId);
+
+    if (meetingStatusError) throw meetingStatusError;
+
     return run;
   },
 
@@ -182,6 +190,22 @@ export const meetingRecommendationRepository = {
       totalScore: Number(row.total_score),
       reason: row.reason ?? ""
     }));
+  },
+
+  async findLatestResultByMenuId(meetingId: number, menuId: number) {
+    const latestRun = await this.findLatestRun(meetingId);
+    if (!latestRun) return null;
+
+    // 메뉴 확정은 최신 추천 실행의 후보 중 하나만 허용한다.
+    const { data, error } = await supabaseAdmin
+      .from("meeting_recommendations")
+      .select("recommendation_id, run_id, menu_id")
+      .eq("run_id", latestRun.run_id)
+      .eq("menu_id", menuId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
   },
 
   async selectMenu(meetingId: number, menuId: number) {

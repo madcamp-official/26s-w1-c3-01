@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "../../config/supabase.js";
-import type { ListMenusQuery } from "./masterData.service.js";
+import type { CreateMenuRequest, ListMenusQuery, UpdateMenuRequest } from "./masterData.service.js";
 
 type MenuRow = {
   menu_id: number;
@@ -161,6 +161,79 @@ export const masterDataRepository = {
     };
   },
 
+  async findMenuByName(name: string) {
+    const { data, error } = await supabaseAdmin
+      .from("menus")
+      .select("menu_id")
+      .eq("name", name)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async createMenu(input: CreateMenuRequest) {
+    const { data, error } = await supabaseAdmin
+      .from("menus")
+      .insert({
+        category_id: input.categoryId,
+        name: input.name,
+        description: input.description ?? null,
+        spicy_level: input.spicyLevel,
+        price_level: input.priceLevel ?? null,
+        calorie: input.calorie ?? null
+      })
+      .select("menu_id")
+      .single();
+
+    if (error) throw error;
+
+    const menuId = Number(data.menu_id);
+    await replaceMenuRelations(menuId, input);
+    return this.findMenuById(menuId);
+  },
+
+  async updateMenu(menuId: number, input: UpdateMenuRequest) {
+    const patch = {
+      ...(input.categoryId !== undefined && { category_id: input.categoryId }),
+      ...(input.name !== undefined && { name: input.name }),
+      ...(input.description !== undefined && { description: input.description }),
+      ...(input.spicyLevel !== undefined && { spicy_level: input.spicyLevel }),
+      ...(input.priceLevel !== undefined && { price_level: input.priceLevel }),
+      ...(input.calorie !== undefined && { calorie: input.calorie })
+    };
+
+    if (Object.keys(patch).length > 0) {
+      const { error } = await supabaseAdmin
+        .from("menus")
+        .update(patch)
+        .eq("menu_id", menuId);
+
+      if (error) throw error;
+    }
+
+    await replaceMenuRelations(menuId, input);
+    return this.findMenuById(menuId);
+  },
+
+  async deleteMenu(menuId: number) {
+    await replaceMenuRelations(menuId, {
+      tagIds: [],
+      allergyIds: [],
+      purposeSuitability: []
+    });
+
+    const { data, error } = await supabaseAdmin
+      .from("menus")
+      .delete()
+      .eq("menu_id", menuId)
+      .select("menu_id")
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  },
+
   // 음식 카테고리 목록을 조회한다.
   async findMenuCategories() {
     const { data, error } = await supabaseAdmin
@@ -265,6 +338,73 @@ function toMenuSummary(row: MenuRow) {
         }
       : null
   };
+}
+
+async function replaceMenuRelations(menuId: number, input: Pick<UpdateMenuRequest, "tagIds" | "allergyIds" | "purposeSuitability">) {
+  if (input.tagIds !== undefined) {
+    const { error: deleteError } = await supabaseAdmin
+      .from("menu_tags")
+      .delete()
+      .eq("menu_id", menuId);
+
+    if (deleteError) throw deleteError;
+
+    if (input.tagIds.length > 0) {
+      const { error } = await supabaseAdmin
+        .from("menu_tags")
+        .insert(uniqueNumbers(input.tagIds).map((tagId) => ({ menu_id: menuId, tag_id: tagId })));
+
+      if (error) throw error;
+    }
+  }
+
+  if (input.allergyIds !== undefined) {
+    const { error: deleteError } = await supabaseAdmin
+      .from("menu_allergies")
+      .delete()
+      .eq("menu_id", menuId);
+
+    if (deleteError) throw deleteError;
+
+    if (input.allergyIds.length > 0) {
+      const { error } = await supabaseAdmin
+        .from("menu_allergies")
+        .insert(uniqueNumbers(input.allergyIds).map((allergyId) => ({ menu_id: menuId, allergy_id: allergyId })));
+
+      if (error) throw error;
+    }
+  }
+
+  if (input.purposeSuitability !== undefined) {
+    const { error: deleteError } = await supabaseAdmin
+      .from("menu_purpose_suitability")
+      .delete()
+      .eq("menu_id", menuId);
+
+    if (deleteError) throw deleteError;
+
+    if (input.purposeSuitability.length > 0) {
+      const uniqueByPurpose = new Map(
+        input.purposeSuitability.map((item) => [
+          item.meetingPurposeId,
+          {
+            menu_id: menuId,
+            meeting_purpose_id: item.meetingPurposeId,
+            suitability_score: item.suitabilityScore
+          }
+        ])
+      );
+      const { error } = await supabaseAdmin
+        .from("menu_purpose_suitability")
+        .insert(Array.from(uniqueByPurpose.values()));
+
+      if (error) throw error;
+    }
+  }
+}
+
+function uniqueNumbers(values: number[]) {
+  return Array.from(new Set(values.map(Number)));
 }
 
 // Supabase join 결과는 설정/관계에 따라 객체 또는 배열로 올 수 있다.

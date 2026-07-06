@@ -61,6 +61,17 @@ export const userRepository = {
     return data ? toPublicProfile(data as UserProfileRow) : null;
   },
 
+  async findByNickname(nickname: string): Promise<UserProfileResponse | null> {
+    const { data, error } = await supabaseAdmin
+      .from("users")
+      .select("user_id, auth_user_id, email, nickname, user_type")
+      .eq("nickname", nickname)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data ? toPublicProfile(data as UserProfileRow) : null;
+  },
+
   // 수정 가능한 profile 필드를 업데이트한다.
   async update(userId: number, input: UpdateUserRequest): Promise<UserProfileResponse> {
     const updateData: Record<string, unknown> = {};
