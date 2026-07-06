@@ -117,7 +117,7 @@ start
 -> app/home
 ```
 
-기존 회원은 이메일/비밀번호 로그인 또는 Kakao/Google OAuth로 진입한다. OAuth 시작은 `@supabase/supabase-js`의 `signInWithOAuth()`를 사용한다.
+기존 회원은 이메일/비밀번호 로그인 또는 Google OAuth로 진입한다. OAuth 시작은 `@supabase/supabase-js`의 `signInWithOAuth()`를 사용한다.
 
 소셜 로그인 신규 사용자는 이메일/비밀번호를 다시 입력하지 않는다. OAuth callback으로 세션을 받은 뒤 `oauth-nickname`에서 닉네임만 입력하고, 이후 동일한 선호도 조사 흐름으로 이동한다.
 
@@ -133,7 +133,7 @@ start
 -> app/home
 ```
 
-OAuth는 Supabase provider, Supabase Redirect URLs allowlist, Kakao/Google developer console 설정이 배포 URL과 일치해야 실제 성공한다. Kakao/Google 개발자 콘솔에는 프론트 URL이 아니라 Supabase callback URL인 `https://{project-ref}.supabase.co/auth/v1/callback`을 OAuth redirect URI로 등록한다.
+OAuth는 Supabase provider, Supabase Redirect URLs allowlist, Google Cloud OAuth 설정이 배포 URL과 일치해야 실제 성공한다. Google Cloud Console에는 프론트 URL이 아니라 Supabase callback URL인 `https://{project-ref}.supabase.co/auth/v1/callback`을 OAuth redirect URI로 등록한다.
 
 ### 7.3 게스트 모임 참여
 

@@ -88,7 +88,7 @@ type SessionMeta = {
 | 파일 | 책임 |
 |---|---|
 | `auth.api.ts` | signup, login, refresh, nickname availability, guest, logout |
-| `oauth.api.ts` | Supabase SDK 기반 Kakao/Google OAuth 시작, callback token parsing |
+| `oauth.api.ts` | Supabase SDK 기반 Google OAuth 시작, callback token parsing |
 | `users.api.ts` | 내 정보, 사용자 목록, 프로필 수정 |
 | `masterData.api.ts` | 메뉴, 카테고리, 태그, 알러지, 모임 목적 |
 | `preferences.api.ts` | 내 선호도 조회/저장 |

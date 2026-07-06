@@ -370,10 +370,6 @@ function StartScreen({
             <Sparkles size={18} />
           </div>
           <p>빠른 가입 없이 간편하게 시작하고<br />내가 고른 메뉴를 추천받아보세요.</p>
-          <button className="social-button kakao" aria-label="카카오로 시작하기" onClick={() => onOAuthStart("kakao")} disabled={isLoading}>
-            <span>K</span>
-            카카오로 시작하기
-          </button>
           <button className="social-button google" aria-label="Google로 시작하기" onClick={() => onOAuthStart("google")} disabled={isLoading}>
             <span>G</span>
             {isLoading ? "소셜 로그인 연결 중" : "Google로 시작하기"}

@@ -1,6 +1,6 @@
 import { createSupabaseAuthClient } from "../lib/supabase";
 
-export type OAuthProvider = "kakao" | "google";
+export type OAuthProvider = "google";
 
 type OAuthCallbackResult =
   | { type: "session"; accessToken: string; refreshToken?: string; expiresAt?: number }

@@ -154,14 +154,6 @@ body.modal-open {
   font-size: 12px;
 }
 
-.social-button.kakao {
-  background: #ffd928;
-}
-
-.social-button.kakao span {
-  background: rgba(33, 27, 23, 0.12);
-}
-
 .social-button.google {
   color: var(--ink);
   background: white;
