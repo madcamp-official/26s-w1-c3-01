@@ -64,6 +64,10 @@ type AppScreensProps = {
   menuOptions: RemoteMenu[];
   meetingDialogOpen: boolean;
   meetingSaving: boolean;
+  preferenceSaving: boolean;
+  personalRecommendationLoading: boolean;
+  meetingActionLoading: boolean;
+  historySaving: boolean;
   userOptions: UserOption[];
   toastMessage: string;
   setActiveTab: (tab: Tab) => void;
@@ -134,6 +138,10 @@ export function AppScreens({
   menuOptions,
   meetingDialogOpen,
   meetingSaving,
+  preferenceSaving,
+  personalRecommendationLoading,
+  meetingActionLoading,
+  historySaving,
   userOptions,
   toastMessage,
   setActiveTab,
@@ -193,7 +201,7 @@ export function AppScreens({
               tagScores={tagScores}
               recentDuplicateDays={recentDuplicateDays}
               pickData={pickData}
-              isSaving={apiStatus === "loading"}
+              isSaving={preferenceSaving}
               setSelectedCategories={setSelectedCategories}
               setSelectedTags={setSelectedTags}
               setSelectedAllergies={setSelectedAllergies}
@@ -216,7 +224,7 @@ export function AppScreens({
               setBudgetMax={setBudgetMax}
               recommendationsData={recommendationItems}
               hasResults={personalRecommendationReady}
-              isLoading={apiStatus === "loading"}
+              isLoading={personalRecommendationLoading}
               onRefresh={handleRecommendationRefresh}
               selectedItem={selectedPersonalRecommendation}
               onSelectItem={setSelectedPersonalRecommendation}
@@ -241,7 +249,7 @@ export function AppScreens({
               onJoinMeeting={handleJoinMeetingById}
               onLogout={handleLogout}
               onUpdateMeeting={handleUpdateMeeting}
-              isLoading={apiStatus === "loading"}
+              isLoading={meetingActionLoading}
               currentUserName={profileName}
               currentUserId={profileUserId}
               meetingPurposes={meetingPurposes}
@@ -253,7 +261,7 @@ export function AppScreens({
             <HistoryView
               historiesData={historyItems}
               menus={menuOptions}
-              isSaving={apiStatus === "loading"}
+              isSaving={historySaving}
               onUpdateHistory={handleUpdateHistory}
               onDeleteHistory={handleDeleteHistory}
               onToggleInteraction={handleHistoryInteractionToggle}

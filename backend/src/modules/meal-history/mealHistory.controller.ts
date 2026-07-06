@@ -24,7 +24,8 @@ export const listMyMealHistory: RequestHandler = async (req, res, next) => {
     // query string은 문자열로 들어오므로 숫자로 변환해서 service로 넘깁니다.
     sendSuccess(res, await mealHistoryService.listMine(userId, {
       limit: req.query.limit ? Number(req.query.limit) : undefined,
-      offset: req.query.offset ? Number(req.query.offset) : undefined
+      offset: req.query.offset ? Number(req.query.offset) : undefined,
+      includeTotal: req.query.includeTotal === "true"
     }));
   } catch (error) {
     next(error);

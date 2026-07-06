@@ -3,6 +3,7 @@ export type CreateMeetingRequest = {
   meetingTime: string;
   meetingPurposeId: number;
   location?: string;
+  participantUserIds?: number[];
 };
 
 export type UpdateMeetingRequest = Partial<CreateMeetingRequest>;

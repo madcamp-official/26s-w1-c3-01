@@ -103,6 +103,17 @@ export type ReviewRow = {
   rating: number;
 };
 
+export type RatingStatsRow = {
+  menu_id: number;
+  rating_average: number;
+  rating_count: number;
+};
+
+export type PopularityStatsRow = {
+  menu_id: number;
+  popularity_raw: number;
+};
+
 export type UserPreferenceRow = {
   budget_min: number | null;
   budget_max: number | null;
@@ -127,9 +138,8 @@ export type RecommendationBaseData = {
   userTagPreferences: UserTagPreferenceRow[];
   userAllergies: UserAllergyRow[];
   mealHistory: MealHistoryRow[];
-  allMealRatings: MealHistoryRow[];
-  reviews: ReviewRow[];
+  ratingStats: RatingStatsRow[];
   userPreference: UserPreferenceRow | null;
   userMenuInteractions: UserMenuInteractionRow[];
-  allMenuInteractions: UserMenuInteractionRow[];
+  popularityStats: PopularityStatsRow[];
 };

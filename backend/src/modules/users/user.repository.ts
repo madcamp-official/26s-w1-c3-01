@@ -103,12 +103,19 @@ function toCamelProfile(row: any) {
 
 async function createUniqueNickname(baseNickname: string) {
   const normalized = normalizeNickname(baseNickname);
+  const { data, error } = await supabaseAdmin
+    .from("users")
+    .select("nickname")
+    .ilike("nickname", `${normalized}%`);
+
+  if (error) throw error;
+
+  const usedNicknames = new Set((data ?? []).map((row) => row.nickname));
 
   for (let attempt = 0; attempt < 20; attempt += 1) {
     const suffix = attempt === 0 ? "" : `-${attempt + 1}`;
     const candidate = `${normalized.slice(0, 50 - suffix.length)}${suffix}`;
-    const existing = await userRepository.findByNickname(candidate);
-    if (!existing) return candidate;
+    if (!usedNicknames.has(candidate)) return candidate;
   }
 
   return `user-${Date.now().toString(36)}`;

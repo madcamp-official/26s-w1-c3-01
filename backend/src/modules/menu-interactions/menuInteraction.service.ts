@@ -11,15 +11,6 @@ export const menuInteractionService = {
     userId: number,
     input: CreateMenuInteractionRequest
   ): Promise<MenuInteractionResponse> {
-    const menu = await menuInteractionRepository.findMenuById(input.menuId);
-
-    if (!menu) {
-      throw Object.assign(new Error("존재하지 않는 메뉴입니다."), {
-        status: 404,
-        code: "NOT_FOUND"
-      });
-    }
-
     const row = await menuInteractionRepository.create(userId, input);
 
     return {
@@ -66,27 +57,17 @@ export const menuInteractionService = {
     menuId: number,
     input: SetMenuInteractionRequest
   ): Promise<MenuInteractionState> {
-    const menu = await menuInteractionRepository.findMenuById(menuId);
-
-    if (!menu) {
-      throw Object.assign(new Error("존재하지 않는 메뉴입니다."), {
-        status: 404,
-        code: "NOT_FOUND"
-      });
-    }
-
-    await menuInteractionRepository.setToggleState(
+    const state = await menuInteractionRepository.setToggleState(
       userId,
       menuId,
       input.interactionType,
       input.selected
     );
 
-    const [state] = await this.listMyInteractionStates(userId, [menuId]);
-    return state ?? {
-      menuId,
-      preference: null,
-      bookmarked: false
+    return {
+      menuId: Number(state.menu_id),
+      preference: state.preference === "like" || state.preference === "dislike" ? state.preference : null,
+      bookmarked: Boolean(state.bookmarked)
     };
   }
 };

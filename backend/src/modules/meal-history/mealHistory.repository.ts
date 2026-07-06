@@ -44,12 +44,13 @@ export const mealHistoryRepository = {
     const offset = query.offset ?? 0;
 
     // 최신 식사 기록이 먼저 보이도록 eaten_at 기준 내림차순 정렬합니다.
-    const { data, error, count } = await supabaseAdmin
+    let builder = supabaseAdmin
       .from("meal_history")
-      .select(mealHistorySelect, { count: "exact" })
+      .select(mealHistorySelect, query.includeTotal ? { count: "exact" } : undefined)
       .eq("user_id", userId)
       .order("eaten_at", { ascending: false })
       .range(offset, offset + limit - 1);
+    const { data, error, count } = await builder;
 
     if (error) throw error;
 
@@ -58,7 +59,7 @@ export const mealHistoryRepository = {
       pagination: {
         limit,
         offset,
-        total: count ?? 0
+        total: query.includeTotal ? count ?? 0 : offset + (data?.length ?? 0)
       }
     };
   },
