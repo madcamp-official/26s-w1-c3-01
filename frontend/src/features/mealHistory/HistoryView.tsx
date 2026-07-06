@@ -1,8 +1,11 @@
 import { useState, type FormEvent } from "react";
-import { Check, Pencil, Trash2, X } from "lucide-react";
+import Check from "lucide-react/dist/esm/icons/check";
+import Pencil from "lucide-react/dist/esm/icons/pencil";
+import Trash2 from "lucide-react/dist/esm/icons/trash-2";
+import X from "lucide-react/dist/esm/icons/x";
 import { EmptyState } from "../../components/feedback/EmptyState";
 import { ScreenTitle } from "../../components/navigation/ScreenTitle";
-import type { DisplayHistory, RemoteMenu } from "../../domain/appModel";
+import type { DisplayHistory, RemoteMenu } from "../../domain/mapper";
 import type { MealHistoryFormValue } from "./MealHistoryDialog";
 
 type HistoryViewProps = {

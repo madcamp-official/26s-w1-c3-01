@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from "react";
-import { Plus, UserRound, X } from "lucide-react";
-import type { MeetingPurpose, UserOption } from "../../domain/appModel";
+import Plus from "lucide-react/dist/esm/icons/plus";
+import UserRound from "lucide-react/dist/esm/icons/user-round";
+import X from "lucide-react/dist/esm/icons/x";
+import type { MeetingPurpose, UserOption } from "../../domain/mapper";
 import { useModalA11y } from "../../hooks/useModalA11y";
 
 export type MeetingFormValue = {

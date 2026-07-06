@@ -1,4 +1,5 @@
-import { SlidersHorizontal, UserRound } from "lucide-react";
+import SlidersHorizontal from "lucide-react/dist/esm/icons/sliders-horizontal";
+import UserRound from "lucide-react/dist/esm/icons/user-round";
 import { ScreenTitle } from "../../components/navigation/ScreenTitle";
 
 type ProfileViewProps = {

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
-import { Plus, X } from "lucide-react";
-import type { RemoteMenu } from "../../domain/appModel";
+import Plus from "lucide-react/dist/esm/icons/plus";
+import X from "lucide-react/dist/esm/icons/x";
+import type { RemoteMenu } from "../../domain/mapper";
 import { useModalA11y } from "../../hooks/useModalA11y";
 
 export type MealHistoryFormValue = {

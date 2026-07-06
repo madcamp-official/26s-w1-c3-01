@@ -1,7 +1,12 @@
 import { useState, type FormEvent } from "react";
-import { ArrowLeft, Check, Clock, MapPin, Pencil, X } from "lucide-react";
+import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left";
+import Check from "lucide-react/dist/esm/icons/check";
+import Clock from "lucide-react/dist/esm/icons/clock";
+import MapPin from "lucide-react/dist/esm/icons/map-pin";
+import Pencil from "lucide-react/dist/esm/icons/pencil";
+import X from "lucide-react/dist/esm/icons/x";
 import { ScreenTitle } from "../../components/navigation/ScreenTitle";
-import type { DisplayMeeting, DisplayMember, DisplayRecommendation, MeetingPurpose } from "../../domain/appModel";
+import type { DisplayMeeting, DisplayMember, DisplayRecommendation, MeetingPurpose } from "../../domain/mapper";
 import { RecommendationList } from "../recommendations/RecommendationList";
 import type { MeetingFormValue } from "./MeetingCreateDialog";
 import { MeetingIdRow } from "./MeetingIdRow";

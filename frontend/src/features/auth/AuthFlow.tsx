@@ -1,12 +1,15 @@
 import { useState, type FormEvent } from "react";
-import { ArrowLeft, ChevronRight, Sparkles, UserRound } from "lucide-react";
+import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left";
+import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
+import Sparkles from "lucide-react/dist/esm/icons/sparkles";
+import UserRound from "lucide-react/dist/esm/icons/user-round";
 import { logoAssets } from "../../assets";
 import type { Flow } from "../../app/app.types";
 import { SummaryLine } from "../../components/feedback/SummaryLine";
 import { PickerSection, PreferenceScoreControls } from "../../components/form/PreferencePickers";
 import type { PickItem } from "../../data";
 import type { OAuthProvider } from "../../api/oauth.api";
-import type { DisplayMeeting, PickData, PreferenceScoreMap } from "../../domain/appModel";
+import type { DisplayMeeting, PickData, PreferenceScoreMap } from "../../domain/mapper";
 
 type AuthFlowProps = {
   flow: Flow;

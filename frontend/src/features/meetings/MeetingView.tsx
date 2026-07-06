@@ -1,4 +1,4 @@
-import type { DisplayMeeting, DisplayRecommendation, MeetingPurpose } from "../../domain/appModel";
+import type { DisplayMeeting, DisplayRecommendation, MeetingPurpose } from "../../domain/mapper";
 import type { MeetingFormValue } from "./MeetingCreateDialog";
 import { MeetingDetail } from "./MeetingDetail";
 import { MeetingList } from "./MeetingList";

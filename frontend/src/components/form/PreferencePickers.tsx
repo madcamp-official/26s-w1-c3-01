@@ -1,6 +1,6 @@
-import { Check } from "lucide-react";
+import Check from "lucide-react/dist/esm/icons/check";
 import type { PickItem } from "../../data";
-import type { PreferenceScoreMap } from "../../domain/appModel";
+import type { PreferenceScoreMap } from "../../domain/mapper";
 
 type PickerSectionProps = {
   title: string;

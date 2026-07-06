@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Check } from "lucide-react";
+import Check from "lucide-react/dist/esm/icons/check";
 import { SummaryLine } from "../../components/feedback/SummaryLine";
 import { PickerSection, PreferenceScoreControls } from "../../components/form/PreferencePickers";
 import { StepNav } from "../../components/form/StepNav";
 import { ScreenTitle } from "../../components/navigation/ScreenTitle";
-import type { PickData, PreferenceScoreMap } from "../../domain/appModel";
+import type { PickData, PreferenceScoreMap } from "../../domain/mapper";
 
 type PreferencesViewProps = {
   selectedCategories: string[];
