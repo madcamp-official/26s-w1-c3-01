@@ -9,7 +9,6 @@ import {
   Home,
   MapPin,
   Plus,
-  ShieldAlert,
   SlidersHorizontal,
   Sparkles,
   UserRound,
@@ -25,6 +24,10 @@ import { clearOAuthCallbackUrl, readOAuthCallback, startOAuthLogin, type OAuthPr
 import { preferencesApi } from "./api/preferences.api";
 import { recommendationsApi } from "./api/recommendations.api";
 import { usersApi } from "./api/users.api";
+import { EmptyState } from "./components/feedback/EmptyState";
+import { PickerSection, PreferenceScoreControls } from "./components/form/PreferencePickers";
+import { StepNav } from "./components/form/StepNav";
+import { ScreenTitle } from "./components/navigation/ScreenTitle";
 import type { PickItem } from "./data";
 import {
   buildPreferencePayload,
@@ -52,6 +55,7 @@ import {
   type RemoteMenu,
   type UserOption
 } from "./domain/appModel";
+import { RecommendationList } from "./features/recommendations/RecommendationList";
 import { sessionStorageMeta, tokenStorage } from "./utils/storage";
 
 type Tab = "home" | "preferences" | "personal" | "meeting" | "history" | "profile";
@@ -1742,108 +1746,6 @@ function PreferencesView({
   );
 }
 
-function StepNav({ onBack, onNext }: { onBack?: () => void; onNext: () => void }) {
-  return (
-    <div className="step-bottom-actions">
-      {onBack ? <button className="secondary-button" onClick={onBack}>이전</button> : <span />}
-      <button className="primary-button" onClick={onNext}>다음</button>
-    </div>
-  );
-}
-
-function PickerSection({
-  title,
-  items,
-  selected,
-  onChange,
-  danger = false,
-  compact = false
-}: {
-  title: string;
-  items: PickItem[];
-  selected: string[];
-  onChange: (value: string[]) => void;
-  danger?: boolean;
-  compact?: boolean;
-}) {
-  const toggle = (id: string) => {
-    onChange(selected.includes(id) ? selected.filter((item) => item !== id) : [...selected, id]);
-  };
-
-  return (
-    <section className={`picker-section ${compact ? "compact-picker" : ""} ${danger ? "danger-picker" : ""}`}>
-      {title ? <h3>{title}</h3> : null}
-      <div className="asset-grid">
-        {items.map((item) => {
-          const isSelected = selected.includes(item.id);
-          return (
-            <button
-              key={item.id}
-              className={`asset-card ${isSelected ? "selected" : ""} ${danger ? "danger-card" : ""}`}
-              onClick={() => toggle(item.id)}
-              aria-pressed={isSelected}
-            >
-              <span className="check-dot">{isSelected && <Check size={14} />}</span>
-              <img src={item.image} alt="" />
-              <strong>{item.label}</strong>
-              <small>{item.description}</small>
-            </button>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-function PreferenceScoreControls({
-  items,
-  selected,
-  scores,
-  onChange,
-  compact = false
-}: {
-  items: PickItem[];
-  selected: string[];
-  scores: PreferenceScoreMap;
-  onChange: (value: PreferenceScoreMap) => void;
-  compact?: boolean;
-}) {
-  const selectedItems = selected
-    .map((id) => items.find((item) => item.id === id))
-    .filter((item): item is PickItem => Boolean(item));
-
-  if (!selectedItems.length) return null;
-
-  const updateScore = (id: string, value: number) => {
-    onChange({ ...scores, [id]: Math.max(-5, Math.min(5, value)) });
-  };
-
-  return (
-    <section className={`score-section ${compact ? "compact-score-section" : ""}`} aria-label="선호 점수 조정">
-      {selectedItems.map((item) => {
-        const score = scores[item.id] ?? 5;
-        return (
-          <div className="score-row" key={item.id}>
-            <div>
-              <strong>{item.label}</strong>
-              <span>{score > 0 ? `+${score}` : score}점</span>
-            </div>
-            <input
-              type="range"
-              min="-5"
-              max="5"
-              step="1"
-              value={score}
-              aria-label={`${item.label} 선호 점수`}
-              onChange={(event) => updateScore(item.id, Number(event.target.value))}
-            />
-          </div>
-        );
-      })}
-    </section>
-  );
-}
-
 function PersonalView({
   newMenuIncluded,
   setNewMenuIncluded,
@@ -2437,88 +2339,6 @@ function ProfileView({
         </button>
       </section>
     </section>
-  );
-}
-
-function RecommendationList({
-  compact = false,
-  items,
-  emptyMessage,
-  actionLabel,
-  onAction,
-  selectedMenuId,
-  onSelect
-}: {
-  compact?: boolean;
-  items: DisplayRecommendation[];
-  emptyMessage: string;
-  actionLabel?: string;
-  onAction?: (item: DisplayRecommendation) => void;
-  selectedMenuId?: number;
-  onSelect?: (item: DisplayRecommendation) => void;
-}) {
-  if (!items.length) {
-    return <EmptyState title="추천 결과가 없습니다" description={emptyMessage} compact={compact} />;
-  }
-
-  return (
-    <div className={`recommendation-list ${compact ? "compact" : ""}`}>
-      {items.map((item) => {
-        const isSelected = typeof item.menuId === "number" && item.menuId === selectedMenuId;
-        return (
-        <article
-          className={`recommendation-card ${isSelected ? "selected" : ""} ${onSelect ? "selectable" : ""}`}
-          key={`${item.rank}-${item.menu}`}
-          onClick={() => onSelect?.(item)}
-        >
-          <div className="rank-mark">{item.rank}</div>
-          <div className="recommendation-body">
-            <div className="recommendation-title">
-              <strong>{item.menu}</strong>
-              <span>{item.score}점</span>
-            </div>
-            <p>{item.reason}</p>
-            <div className="tag-row">
-              <span>{item.category}</span>
-              {actionLabel && onAction ? (
-                <button onClick={(event) => {
-                  event.stopPropagation();
-                  onAction(item);
-                }} disabled={!item.menuId}>{actionLabel}</button>
-              ) : null}
-            </div>
-          </div>
-        </article>
-        );
-      })}
-    </div>
-  );
-}
-
-function EmptyState({
-  title,
-  description,
-  compact = false
-}: {
-  title: string;
-  description: string;
-  compact?: boolean;
-}) {
-  return (
-    <div className={`empty-state ${compact ? "compact" : ""}`}>
-      <ShieldAlert size={compact ? 16 : 22} />
-      <strong>{title}</strong>
-      <span>{description}</span>
-    </div>
-  );
-}
-
-function ScreenTitle({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="screen-title">
-      <h2>{title}</h2>
-      <p>{description}</p>
-    </div>
   );
 }
 
