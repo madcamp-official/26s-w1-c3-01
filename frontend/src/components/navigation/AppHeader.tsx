@@ -1,4 +1,4 @@
-import { Bell, SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import { logoAssets } from "../../assets";
 import type { Tab } from "../../app/app.types";
 
@@ -14,8 +14,8 @@ export function AppHeader({ activeTab, onGoPreferences }: AppHeaderProps) {
         <div className="brand-row">
           <span />
           <img src={logoAssets.appEn} alt="MUK PICK" className="home-app-logo" />
-          <button className="bell-action" aria-label="알림">
-            <Bell size={24} />
+          <button className="bell-action" aria-label="선호도 빠른 설정" onClick={onGoPreferences}>
+            <SlidersHorizontal size={20} />
           </button>
         </div>
       </header>
