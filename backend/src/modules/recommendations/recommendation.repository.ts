@@ -72,24 +72,32 @@ export const recommendationRepository = {
         .select("menu_id, rating, eaten_at")
         .not("rating", "is", null),
 
-      supabaseAdmin
-        .from("reviews")
-        .select("menu_id, rating"),
+      optionalRows(
+        supabaseAdmin
+          .from("reviews")
+          .select("menu_id, rating")
+      ),
 
-      supabaseAdmin
-        .from("user_preferences")
-        .select("budget_min, budget_max")
-        .eq("user_id", userId)
-        .maybeSingle(),
+      optionalSingle(
+        supabaseAdmin
+          .from("user_preferences")
+          .select("budget_min, budget_max")
+          .eq("user_id", userId)
+          .maybeSingle()
+      ),
 
-      supabaseAdmin
-        .from("user_menu_interactions")
-        .select("user_id, menu_id, interaction_type, created_at")
-        .eq("user_id", userId),
+      optionalRows(
+        supabaseAdmin
+          .from("user_menu_interactions")
+          .select("user_id, menu_id, interaction_type, created_at")
+          .eq("user_id", userId)
+      ),
 
-      supabaseAdmin
-        .from("user_menu_interactions")
-        .select("user_id, menu_id, interaction_type, created_at")
+      optionalRows(
+        supabaseAdmin
+          .from("user_menu_interactions")
+          .select("user_id, menu_id, interaction_type, created_at")
+      )
     ]);
 
     for (const result of [
@@ -108,7 +116,7 @@ export const recommendationRepository = {
       userMenuInteractions,
       allMenuInteractions
     ]) {
-      if (result.error) throw result.error;
+      if ("error" in result && result.error) throw result.error;
     }
 
     return {
@@ -140,6 +148,9 @@ export const recommendationRepository = {
       .select("run_id")
       .single();
 
+    if (isMissingRelationError(runError)) {
+      return { runId: 0 };
+    }
     if (runError) throw runError;
 
     if (results.length > 0) {
@@ -157,9 +168,52 @@ export const recommendationRepository = {
           }))
         );
 
+      if (isMissingRelationError(error)) {
+        return { runId: Number(run.run_id) };
+      }
       if (error) throw error;
     }
 
     return { runId: Number(run.run_id) };
   }
 };
+
+async function optionalRows<T extends { data: unknown[] | null; error: unknown }>(
+  query: PromiseLike<T>
+): Promise<{ data: unknown[]; error: null }> {
+  const result = await query;
+  if (isMissingRelationError(result.error)) {
+    return { data: [], error: null };
+  }
+
+  return {
+    data: result.data ?? [],
+    error: result.error as null
+  };
+}
+
+async function optionalSingle<T extends { data: unknown | null; error: unknown }>(
+  query: PromiseLike<T>
+): Promise<{ data: unknown | null; error: null }> {
+  const result = await query;
+  if (isMissingRelationError(result.error)) {
+    return { data: null, error: null };
+  }
+
+  return {
+    data: result.data ?? null,
+    error: result.error as null
+  };
+}
+
+function isMissingRelationError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+
+  const value = error as { code?: string; message?: string };
+  return (
+    value.code === "42P01" ||
+    value.code === "PGRST205" ||
+    value.message?.includes("Could not find the table") === true ||
+    value.message?.includes("does not exist") === true
+  );
+}
