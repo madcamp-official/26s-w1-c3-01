@@ -36,6 +36,7 @@ export function RecommendationList({
             onClick={() => onSelect?.(item)}
           >
             <RecommendationMedia item={item} />
+            <div className="rank-mark">{item.rank}</div>
             <div className="recommendation-body">
               <div className="recommendation-title">
                 <strong>{item.menu}</strong>
@@ -78,13 +79,12 @@ function RecommendationMedia({ item }: { item: DisplayRecommendation }) {
   const [hasError, setHasError] = useState(false);
 
   if (!item.image || hasError) {
-    return <div className="rank-mark">{item.rank}</div>;
+    return <div className="recommendation-media empty" aria-hidden="true" />;
   }
 
   return (
     <div className="recommendation-media">
       <img src={item.image} alt="" loading="lazy" onError={() => setHasError(true)} />
-      <span className="rank-mark">{item.rank}</span>
     </div>
   );
 }

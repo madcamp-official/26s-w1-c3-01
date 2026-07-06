@@ -1843,7 +1843,7 @@ body.modal-open {
 
 .recommendation-card {
   display: grid;
-  grid-template-columns: 62px minmax(0, 1fr);
+  grid-template-columns: 78px 34px minmax(0, 1fr);
   gap: 12px;
   align-items: start;
   position: relative;
@@ -1882,22 +1882,23 @@ body.modal-open {
 }
 
 .rank-mark {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
   display: grid;
   place-items: center;
   color: white;
   background: var(--orange);
+  font-size: 15px;
   font-weight: 900;
 }
 
 .recommendation-media {
-  width: 62px;
-  height: 62px;
+  width: 78px;
+  height: 78px;
   position: relative;
   overflow: hidden;
-  border-radius: 16px;
+  border-radius: 18px;
   background: #f9efe6;
   box-shadow: inset 0 0 0 1px rgba(231, 220, 210, 0.8);
 }
@@ -1909,15 +1910,14 @@ body.modal-open {
   object-fit: cover;
 }
 
-.recommendation-media .rank-mark {
-  position: absolute;
-  left: 6px;
-  top: 6px;
-  width: 24px;
-  height: 24px;
-  border-radius: 8px;
-  font-size: 12px;
-  box-shadow: 0 4px 12px rgba(238, 90, 24, 0.25);
+.recommendation-media.empty::after {
+  content: "";
+  width: 36px;
+  height: 36px;
+  display: block;
+  margin: 21px auto;
+  border-radius: 50%;
+  background: rgba(238, 90, 24, 0.12);
 }
 
 .recommendation-title {
