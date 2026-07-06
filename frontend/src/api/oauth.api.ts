@@ -12,8 +12,7 @@ export async function startOAuthLogin(provider: OAuthProvider) {
   const { error } = await createSupabaseAuthClient().auth.signInWithOAuth({
     provider,
     options: {
-      redirectTo,
-      scopes: provider === "kakao" ? "profile_nickname profile_image" : undefined
+      redirectTo
     }
   });
 
