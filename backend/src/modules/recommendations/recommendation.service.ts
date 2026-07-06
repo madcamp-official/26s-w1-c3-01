@@ -1,4 +1,4 @@
-import { rankPersonalMenus } from "./recommendation.algorithm.js";
+import { getAlgorithmVersion, rankPersonalMenus } from "./recommendation.algorithm.js";
 import { recommendationRepository } from "./recommendation.repository.js";
 import type {
   PersonalRecommendationRequest,
@@ -17,6 +17,7 @@ export const recommendationService = {
     return {
       userId,
       runId,
+      algorithmVersion: getAlgorithmVersion(),
       results
     };
   }
