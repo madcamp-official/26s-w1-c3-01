@@ -125,7 +125,7 @@ export function mapPickItems(rows: unknown, fallbackItems: ApiPickItem[], kind: 
   if (!Array.isArray(rows) || rows.length === 0) return fallbackItems;
   return rows.map((row, index) => {
     const label = readString(row, ["name", "label", "title"]) ?? fallbackItems[index]?.label ?? `항목 ${index + 1}`;
-    const fallback = fallbackItems.find((item) => normalizeLabel(item.label) === normalizeLabel(label));
+    const fallback = findFallbackPickItem(fallbackItems, kind, label);
     return {
       id: fallback?.id ?? `${kind}-${readNumber(row, apiIdKeys(kind)) ?? index}`,
       label,
@@ -135,6 +135,22 @@ export function mapPickItems(rows: unknown, fallbackItems: ApiPickItem[], kind: 
     };
   });
 }
+
+function findFallbackPickItem(fallbackItems: ApiPickItem[], kind: keyof PickData, label: string) {
+  const normalizedLabel = normalizeLabel(label);
+  const directMatch = fallbackItems.find((item) => normalizeLabel(item.label) === normalizedLabel);
+  if (directMatch) return directMatch;
+
+  const aliasId = pickItemAliases[kind]?.[normalizedLabel];
+  return aliasId ? fallbackItems.find((item) => item.id === aliasId) : undefined;
+}
+
+const pickItemAliases: Partial<Record<keyof PickData, Record<string, string>>> = {
+  allergies: {
+    쇠고기: "beef",
+    소고기: "beef"
+  }
+};
 
 export function mapMenus(rows: unknown): RemoteMenu[] {
   const items = Array.isArray(rows) ? rows : Array.isArray((rows as any)?.items) ? (rows as any).items : [];
