@@ -37,6 +37,11 @@ export type DisplayMeeting = {
   id?: number;
   title: string;
   status: string;
+  createdBy?: number;
+  creatorNickname?: string;
+  meetingPurposeId?: number;
+  meetingTime?: string;
+  selectedMenuId?: number | null;
   time: string;
   place: string;
   members: DisplayMember[];
@@ -52,6 +57,9 @@ export type UserOption = {
 
 export type DisplayHistory = {
   id?: number;
+  menuId?: number;
+  eatenAt?: string;
+  rating?: number | null;
   date: string;
   menu: string;
   memo: string;
@@ -180,6 +188,11 @@ export function mapMeetings(payload: unknown): DisplayMeeting[] {
       id: readNumber(row, ["meetingId", "meeting_id", "id"]) ?? index,
       title: readString(row, ["title", "name"]) ?? "모임",
       status: readString(row, ["status"]) ?? "참여자 입력 중",
+      createdBy: readNumber(row, ["createdBy", "created_by"]),
+      creatorNickname: readString(row, ["creatorNickname", "creator_nickname"]),
+      meetingPurposeId: readNumber(row, ["meetingPurposeId", "meeting_purpose_id"]),
+      meetingTime: readString(row, ["meetingTime", "meeting_time", "time"]),
+      selectedMenuId: readNumber(row, ["selectedMenuId", "selected_menu_id"]) ?? null,
       rawTime: readString(row, ["meetingTime", "meeting_time", "time"]) ?? "",
       time: formatDateLabel(readString(row, ["meetingTime", "meeting_time", "time"]) ?? ""),
       place: readString(row, ["location", "place"]) ?? "장소 미정",
@@ -204,6 +217,11 @@ export function mapCreatedMeeting(row: any): DisplayMeeting {
     id: readNumber(row, ["meetingId", "meeting_id", "id"]),
     title: readString(row, ["title", "name"]) ?? "새 모임",
     status: readString(row, ["status"]) ?? "CREATED",
+    createdBy: readNumber(row, ["createdBy", "created_by"]),
+    creatorNickname: readString(row, ["creatorNickname", "creator_nickname"]),
+    meetingPurposeId: readNumber(row, ["meetingPurposeId", "meeting_purpose_id"]),
+    meetingTime: readString(row, ["meetingTime", "meeting_time"]),
+    selectedMenuId: readNumber(row, ["selectedMenuId", "selected_menu_id"]) ?? null,
     time: formatDateLabel(readString(row, ["meetingTime", "meeting_time"]) ?? new Date().toISOString()),
     place: readString(row, ["location", "place"]) ?? "장소 미정",
     members: Array.isArray(row?.participants)
@@ -224,8 +242,12 @@ export function mapHistories(payload: unknown, menus: RemoteMenu[]): DisplayHist
   return rows.map((row: any) => {
     const menuId = readNumber(row, ["menuId", "menu_id"]);
     const menu = menus.find((item) => item.menuId === menuId);
+    const rating = readNumber(row, ["rating"]);
     return {
       id: readNumber(row, ["historyId", "history_id", "id"]),
+      menuId,
+      eatenAt: readString(row, ["eatenAt", "eaten_at", "date"]),
+      rating: typeof rating === "number" ? rating : null,
       date: formatShortDate(readString(row, ["eatenAt", "eaten_at", "date"]) ?? ""),
       menu: menu?.name ?? readString(row, ["menuName", "menu_name"]) ?? "식사 기록",
       memo: readString(row, ["memo"]) ?? `만족도 ${readNumber(row, ["rating"]) ?? "-"}`,

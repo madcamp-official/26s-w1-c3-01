@@ -1,5 +1,5 @@
 import { apiRequest } from "./client";
-import type { CreateMealHistoryRequest } from "../features/mealHistory/mealHistory.types";
+import type { CreateMealHistoryRequest, UpdateMealHistoryRequest } from "../features/mealHistory/mealHistory.types";
 
 export const mealHistoryApi = {
   listMine() {
@@ -8,6 +8,12 @@ export const mealHistoryApi = {
   create(body: CreateMealHistoryRequest) {
     return apiRequest("/meal-history", {
       method: "POST",
+      body: JSON.stringify(body)
+    });
+  },
+  update(historyId: number, body: UpdateMealHistoryRequest) {
+    return apiRequest(`/meal-history/${historyId}`, {
+      method: "PATCH",
       body: JSON.stringify(body)
     });
   },

@@ -5,6 +5,8 @@ export type CreateMeetingRequest = {
   location?: string;
 };
 
+export type UpdateMeetingRequest = Partial<CreateMeetingRequest>;
+
 export type MeetingSummary = {
   meeting_id: number;
   title: string | null;

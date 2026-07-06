@@ -7,6 +7,12 @@ export const createMeetingSchema = z.object({
   location: z.string().optional()
 });
 
+export const updateMeetingSchema = createMeetingSchema
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "수정할 모임 정보를 입력해주세요."
+  });
+
 export const addMeetingParticipantSchema = z.object({
   userId: z.number().int().positive(),
   displayName: z.string().trim().min(1).max(50).optional()

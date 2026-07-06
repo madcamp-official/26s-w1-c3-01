@@ -1,5 +1,5 @@
 import { meetingRepository } from "./meeting.repository.js";
-import type { AddMeetingParticipantRequest, CreateMeetingRequest, JoinMeetingRequest } from "./meeting.dto.js";
+import type { AddMeetingParticipantRequest, CreateMeetingRequest, JoinMeetingRequest, UpdateMeetingRequest } from "./meeting.dto.js";
 
 export const meetingService = {
   createMeeting(userId: number, input: CreateMeetingRequest) {
@@ -12,6 +12,10 @@ export const meetingService = {
 
   getMeeting(meetingId: number, userId: number) {
     return meetingRepository.findByIdForUser(meetingId, userId);
+  },
+
+  updateMeeting(meetingId: number, userId: number, input: UpdateMeetingRequest) {
+    return meetingRepository.update(meetingId, userId, input);
   },
 
   previewMeeting(meetingId: number) {

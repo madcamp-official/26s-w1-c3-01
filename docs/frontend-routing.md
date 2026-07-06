@@ -2,7 +2,7 @@
 
 ## 1. 목적
 
-이 문서는 MUK PICK 프론트엔드의 화면 이동 기준을 정의한다. 현재 구현은 URL 기반 라우팅보다 모바일 앱처럼 내부 상태로 화면을 전환하는 구조를 사용한다.
+이 문서는 MUK PICK 프론트엔드의 화면 이동 기준을 정의한다. 현재 구현은 모바일 앱처럼 `App.tsx` 내부 상태로 화면을 전환하되, 새로고침/뒤로가기/공유를 위해 주요 화면 상태를 URL과 동기화한다.
 
 ## 2. 현재 활성 라우팅 기준
 
@@ -12,29 +12,28 @@
 main.tsx -> App.tsx
 ```
 
-`BrowserRouter`와 `AppRouter`는 현재 진입점에서 사용하지 않는다.
+`BrowserRouter`와 `AppRouter`는 현재 진입점에서 사용하지 않는다. `frontend/src/routes/AppRouter.tsx`는 제거되었고, URL 처리는 `frontend/src/app/appNavigation.ts`와 `App.tsx`가 담당한다.
 
-## 3. Legacy URL 라우트
+## 3. 활성 URL 계약
 
-`frontend/src/routes/AppRouter.tsx`에는 다음 React Router 라우트가 남아 있다.
+React Router route tree가 아니라 활성 모바일 shell의 상태를 path/query로 표현한다.
 
-| URL | 화면 | 현재 상태 |
+| URL | 화면/상태 | 기준 |
 |---|---|---|
-| `/login` | 로그인 | legacy |
-| `/signup` | 회원가입 | legacy |
-| `/` | 개인 추천 redirect | legacy |
-| `/onboarding/preferences` | 선호도 온보딩 | legacy |
-| `/preferences` | 선호도 관리 | legacy |
-| `/recommendations/personal` | 개인 추천 | legacy |
-| `/meetings` | 모임 목록 | legacy |
-| `/meetings/new` | 모임 생성 | legacy |
-| `/meetings/:meetingId` | 모임 상세 | legacy |
-| `/meal-history` | 식사 기록 | legacy |
-| `/menus` | 메뉴 목록 | legacy |
-| `/menus/:menuId` | 메뉴 상세 | legacy |
-| `/me` | 마이페이지 | legacy |
-
-새 구현 작업에서는 이 라우트가 실제 화면 기준이라고 가정하지 않는다.
+| `/` | 시작 또는 복원 기본값 | 비로그인 시작, 로그인 후 기본 홈 |
+| `/home` | 홈 탭 | 회원 |
+| `/login` | 이메일 로그인 flow | 비로그인 |
+| `/signup` | 이메일/비밀번호/닉네임 회원가입 flow | 비로그인 |
+| `/guest` | 게스트 시작 flow | 비로그인 |
+| `/preferences` | 선호도 관리 탭 | 회원 |
+| `/recommendations/personal` | 개인 추천 탭 | 회원 |
+| `/recommendations/personal?selectedMenuId={menuId}` | 개인 추천 후보 선택 복원 | 회원, 최근 추천 리스트 localStorage 복원 |
+| `/meetings` | 모임 목록 탭 | 회원 |
+| `/meetings/{meetingId}` | 모임 상세 | 회원 또는 참여 게스트 |
+| `/meetings/{meetingId}?recommendationMenuId={menuId}` | 모임 추천 후보 선택 복원 | 서버 latest recommendation 재조회 |
+| `/history` | 식사 기록 탭 | 회원 |
+| `/profile` | 프로필 탭 | 회원 |
+| `/me` | 프로필 탭 호환 URL | 회원 |
 
 ## 4. 현재 모바일 앱 Flow
 
@@ -43,6 +42,7 @@ main.tsx -> App.tsx
 | Flow | 의미 | 주요 진입 |
 |---|---|---|
 | `start` | 시작 화면 | 최초 방문, 로그아웃 |
+| `login` | 이메일 로그인 | `/login`, 시작 화면 로그인 |
 | `signup-name` | 회원 닉네임 입력 | 회원 시작 |
 | `signup-categories` | 회원 카테고리 선호 입력 | 닉네임 입력 후 |
 | `signup-tags` | 회원 태그 선호 입력 | 카테고리 다음 |
@@ -111,11 +111,11 @@ start
 
 ```text
 start
--> login/signup fallback
+-> 이메일 로그인 또는 OAuth callback
 -> app/home
 ```
 
-현재 개발용 기존 회원 진입은 지정된 개발 계정으로 로그인 또는 생성하는 방식이다.
+기존 회원은 이메일/비밀번호 로그인 또는 Kakao/Google OAuth로 진입한다. OAuth는 Supabase provider, redirect allowlist, Kakao/Google developer console 설정이 배포 URL과 일치해야 실제 성공한다.
 
 ### 7.3 게스트 모임 참여
 
@@ -161,21 +161,26 @@ app/meeting
 
 | 데이터 | 복원 여부 | 기준 |
 |---|---:|---|
-| access token | 복원 | `tokenStorage` |
+| access token | 복원 | `authSessionStorage.accessToken` |
+| refresh token | 복원 | `authSessionStorage.refreshToken` |
+| access token 만료 | 복구 | 만료 전 또는 401 응답 시 `POST /auth/refresh` |
 | 게스트 여부 | 복원 | `sessionStorageMeta.isGuest` |
 | 게스트 모임 ID | 복원 | `sessionStorageMeta.meetingId` |
 | 게스트 표시 이름 | 복원 | `sessionStorageMeta.displayName` |
-| active tab | 향후 복원 권장 | 현재는 React state 중심 |
-| 선택된 추천 후보 | 복원하지 않음 | 사용자가 다시 선택 |
+| active tab | 복원 | URL path 우선, 없으면 `appUiStateStorage.activeTab` |
+| 개인 추천 리스트 | 복원 | `appUiStateStorage.personalRecommendations` |
+| 개인 추천 선택 후보 | 복원 | `selectedMenuId` query 우선, 없으면 `appUiStateStorage.selectedPersonalMenuId` |
+| 모임 상세 | 복원 | `/meetings/{meetingId}` 또는 게스트 `sessionStorageMeta.meetingId` |
+| 모임 추천 선택 후보 | 복원 | `recommendationMenuId` query 우선, 없으면 `appUiStateStorage.selectedMeetingMenuId` |
 
-## 9. 향후 URL 라우팅 전환 기준
+## 9. 뒤로가기와 공유 URL
 
-현재는 모바일 앱 UX를 위해 내부 상태 라우팅을 사용한다. 다음 조건 중 하나가 필요해지면 React Router를 다시 활성화한다.
+상태 변경 시 `history.pushState`로 URL을 갱신하고, `popstate`에서 URL을 다시 `App.tsx` 상태로 적용한다.
 
-- 모임 상세 URL 공유가 필요하다.
-- 브라우저 뒤로가기/앞으로가기와 화면 상태를 맞춰야 한다.
-- 새로고침 후 특정 화면으로 직접 복원해야 한다.
-- Vercel/검색/공유 링크 기준의 페이지 단위가 필요하다.
+- 탭 이동은 `/home`, `/meetings`, `/profile`, `/preferences`, `/recommendations/personal`, `/history`로 반영한다.
+- 모임 상세는 `/meetings/{meetingId}`로 공유 가능하다.
+- 모임 추천 후보 선택은 `recommendationMenuId` query로 반영한다.
+- 개인 추천 후보 선택은 `selectedMenuId` query로 반영한다.
+- 비로그인 상태에서 `/login`, `/signup`, `/guest`로 직접 진입할 수 있다.
 
-전환 시에도 `AppRouter`를 그대로 부활시키지 않고, 현재 모바일 flow를 기준으로 route tree를 다시 설계한다.
-
+향후 완전한 React Router 전환이 필요해도 기존 `AppRouter`를 부활시키지 않고, 이 URL 계약을 기준으로 route tree를 새로 설계한다.

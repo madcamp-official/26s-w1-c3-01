@@ -3,7 +3,7 @@ import { SUPABASE_URL } from "../assets";
 export type OAuthProvider = "kakao" | "google";
 
 type OAuthCallbackResult =
-  | { type: "session"; accessToken: string; refreshToken?: string }
+  | { type: "session"; accessToken: string; refreshToken?: string; expiresAt?: number }
   | { type: "error"; message: string }
   | { type: "none" };
 
@@ -29,7 +29,8 @@ export function readOAuthCallback(): OAuthCallbackResult {
     return {
       type: "session",
       accessToken,
-      refreshToken: hash.get("refresh_token") ?? undefined
+      refreshToken: hash.get("refresh_token") ?? undefined,
+      expiresAt: Number(hash.get("expires_at")) || undefined
     };
   }
 

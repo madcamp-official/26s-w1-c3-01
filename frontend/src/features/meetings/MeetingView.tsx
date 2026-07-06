@@ -1,4 +1,5 @@
-import type { DisplayMeeting, DisplayRecommendation } from "../../domain/appModel";
+import type { DisplayMeeting, DisplayRecommendation, MeetingPurpose } from "../../domain/appModel";
+import type { MeetingFormValue } from "./MeetingCreateDialog";
 import { MeetingDetail } from "./MeetingDetail";
 import { MeetingList } from "./MeetingList";
 
@@ -17,8 +18,11 @@ type MeetingViewProps = {
   onExcludedUserIdsChange: (userIds: number[]) => void;
   onJoinMeeting: (meetingId: string, displayName: string) => Promise<void>;
   onLogout: () => Promise<void>;
+  onUpdateMeeting: (meetingId: number, meeting: MeetingFormValue) => Promise<void>;
   isLoading: boolean;
   currentUserName: string;
+  currentUserId: number | null;
+  meetingPurposes: MeetingPurpose[];
   isGuestSession: boolean;
 };
 
@@ -37,8 +41,11 @@ export function MeetingView({
   onExcludedUserIdsChange,
   onJoinMeeting,
   onLogout,
+  onUpdateMeeting,
   isLoading,
   currentUserName,
+  currentUserId,
+  meetingPurposes,
   isGuestSession
 }: MeetingViewProps) {
   if (selectedMeeting) {
@@ -54,7 +61,10 @@ export function MeetingView({
         onSelectRecommendation={onSelectRecommendation}
         onExcludedUserIdsChange={onExcludedUserIdsChange}
         onLogout={onLogout}
+        onUpdateMeeting={onUpdateMeeting}
         isLoading={isLoading}
+        currentUserId={currentUserId}
+        meetingPurposes={meetingPurposes}
         isGuestSession={isGuestSession}
       />
     );

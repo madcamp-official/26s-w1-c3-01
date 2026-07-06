@@ -30,3 +30,8 @@ export function hasPreferenceRows(preferences: any) {
       preferences?.allergyIds?.length
   );
 }
+
+export function isAuthSessionError(error: unknown) {
+  const message = errorMessage(error);
+  return /세션|토큰|token|jwt|unauthorized|인증|만료|invalid/i.test(message);
+}

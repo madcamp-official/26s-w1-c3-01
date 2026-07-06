@@ -46,6 +46,10 @@ export const authRepository = {
     });
   },
 
+  async refreshSession(refreshToken: string) {
+    return createAuthClient().auth.refreshSession({ refresh_token: refreshToken });
+  },
+
   async upsertProfile(input: {
     authUserId: string;
     email: string;

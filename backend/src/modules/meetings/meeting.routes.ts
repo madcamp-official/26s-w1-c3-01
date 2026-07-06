@@ -11,7 +11,7 @@ import {
   previewMeeting,
   updateMeeting
 } from "./meeting.controller.js";
-import { addMeetingParticipantSchema, createMeetingSchema, joinMeetingSchema } from "./meeting.validation.js";
+import { addMeetingParticipantSchema, createMeetingSchema, joinMeetingSchema, updateMeetingSchema } from "./meeting.validation.js";
 
 export const meetingRouter = Router();
 
@@ -19,7 +19,7 @@ meetingRouter.post("/", authMiddleware, validateBody(createMeetingSchema), creat
 meetingRouter.get("/", authMiddleware, listMeetings);
 meetingRouter.get("/:meetingId/preview", authMiddleware, previewMeeting);
 meetingRouter.get("/:meetingId", authMiddleware, getMeeting);
-meetingRouter.patch("/:meetingId", authMiddleware, updateMeeting);
+meetingRouter.patch("/:meetingId", authMiddleware, validateBody(updateMeetingSchema), updateMeeting);
 meetingRouter.post("/:meetingId/join", authMiddleware, validateBody(joinMeetingSchema), joinMeeting);
 meetingRouter.post("/:meetingId/participants", authMiddleware, validateBody(addMeetingParticipantSchema), addMeetingParticipant);
 meetingRouter.get("/:meetingId/participants", authMiddleware, listMeetingParticipants);

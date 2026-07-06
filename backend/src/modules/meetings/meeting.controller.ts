@@ -34,7 +34,18 @@ export const previewMeeting: RequestHandler = async (req, res, next) => {
   }
 };
 
-export const updateMeeting: RequestHandler = (req, res) => sendSuccess(res, { meetingId: Number(req.params.meetingId), ...req.body });
+export const updateMeeting: RequestHandler = async (req, res, next) => {
+  try {
+    sendSuccess(
+      res,
+      await meetingService.updateMeeting(Number(req.params.meetingId), req.auth!.profile!.userId, req.body),
+      200,
+      "모임 정보가 수정되었습니다."
+    );
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const addMeetingParticipant: RequestHandler = async (req, res, next) => {
   try {

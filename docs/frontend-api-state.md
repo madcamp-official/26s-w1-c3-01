@@ -54,7 +54,8 @@ type ApiResponse<T> = {
 | 저장 위치 | `localStorage` |
 | key | `mukpick.accessToken` |
 | 전달 방식 | `Authorization: Bearer {token}` |
-| 삭제 시점 | 로그아웃, 세션 초기화 |
+| refresh 방식 | 만료 전 또는 401 응답 시 `POST /auth/refresh` |
+| 삭제 시점 | 로그아웃, refresh 실패, 세션 초기화 |
 
 인증이 필요 없는 요청은 `apiRequest(path, { auth: false })`로 호출한다.
 
@@ -82,7 +83,7 @@ type SessionMeta = {
 
 | 파일 | 책임 |
 |---|---|
-| `auth.api.ts` | signup, login, guest, logout |
+| `auth.api.ts` | signup, login, refresh, nickname availability, guest, logout |
 | `users.api.ts` | 내 정보, 사용자 목록, 프로필 수정 |
 | `masterData.api.ts` | 메뉴, 카테고리, 태그, 알러지, 모임 목적 |
 | `preferences.api.ts` | 내 선호도 조회/저장 |
@@ -179,4 +180,3 @@ master data API가 실패하거나 빈 배열을 반환하면 `frontend/src/data
 - 개인 추천 확정 시 식사 기록이 생성되는지 확인한다.
 - 모임 추천에서 제외한 구성원이 `participantUserIds`에서 빠지는지 확인한다.
 - 게스트가 메뉴 확정을 시도할 수 없는지 확인한다.
-

@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "../../config/supabase.js";
-import type { AddMeetingParticipantRequest, CreateMeetingRequest } from "./meeting.dto.js";
+import type { AddMeetingParticipantRequest, CreateMeetingRequest, UpdateMeetingRequest } from "./meeting.dto.js";
 
 export const meetingRepository = {
   async create(userId: number, input: CreateMeetingRequest) {
@@ -58,6 +58,35 @@ export const meetingRepository = {
       return null;
     }
     return toMeeting(data);
+  },
+
+  async update(meetingId: number, userId: number, input: UpdateMeetingRequest) {
+    const { data: meeting, error: meetingError } = await supabaseAdmin
+      .from("meetings")
+      .select("meeting_id, created_by, status")
+      .eq("meeting_id", meetingId)
+      .maybeSingle();
+
+    if (meetingError) throw meetingError;
+    if (!meeting) {
+      throw Object.assign(new Error("존재하지 않는 모임입니다."), { status: 404, code: "NOT_FOUND" });
+    }
+    if (Number(meeting.created_by) !== userId) {
+      throw Object.assign(new Error("모임 생성자만 정보를 수정할 수 있습니다."), { status: 403, code: "FORBIDDEN" });
+    }
+    if (meeting.status === "DECIDED" || meeting.status === "CLOSED") {
+      throw Object.assign(new Error("메뉴가 확정된 모임은 수정할 수 없습니다."), { status: 409, code: "CONFLICT" });
+    }
+
+    const updates: Record<string, unknown> = {};
+    if ("title" in input) updates.title = input.title?.trim() || null;
+    if (typeof input.meetingTime === "string") updates.meeting_time = input.meetingTime;
+    if (typeof input.meetingPurposeId === "number") updates.meeting_purpose_id = input.meetingPurposeId;
+    if ("location" in input) updates.location = input.location?.trim() || null;
+
+    const { error } = await supabaseAdmin.from("meetings").update(updates).eq("meeting_id", meetingId);
+    if (error) throw error;
+    return this.findByIdForUser(meetingId, userId);
   },
 
   async previewById(meetingId: number) {

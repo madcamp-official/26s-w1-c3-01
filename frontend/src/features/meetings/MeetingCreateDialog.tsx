@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Plus, UserRound, X } from "lucide-react";
 import type { MeetingPurpose, UserOption } from "../../domain/appModel";
+import { useModalA11y } from "../../hooks/useModalA11y";
 
 export type MeetingFormValue = {
   title: string;
@@ -42,6 +43,7 @@ export function MeetingCreateDialog({
   const [place, setPlace] = useState("대전 유성구");
   const [purposeId, setPurposeId] = useState("");
   const [participantUserIds, setParticipantUserIds] = useState<number[]>([]);
+  const dialogRef = useModalA11y(open, onClose);
 
   if (!open) {
     return null;
@@ -67,8 +69,17 @@ export function MeetingCreateDialog({
   };
 
   return (
-    <div className="modal-backdrop" role="presentation">
-      <section className="meeting-dialog" role="dialog" aria-modal="true" aria-labelledby="meeting-dialog-title">
+    <div className="modal-backdrop" role="presentation" onPointerDown={(event) => {
+      if (event.target === event.currentTarget) onClose();
+    }}>
+      <section
+        className="meeting-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="meeting-dialog-title"
+        tabIndex={-1}
+        ref={dialogRef}
+      >
         <div className="dialog-heading">
           <div>
             <p>MEETING</p>

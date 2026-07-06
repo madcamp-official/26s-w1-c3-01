@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { authRepository } from "./auth.repository.js";
-import type { LoginRequest, SignupRequest } from "./auth.dto.js";
+import type { LoginRequest, RefreshRequest, SignupRequest } from "./auth.dto.js";
 
 const GUEST_PASSWORD_PREFIX = "Mukpick-guest-";
 
@@ -95,6 +95,32 @@ export const authService = {
       refreshToken: data.session.refresh_token,
       expiresAt: data.session.expires_at,
       user: data.user
+    };
+  },
+
+  async refresh(input: RefreshRequest) {
+    const { data, error } = await authRepository.refreshSession(input.refreshToken);
+    if (error || !data.session) {
+      throw Object.assign(new Error("세션이 만료되었습니다. 다시 로그인해주세요."), { status: 401, code: "UNAUTHORIZED" });
+    }
+
+    return {
+      accessToken: data.session.access_token,
+      refreshToken: data.session.refresh_token,
+      expiresAt: data.session.expires_at,
+      user: data.user
+    };
+  },
+
+  async checkNickname(nickname: string) {
+    const normalized = nickname.trim();
+    if (!normalized) {
+      throw Object.assign(new Error("닉네임을 입력해주세요."), { status: 400, code: "VALIDATION_ERROR" });
+    }
+
+    return {
+      nickname: normalized,
+      available: !(await authRepository.findProfileByNickname(normalized))
     };
   }
 };

@@ -1,4 +1,4 @@
-import { tokenStorage } from "../utils/storage";
+import { authSessionStorage, tokenStorage } from "../utils/storage";
 
 let accessToken = tokenStorage.get();
 
@@ -10,8 +10,12 @@ export const authStore = {
     accessToken = token;
     tokenStorage.set(token);
   },
+  setSession(session: { accessToken: string; refreshToken?: string; expiresAt?: number }) {
+    accessToken = session.accessToken;
+    authSessionStorage.set(session);
+  },
   clear() {
     accessToken = null;
-    tokenStorage.clear();
+    authSessionStorage.clear();
   }
 };

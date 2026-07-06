@@ -52,10 +52,16 @@ npm run dev
 
 - `POST /auth/signup`
 - `POST /auth/login`
+- `POST /auth/refresh`
+- `GET /auth/nickname?nickname={nickname}`
 - `POST /auth/guest`
 - `POST /auth/logout`
 
 `POST /auth/guest`는 이메일/비밀번호 입력 없이 내부용 게스트 계정을 생성한다. 게스트의 `nickname`은 `guest-{random}` 형식으로 서버에서 만들며, 실제 모임 화면에 보이는 이름은 모임 참여 시 입력하는 `displayName`을 사용한다.
+
+`POST /auth/refresh`는 Supabase refresh token으로 새 access token을 발급한다. 실패하면 프론트는 저장된 access token, refresh token, 만료 시각, 세션 메타데이터를 삭제하고 다시 로그인하도록 안내한다.
+
+`GET /auth/nickname`은 회원가입 전 닉네임 중복 확인에 사용한다. 회원가입 완료 직전에도 같은 검사를 다시 수행한다.
 
 ### User
 
