@@ -1,5 +1,5 @@
 export type PersonalRecommendationRequest = {
-  meetingPurposeId?: number;
+  recentDuplicateDays?: number;
   excludeRecentDays?: number;
   limit?: number;
   includeNewMenu?: boolean;
@@ -10,6 +10,7 @@ export type RecommendationResult = {
   menuId: number;
   menuName: string;
   totalScore: number;
+  categoryName?: string;
   reason: string;
   isNewSuggestion?: boolean;
 };

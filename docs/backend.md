@@ -52,7 +52,16 @@ npm run dev
 
 - `POST /auth/signup`
 - `POST /auth/login`
+- `POST /auth/refresh`
+- `GET /auth/nickname?nickname={nickname}`
+- `POST /auth/guest`
 - `POST /auth/logout`
+
+`POST /auth/guest`는 이메일/비밀번호 입력 없이 내부용 게스트 계정을 생성한다. 게스트의 `nickname`은 `guest-{random}` 형식으로 서버에서 만들며, 실제 모임 화면에 보이는 이름은 모임 참여 시 입력하는 `displayName`을 사용한다.
+
+`POST /auth/refresh`는 Supabase refresh token으로 새 access token을 발급한다. 실패하면 프론트는 저장된 access token, refresh token, 만료 시각, 세션 메타데이터를 삭제하고 다시 로그인하도록 안내한다.
+
+`GET /auth/nickname`은 회원가입 전 닉네임 중복 확인에 사용한다. 회원가입 완료 직전에도 같은 검사를 다시 수행한다.
 
 ### User
 
@@ -100,15 +109,31 @@ npm run dev
 
 `recentDuplicateDays`와 `resultLimit`은 요청 body에서 덮어쓸 수 있다. 기존 API 문서와의 호환을 위해 `excludeRecentDays`, `limit`도 받지만 새 이름이 우선된다.
 
+모임 추천 계산에서는 `participantUserIds`를 전달해 특정 구성원만 포함할 수 있다.
+
+```json
+{
+  "limit": 3,
+  "participantUserIds": [1, 2, 5]
+}
+```
+
+`PATCH /meetings/{meetingId}/selected-menu`는 모임 생성자만 호출할 수 있다. 게스트가 호출하면 `403`을 반환하고, 메뉴 확정이 성공하면 해당 모임에 참여한 게스트 계정은 Supabase Auth와 `users`에서 정리된다.
+
 ### Meeting
 
 - `POST /meetings`
 - `GET /meetings`
+- `GET /meetings/{meetingId}/preview`
 - `GET /meetings/{meetingId}`
 - `PATCH /meetings/{meetingId}`
+- `POST /meetings/{meetingId}/join`
 - `POST /meetings/{meetingId}/participants`
 - `GET /meetings/{meetingId}/participants`
-- `PATCH /meetings/{meetingId}/participants/{participantId}`
+
+`GET /meetings/{meetingId}/preview`는 아직 참여하지 않은 사용자도 모임 ID 입력 후 모임 정보와 기존 구성원 표시 이름을 확인할 수 있게 한다.
+
+`POST /meetings/{meetingId}/join`은 body의 `displayName`으로 모임에 참여한다. `displayName`은 전체 DB에서 unique일 필요는 없지만, 같은 모임 안에서는 중복될 수 없다.
 
 ### Meal History
 

@@ -8,6 +8,8 @@ export type SignupRequest = {
 export type SignupResponse = {
   user: unknown;
   accessToken?: string;
+  refreshToken?: string;
+  expiresAt?: number;
 };
 
 export type LoginRequest = {
@@ -17,5 +19,23 @@ export type LoginRequest = {
 
 export type LoginResponse = {
   accessToken: string;
+  refreshToken?: string;
+  expiresAt?: number;
   user: unknown;
+};
+
+export type GuestSignupResponse = {
+  guest: true;
+  nickname: string;
+  user: unknown;
+  accessToken: string;
+  refreshToken?: string;
+  expiresAt?: number;
+};
+
+export type RefreshResponse = LoginResponse;
+
+export type NicknameAvailabilityResponse = {
+  nickname: string;
+  available: boolean;
 };

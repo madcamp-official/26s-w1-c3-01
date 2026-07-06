@@ -4,3 +4,5 @@ export type CreateMealHistoryRequest = {
   rating?: number;
   memo?: string;
 };
+
+export type UpdateMealHistoryRequest = Partial<CreateMealHistoryRequest>;

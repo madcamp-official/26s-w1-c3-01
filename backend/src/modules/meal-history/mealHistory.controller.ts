@@ -10,6 +10,37 @@ export const createMealHistory: RequestHandler = async (req, res, next) => {
   }
 };
 
-export const listMyMealHistory: RequestHandler = (_req, res) => sendSuccess(res, { items: [] });
-export const updateMealHistory: RequestHandler = (req, res) => sendSuccess(res, { historyId: Number(req.params.historyId), ...req.body });
-export const deleteMealHistory: RequestHandler = (_req, res) => sendSuccess(res, { deleted: true });
+export const listMyMealHistory: RequestHandler = async (req, res, next) => {
+  try {
+    sendSuccess(res, await mealHistoryService.listMine(req.auth!.profile!.userId));
+  } catch (error) {
+    next(error);
+  }
+};
+export const getMealHistory: RequestHandler = (req, res) => sendSuccess(res, { historyId: Number(req.params.historyId) });
+
+export const updateMealHistory: RequestHandler = async (req, res, next) => {
+  try {
+    sendSuccess(
+      res,
+      await mealHistoryService.update(req.auth!.profile!.userId, Number(req.params.historyId), req.body),
+      200,
+      "식사 기록이 수정되었습니다."
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteMealHistory: RequestHandler = async (req, res, next) => {
+  try {
+    sendSuccess(
+      res,
+      await mealHistoryService.remove(req.auth!.profile!.userId, Number(req.params.historyId)),
+      200,
+      "식사 기록이 삭제되었습니다."
+    );
+  } catch (error) {
+    next(error);
+  }
+};

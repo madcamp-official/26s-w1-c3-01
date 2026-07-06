@@ -46,6 +46,22 @@ export const userRepository = {
     return data ? toCamelProfile(data) : null;
   },
 
+  async search(query = "") {
+    const builder = supabaseAdmin
+      .from("users")
+      .select("user_id, auth_user_id, email, nickname, user_type")
+      .order("nickname")
+      .limit(20);
+
+    const normalized = query.trim();
+    const { data, error } = normalized
+      ? await builder.ilike("nickname", `%${normalized}%`)
+      : await builder;
+
+    if (error) throw error;
+    return (data ?? []).map(toCamelProfile);
+  },
+
   async update(userId: number, input: UpdateUserRequest) {
     const { data, error } = await supabaseAdmin
       .from("users")

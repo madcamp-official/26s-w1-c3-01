@@ -15,9 +15,5 @@ app.get("/health", (_req, res) => {
   sendSuccess(res, { status: "ok" });
 });
 
-app.get("/api/health", (_req, res) => {
-  sendSuccess(res, { status: "ok" });
-});
-
 app.use("/api/v1", apiRouter);
 app.use(errorMiddleware);

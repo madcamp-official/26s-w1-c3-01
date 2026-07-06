@@ -63,7 +63,10 @@
 
 > 서비스의 전체 페이지 구조와 페이지 간 이동 흐름; 각 페이지의 주요 UI 구성, 입력 요소, 버튼, 사용자 행동 흐름 등을 간단한 와이어프레임 형태로 정리
 
-<!-- Figma 링크 또는 이미지 첨부 -->
+- [프론트엔드 아키텍처](docs/frontend-architecture.md)
+- [프론트엔드 라우팅 및 화면 흐름](docs/frontend-routing.md)
+- [프론트엔드 컴포넌트 설계](docs/frontend-components.md)
+- [프론트엔드 API 및 상태 계약](docs/frontend-api-state.md)
 
 ---
 
@@ -81,7 +84,7 @@
 > API 주소, 요청 방식, 요청값, 응답값, 에러 상황을 정리
 
 - [백엔드 구조 및 API 문서](docs/backend.md)
-- [기능 명세서](docs/기능명세서.md)
+- [기능 명세서](docs/기능명세서.md)
 
 ---
 
@@ -91,7 +94,7 @@
 frontend/   # React + Vite 클라이언트
 backend/    # Express API 서버
 supabase/   # Supabase DB migration, seed, local config
-docs/       # 기능/API/DB 문서
+docs/       # 기능/API/DB/프론트엔드 설계 문서
 assets/     # 문서용 이미지
 ```
 
@@ -105,8 +108,19 @@ assets/     # 문서용 이미지
 - **실행 방법:**
 
 ```bash
-# 실행 방법 작성
+npm --prefix backend install
+npm --prefix frontend install
+
+# 백엔드 실행
+cp backend/.env.example backend/.env
+npm run backend:dev
+
+# 프론트엔드 실행
+cp frontend/.env.example frontend/.env
+npm run frontend:dev
 ```
+
+프론트엔드 단독 배포 시에는 배포 환경 변수에 `VITE_API_BASE_URL`을 실제 백엔드 주소로 설정해야 한다. 이 값이 없으면 기본값 `/api/v1`을 사용하므로, 백엔드가 같은 도메인에 없을 때 Vite/배포 서버의 HTML 응답을 API JSON으로 파싱하려는 오류가 발생할 수 있다.
 
 ---
 
