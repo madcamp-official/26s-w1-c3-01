@@ -14,6 +14,7 @@ type HistoryViewProps = {
   isSaving: boolean;
   onUpdateHistory: (historyId: number, value: MealHistoryFormValue & { eatenAt?: string }) => Promise<void>;
   onDeleteHistory: (historyId: number) => Promise<void>;
+  onToggleInteraction: (history: DisplayHistory, interactionType: "like" | "dislike" | "bookmark") => Promise<void>;
 };
 
 type HistoryDraft = {
@@ -28,7 +29,8 @@ export function HistoryView({
   menus,
   isSaving,
   onUpdateHistory,
-  onDeleteHistory
+  onDeleteHistory,
+  onToggleInteraction
 }: HistoryViewProps) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draft, setDraft] = useState<HistoryDraft>({ menuId: "", rating: "5", memo: "", eatenAt: "" });
@@ -71,6 +73,32 @@ export function HistoryView({
                     <div>
                       <strong>{history.menu}</strong>
                       <span>{history.memo}</span>
+                      <div className="history-feedback-actions" aria-label={`${history.menu} 피드백`}>
+                        <button
+                          type="button"
+                          className={history.preference === "like" ? "selected" : ""}
+                          onClick={() => onToggleInteraction(history, "like")}
+                          disabled={!history.menuId || isSaving}
+                        >
+                          좋아요
+                        </button>
+                        <button
+                          type="button"
+                          className={history.preference === "dislike" ? "selected danger" : ""}
+                          onClick={() => onToggleInteraction(history, "dislike")}
+                          disabled={!history.menuId || isSaving}
+                        >
+                          싫어요
+                        </button>
+                        <button
+                          type="button"
+                          className={history.bookmarked ? "selected" : ""}
+                          onClick={() => onToggleInteraction(history, "bookmark")}
+                          disabled={!history.menuId || isSaving}
+                        >
+                          저장
+                        </button>
+                      </div>
                     </div>
                     <div className="history-actions">
                       <button type="button" aria-label="식사 기록 수정" onClick={() => startEdit(history)} disabled={!history.id || isSaving}>

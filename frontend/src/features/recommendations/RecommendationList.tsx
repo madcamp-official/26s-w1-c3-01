@@ -9,7 +9,6 @@ type RecommendationListProps = {
   onAction?: (item: DisplayRecommendation) => void;
   selectedMenuId?: number;
   onSelect?: (item: DisplayRecommendation) => void;
-  onFeedback?: (item: DisplayRecommendation, interactionType: "like" | "dislike" | "bookmark") => void;
 };
 
 export function RecommendationList({
@@ -19,8 +18,7 @@ export function RecommendationList({
   actionLabel,
   onAction,
   selectedMenuId,
-  onSelect,
-  onFeedback
+  onSelect
 }: RecommendationListProps) {
   if (!items.length) {
     return <EmptyState title="추천 결과가 없습니다" description={emptyMessage} compact={compact} />;
@@ -55,40 +53,6 @@ export function RecommendationList({
               ) : null}
               <div className="tag-row">
                 <span>{item.category}</span>
-                {onFeedback ? (
-                  <div className="feedback-actions" aria-label={`${item.menu} 피드백`}>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onFeedback(item, "like");
-                      }}
-                      disabled={!item.menuId}
-                    >
-                      좋아요
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onFeedback(item, "dislike");
-                      }}
-                      disabled={!item.menuId}
-                    >
-                      싫어요
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onFeedback(item, "bookmark");
-                      }}
-                      disabled={!item.menuId}
-                    >
-                      저장
-                    </button>
-                  </div>
-                ) : null}
                 {actionLabel && onAction ? (
                   <button
                     onClick={(event) => {

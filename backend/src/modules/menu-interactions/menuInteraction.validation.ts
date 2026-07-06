@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const interactionTypeSchema = z.enum(["view", "like", "pick", "dislike", "bookmark"]);
+const toggleableInteractionTypeSchema = z.enum(["like", "dislike", "bookmark"]);
 
 export const createMenuInteractionSchema = z
   .object({
@@ -16,3 +17,12 @@ export const createMenuInteractionSchema = z
   .refine((value) => value.menuId !== undefined && value.interactionType !== undefined, {
     message: "menuId/menu_id와 interactionType/interaction_type은 필수입니다."
   });
+
+export const setMenuInteractionSchema = z.object({
+  interactionType: toggleableInteractionTypeSchema,
+  selected: z.boolean()
+});
+
+export const menuInteractionParamsSchema = z.object({
+  menuId: z.coerce.number().int().positive()
+});

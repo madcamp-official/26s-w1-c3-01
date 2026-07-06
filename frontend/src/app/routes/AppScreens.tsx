@@ -88,8 +88,8 @@ type AppScreensProps = {
     budgetMin: number | null;
     budgetMax: number | null;
   }) => Promise<void>;
-  handlePersonalRecommendationFeedback: (
-    item: DisplayRecommendation,
+  handleHistoryInteractionToggle: (
+    item: DisplayHistory,
     interactionType: "like" | "dislike" | "bookmark"
   ) => Promise<void>;
   handleConfirmPersonalRecommendation: () => Promise<void>;
@@ -153,7 +153,7 @@ export function AppScreens({
   setExcludedMeetingUserIds,
   handlePreferenceSave,
   handleRecommendationRefresh,
-  handlePersonalRecommendationFeedback,
+  handleHistoryInteractionToggle,
   handleConfirmPersonalRecommendation,
   handleOpenMeeting,
   handleCreateMeetingRecommendation,
@@ -220,7 +220,6 @@ export function AppScreens({
               onRefresh={handleRecommendationRefresh}
               selectedItem={selectedPersonalRecommendation}
               onSelectItem={setSelectedPersonalRecommendation}
-              onFeedback={handlePersonalRecommendationFeedback}
               onConfirmSelection={handleConfirmPersonalRecommendation}
             />
           ) : null}
@@ -257,6 +256,7 @@ export function AppScreens({
               isSaving={apiStatus === "loading"}
               onUpdateHistory={handleUpdateHistory}
               onDeleteHistory={handleDeleteHistory}
+              onToggleInteraction={handleHistoryInteractionToggle}
             />
           ) : null}
 

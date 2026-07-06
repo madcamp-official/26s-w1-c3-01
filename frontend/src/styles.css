@@ -1956,17 +1956,6 @@ body.modal-open {
   opacity: 0.5;
 }
 
-.feedback-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.feedback-actions button {
-  color: var(--orange-dark);
-  background: #fff3e8;
-}
-
 .final-choice-bar {
   position: static;
   display: grid;
@@ -2551,6 +2540,39 @@ body.modal-open {
 .history-actions button:disabled {
   cursor: default;
   opacity: 0.45;
+}
+
+.history-feedback-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 3px;
+}
+
+.history-feedback-actions button {
+  border: 1px solid #ffe0cf;
+  border-radius: 999px;
+  padding: 6px 9px;
+  color: var(--orange-dark);
+  background: #fff7f0;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.history-feedback-actions button.selected {
+  color: white;
+  border-color: var(--orange);
+  background: var(--orange);
+}
+
+.history-feedback-actions button.selected.danger {
+  border-color: #b23a2f;
+  background: #b23a2f;
+}
+
+.history-feedback-actions button:disabled {
+  cursor: default;
+  opacity: 0.55;
 }
 
 .history-edit-form {

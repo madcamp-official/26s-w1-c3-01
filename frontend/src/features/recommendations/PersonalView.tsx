@@ -19,7 +19,6 @@ type PersonalViewProps = {
   onRefresh: (value: RecommendationRefreshValue) => Promise<void>;
   selectedItem: DisplayRecommendation | null;
   onSelectItem: (item: DisplayRecommendation) => void;
-  onFeedback: (item: DisplayRecommendation, interactionType: "like" | "dislike" | "bookmark") => void;
   onConfirmSelection: () => void;
 };
 
@@ -38,7 +37,6 @@ export function PersonalView({
   onRefresh,
   selectedItem,
   onSelectItem,
-  onFeedback,
   onConfirmSelection
 }: PersonalViewProps) {
   return (
@@ -108,7 +106,6 @@ export function PersonalView({
             emptyMessage="조건에 맞는 추천 결과가 없습니다."
             selectedMenuId={selectedItem?.menuId}
             onSelect={onSelectItem}
-            onFeedback={onFeedback}
           />
           <div className="final-choice-bar">
             <div>

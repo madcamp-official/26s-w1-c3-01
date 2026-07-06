@@ -297,7 +297,27 @@ export function MukpickApp() {
       setMenuOptions(nextMenus);
       setMeetingPurposes(nextMeetingPurposes);
       setMeetingItems(meetingsResult.status === "fulfilled" ? mapMeetings(meetingsResult.value) : []);
-      setHistoryItems(historiesResult.status === "fulfilled" ? mapHistories(historiesResult.value, nextMenus) : []);
+      const nextHistories = historiesResult.status === "fulfilled" ? mapHistories(historiesResult.value, nextMenus) : [];
+      try {
+        const menuIds = Array.from(
+          new Set(nextHistories.map((history) => history.menuId).filter((menuId): menuId is number => Boolean(menuId)))
+        );
+        const interactionStates = await menuInteractionsApi.listMine(menuIds);
+        const interactionStateMap = new Map(interactionStates.map((state) => [state.menuId, state]));
+
+        setHistoryItems(
+          nextHistories.map((history) => {
+            const state = history.menuId ? interactionStateMap.get(history.menuId) : undefined;
+            return {
+              ...history,
+              preference: state?.preference ?? null,
+              bookmarked: state?.bookmarked ?? false
+            };
+          })
+        );
+      } catch {
+        setHistoryItems(nextHistories);
+      }
       setUserOptions(usersResult.status === "fulfilled" ? mapUsers(usersResult.value) : []);
 
       if (syncPreferences && preferencesResult.status === "fulfilled") {
@@ -845,17 +865,37 @@ export function MukpickApp() {
     }
   };
 
-  const handlePersonalRecommendationFeedback = async (
-    item: DisplayRecommendation,
+  const handleHistoryInteractionToggle = async (
+    item: DisplayHistory,
     interactionType: "like" | "dislike" | "bookmark"
   ) => {
-    const messageByType = {
-      like: "좋아요가 추천 점수에 반영됩니다.",
-      dislike: "싫어요가 다음 추천에서 감점으로 반영됩니다.",
-      bookmark: "저장 기록이 추천 점수에 반영됩니다."
-    };
+    if (!item.menuId) return;
 
-    await recordMenuInteraction(item, interactionType, messageByType[interactionType]);
+    const selected =
+      interactionType === "bookmark"
+        ? !item.bookmarked
+        : item.preference !== interactionType;
+
+    try {
+      const nextState = await menuInteractionsApi.setState(item.menuId, interactionType, selected);
+      setHistoryItems((current) =>
+        current.map((history) =>
+          history.menuId === item.menuId
+            ? {
+                ...history,
+                preference: nextState.preference,
+                bookmarked: nextState.bookmarked
+              }
+            : history
+        )
+      );
+      showToast(selected ? "식사 기록 피드백을 저장했습니다." : "식사 기록 피드백을 취소했습니다.");
+    } catch (error) {
+      const message = errorMessage(error);
+      setApiStatus("error");
+      setApiError(message);
+      showToast(message);
+    }
   };
 
   const handleCreateHistory = async ({ menuId, rating, memo }: MealHistoryFormValue) => {
@@ -1195,7 +1235,7 @@ export function MukpickApp() {
       setExcludedMeetingUserIds={setExcludedMeetingUserIds}
       handlePreferenceSave={handlePreferenceSave}
       handleRecommendationRefresh={handleRecommendationRefresh}
-      handlePersonalRecommendationFeedback={handlePersonalRecommendationFeedback}
+      handleHistoryInteractionToggle={handleHistoryInteractionToggle}
       handleConfirmPersonalRecommendation={handleConfirmPersonalRecommendation}
       handleOpenMeeting={handleOpenMeeting}
       handleCreateMeetingRecommendation={handleCreateMeetingRecommendation}

@@ -65,6 +65,8 @@ export type DisplayHistory = {
   menu: string;
   memo: string;
   image?: string;
+  preference?: "like" | "dislike" | null;
+  bookmarked?: boolean;
 };
 
 export type MeetingPurpose = {
