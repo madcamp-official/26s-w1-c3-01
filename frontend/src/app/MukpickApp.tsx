@@ -794,10 +794,14 @@ export function MukpickApp() {
     setApiStatus("loading");
     setApiError("");
     try {
-      await userPreferencesApi.update({
-        budgetMin,
-        budgetMax
-      });
+      try {
+        await userPreferencesApi.update({
+          budgetMin,
+          budgetMax
+        });
+      } catch {
+        // 배포된 백엔드에 예산 API가 아직 없더라도 추천 기능은 계속 사용할 수 있게 한다.
+      }
 
       const response = await recommendationsApi.createPersonal({
         recentDuplicateDays,
