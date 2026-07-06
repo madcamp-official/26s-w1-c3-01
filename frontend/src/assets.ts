@@ -1,4 +1,4 @@
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? "https://ftnsishunxghsoadiaze.supabase.co";
+export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? "https://ftnsishunxghsoadiaze.supabase.co";
 const ASSET_BUCKET = "ui-assets";
 
 export function storageAsset(path: string) {
