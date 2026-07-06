@@ -2078,6 +2078,7 @@ body.modal-open {
 
 .meeting-detail-card {
   margin-top: 0;
+  padding: 12px;
 }
 
 .group-result {
@@ -2281,6 +2282,39 @@ body.modal-open {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+}
+
+.meeting-compact-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.meeting-compact-meta .meeting-id-row {
+  margin-top: 0;
+}
+
+.meeting-compact-meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.meeting-detail-toggle {
+  width: 100%;
+  min-height: 36px;
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--orange-dark);
+  background: #fff8f2;
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .meeting-role-row {
