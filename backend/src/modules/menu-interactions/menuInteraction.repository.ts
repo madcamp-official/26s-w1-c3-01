@@ -27,7 +27,7 @@ export const menuInteractionRepository = {
       .select("interaction_id, user_id, menu_id, interaction_type, created_at")
       .single();
 
-    if (error) throw error;
+    if (error) throw toMenuInteractionError(error);
     return data;
   },
 
@@ -54,50 +54,25 @@ export const menuInteractionRepository = {
     interactionType: ToggleableMenuInteractionType,
     selected: boolean
   ) {
-    if (interactionType === "like" || interactionType === "dislike") {
-      const oppositeType = interactionType === "like" ? "dislike" : "like";
-      const { error } = await supabaseAdmin
-        .from("user_menu_interactions")
-        .delete()
-        .eq("user_id", userId)
-        .eq("menu_id", menuId)
-        .eq("interaction_type", oppositeType);
+    const { data, error } = await supabaseAdmin.rpc("set_menu_interaction_state", {
+      p_user_id: userId,
+      p_menu_id: menuId,
+      p_interaction_type: interactionType,
+      p_selected: selected
+    });
 
-      if (error) throw error;
-    }
-
-    if (!selected) {
-      const { error } = await supabaseAdmin
-        .from("user_menu_interactions")
-        .delete()
-        .eq("user_id", userId)
-        .eq("menu_id", menuId)
-        .eq("interaction_type", interactionType);
-
-      if (error) throw error;
-      return null;
-    }
-
-    const deleteExisting = await supabaseAdmin
-      .from("user_menu_interactions")
-      .delete()
-      .eq("user_id", userId)
-      .eq("menu_id", menuId)
-      .eq("interaction_type", interactionType);
-
-    if (deleteExisting.error) throw deleteExisting.error;
-
-    const { data, error } = await supabaseAdmin
-      .from("user_menu_interactions")
-      .insert({
-        user_id: userId,
-        menu_id: menuId,
-        interaction_type: interactionType
-      })
-      .select("interaction_id, user_id, menu_id, interaction_type, created_at")
-      .single();
-
-    if (error) throw error;
-    return data;
+    if (error) throw toMenuInteractionError(error);
+    return data?.[0] ?? { menu_id: menuId, preference: null, bookmarked: false };
   }
 };
+
+function toMenuInteractionError(error: { code?: string; message?: string }) {
+  if (error.code === "23503" || error.code === "P0002") {
+    return Object.assign(new Error("존재하지 않는 메뉴입니다."), {
+      status: 404,
+      code: "NOT_FOUND"
+    });
+  }
+
+  return error;
+}

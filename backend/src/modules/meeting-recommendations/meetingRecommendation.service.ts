@@ -10,12 +10,12 @@ export const meetingRecommendationService = {
   async create(userId: number, meetingId: number, input: MeetingRecommendationRequest) {
     validateId(meetingId, "모임 ID가 올바르지 않습니다.");
 
-    const base = await meetingRecommendationRepository.loadMeetingRecommendationBase(meetingId);
+    const config = createMeetingRecommendationConfig(input);
+    const base = await meetingRecommendationRepository.loadMeetingRecommendationBase(meetingId, config.participantUserIds);
     if (!base) throwNotFound("모임을 찾을 수 없습니다.");
 
     assertMeetingOwner(base.meeting, userId);
 
-    const config = createMeetingRecommendationConfig(input);
     const selectedBase = applyParticipantSelection(base, config.participantUserIds);
     const results = rankMeetingMenus(selectedBase, config);
     const run = await meetingRecommendationRepository.saveRun(meetingId, config, results);

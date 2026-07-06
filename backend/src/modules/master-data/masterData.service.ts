@@ -7,6 +7,7 @@ export type ListMenusQuery = {
   keyword?: string;
   limit?: number;
   offset?: number;
+  includeTotal?: boolean;
 };
 
 export type MenuPurposeSuitabilityInput = {

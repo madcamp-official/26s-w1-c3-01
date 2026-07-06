@@ -55,7 +55,7 @@ export const masterDataRepository = {
       .from("menus")
       .select(
         "menu_id, category_id, name, description, spicy_level, price_level, calorie, menu_categories(category_id, name)",
-        { count: "exact" }
+        query.includeTotal ? { count: "exact" } : undefined
       )
       .order("menu_id");
 
@@ -87,7 +87,7 @@ export const masterDataRepository = {
       pagination: {
         limit,
         offset,
-        total: count ?? 0
+          total: query.includeTotal ? count ?? 0 : offset + (data?.length ?? 0)
       }
     };
   },
@@ -341,66 +341,72 @@ function toMenuSummary(row: MenuRow) {
 }
 
 async function replaceMenuRelations(menuId: number, input: Pick<UpdateMenuRequest, "tagIds" | "allergyIds" | "purposeSuitability">) {
-  if (input.tagIds !== undefined) {
-    const { error: deleteError } = await supabaseAdmin
-      .from("menu_tags")
-      .delete()
-      .eq("menu_id", menuId);
+  await Promise.all([
+    input.tagIds !== undefined ? replaceMenuTags(menuId, input.tagIds) : Promise.resolve(),
+    input.allergyIds !== undefined ? replaceMenuAllergies(menuId, input.allergyIds) : Promise.resolve(),
+    input.purposeSuitability !== undefined ? replaceMenuPurposeSuitability(menuId, input.purposeSuitability) : Promise.resolve()
+  ]);
+}
 
-    if (deleteError) throw deleteError;
+async function replaceMenuTags(menuId: number, tagIds: number[]) {
+  const { error: deleteError } = await supabaseAdmin
+    .from("menu_tags")
+    .delete()
+    .eq("menu_id", menuId);
 
-    if (input.tagIds.length > 0) {
-      const { error } = await supabaseAdmin
-        .from("menu_tags")
-        .insert(uniqueNumbers(input.tagIds).map((tagId) => ({ menu_id: menuId, tag_id: tagId })));
+  if (deleteError) throw deleteError;
+  if (tagIds.length === 0) return;
 
-      if (error) throw error;
-    }
-  }
+  const { error } = await supabaseAdmin
+    .from("menu_tags")
+    .insert(uniqueNumbers(tagIds).map((tagId) => ({ menu_id: menuId, tag_id: tagId })));
 
-  if (input.allergyIds !== undefined) {
-    const { error: deleteError } = await supabaseAdmin
-      .from("menu_allergies")
-      .delete()
-      .eq("menu_id", menuId);
+  if (error) throw error;
+}
 
-    if (deleteError) throw deleteError;
+async function replaceMenuAllergies(menuId: number, allergyIds: number[]) {
+  const { error: deleteError } = await supabaseAdmin
+    .from("menu_allergies")
+    .delete()
+    .eq("menu_id", menuId);
 
-    if (input.allergyIds.length > 0) {
-      const { error } = await supabaseAdmin
-        .from("menu_allergies")
-        .insert(uniqueNumbers(input.allergyIds).map((allergyId) => ({ menu_id: menuId, allergy_id: allergyId })));
+  if (deleteError) throw deleteError;
+  if (allergyIds.length === 0) return;
 
-      if (error) throw error;
-    }
-  }
+  const { error } = await supabaseAdmin
+    .from("menu_allergies")
+    .insert(uniqueNumbers(allergyIds).map((allergyId) => ({ menu_id: menuId, allergy_id: allergyId })));
 
-  if (input.purposeSuitability !== undefined) {
-    const { error: deleteError } = await supabaseAdmin
-      .from("menu_purpose_suitability")
-      .delete()
-      .eq("menu_id", menuId);
+  if (error) throw error;
+}
 
-    if (deleteError) throw deleteError;
+async function replaceMenuPurposeSuitability(
+  menuId: number,
+  purposeSuitability: NonNullable<UpdateMenuRequest["purposeSuitability"]>
+) {
+  const { error: deleteError } = await supabaseAdmin
+    .from("menu_purpose_suitability")
+    .delete()
+    .eq("menu_id", menuId);
 
-    if (input.purposeSuitability.length > 0) {
-      const uniqueByPurpose = new Map(
-        input.purposeSuitability.map((item) => [
-          item.meetingPurposeId,
-          {
-            menu_id: menuId,
-            meeting_purpose_id: item.meetingPurposeId,
-            suitability_score: item.suitabilityScore
-          }
-        ])
-      );
-      const { error } = await supabaseAdmin
-        .from("menu_purpose_suitability")
-        .insert(Array.from(uniqueByPurpose.values()));
+  if (deleteError) throw deleteError;
+  if (purposeSuitability.length === 0) return;
 
-      if (error) throw error;
-    }
-  }
+  const uniqueByPurpose = new Map(
+    purposeSuitability.map((item) => [
+      item.meetingPurposeId,
+      {
+        menu_id: menuId,
+        meeting_purpose_id: item.meetingPurposeId,
+        suitability_score: item.suitabilityScore
+      }
+    ])
+  );
+  const { error } = await supabaseAdmin
+    .from("menu_purpose_suitability")
+    .insert(Array.from(uniqueByPurpose.values()));
+
+  if (error) throw error;
 }
 
 function uniqueNumbers(values: number[]) {

@@ -69,6 +69,7 @@ export function HistoryView({
               <article className={`history-row ${isEditing ? "editing" : ""}`} key={historyKey}>
                 {!isEditing ? (
                   <>
+                    <HistoryImage image={history.image} />
                     <time>{history.date}</time>
                     <div>
                       <strong>{history.menu}</strong>
@@ -168,6 +169,20 @@ export function HistoryView({
         <EmptyState title="식사 기록이 없습니다" description="식사 기록 API가 아직 빈 목록을 반환했습니다." />
       )}
     </section>
+  );
+}
+
+function HistoryImage({ image }: { image?: string }) {
+  const [hasError, setHasError] = useState(false);
+
+  if (!image || hasError) {
+    return <div className="history-thumb empty" aria-hidden="true" />;
+  }
+
+  return (
+    <div className="history-thumb">
+      <img src={image} alt="" loading="lazy" onError={() => setHasError(true)} />
+    </div>
   );
 }
 

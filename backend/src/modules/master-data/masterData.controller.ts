@@ -11,7 +11,8 @@ export const listMenus: RequestHandler = async (req, res, next) => {
       tagId: req.query.tagId ? Number(req.query.tagId) : undefined,
       keyword: typeof req.query.keyword === "string" ? req.query.keyword : undefined,
       limit: req.query.limit ? Number(req.query.limit) : undefined,
-      offset: req.query.offset ? Number(req.query.offset) : undefined
+      offset: req.query.offset ? Number(req.query.offset) : undefined,
+      includeTotal: req.query.includeTotal === "true"
     });
 
     sendSuccess(res, data);

@@ -16,6 +16,7 @@ import {
   buildPreferencePayload,
   fallbackPickData,
   mapCreatedMeeting,
+  mapHistory,
   mapHistories,
   mapMeetingPurposes,
   mapMeetings,
@@ -45,8 +46,95 @@ import { appUiStateStorage, authSessionStorage, sessionStorageMeta, tokenStorage
 import { AppScreens } from "./routes/AppScreens";
 import { useAppUrlSync } from "./useAppUrlSync";
 
+type MasterDataBundle = {
+  pickData: PickData;
+  menus: RemoteMenu[];
+  meetingPurposes: MeetingPurpose[];
+};
+
+type LoadInitialApiDataOptions = {
+  syncPreferences?: boolean;
+  userPayload?: unknown;
+  preferencesPayload?: unknown;
+};
+
+const MASTER_DATA_CACHE_MS = 5 * 60 * 1000;
+let masterDataCache: { expiresAt: number; data: MasterDataBundle | null; promise: Promise<MasterDataBundle> | null } = {
+  expiresAt: 0,
+  data: null,
+  promise: null
+};
+
+async function getMasterDataBundle({ force = false }: { force?: boolean } = {}) {
+  const now = Date.now();
+  if (!force && masterDataCache.data && masterDataCache.expiresAt > now) {
+    return masterDataCache.data;
+  }
+
+  if (!force && masterDataCache.promise) {
+    return masterDataCache.promise;
+  }
+
+  masterDataCache.promise = fetchMasterDataBundle().then((data) => {
+    masterDataCache = {
+      data,
+      expiresAt: Date.now() + MASTER_DATA_CACHE_MS,
+      promise: null
+    };
+    return data;
+  }).catch((error) => {
+    masterDataCache.promise = null;
+    throw error;
+  });
+
+  return masterDataCache.promise;
+}
+
+async function fetchMasterDataBundle(): Promise<MasterDataBundle> {
+  const [menusResult, categoriesResult, tagsResult, allergiesResult, purposesResult] = await Promise.allSettled([
+    masterDataApi.listMenus(),
+    masterDataApi.listMenuCategories(),
+    masterDataApi.listTags(),
+    masterDataApi.listAllergies(),
+    masterDataApi.listMeetingPurposes()
+  ]);
+
+  const menus = menusResult.status === "fulfilled" ? mapMenus(menusResult.value) : [];
+  const pickData: PickData = {
+    categories:
+      categoriesResult.status === "fulfilled"
+        ? mapPickItems(categoriesResult.value, fallbackPickData.categories, "categories")
+        : fallbackPickData.categories,
+    tags:
+      tagsResult.status === "fulfilled"
+        ? mapPickItems(tagsResult.value, fallbackPickData.tags, "tags")
+        : fallbackPickData.tags,
+    allergies:
+      allergiesResult.status === "fulfilled"
+        ? mapPickItems(allergiesResult.value, fallbackPickData.allergies, "allergies")
+        : fallbackPickData.allergies
+  };
+  const meetingPurposes = purposesResult.status === "fulfilled" ? mapMeetingPurposes(purposesResult.value) : [];
+
+  return { pickData, menus, meetingPurposes };
+}
+
+function clearMasterDataCache() {
+  masterDataCache = { expiresAt: 0, data: null, promise: null };
+}
+
+function sortHistoriesByDate(histories: DisplayHistory[]) {
+  return [...histories].sort((left, right) => {
+    const leftTime = left.eatenAt ? new Date(left.eatenAt).getTime() : 0;
+    const rightTime = right.eatenAt ? new Date(right.eatenAt).getTime() : 0;
+    return rightTime - leftTime;
+  });
+}
+
 export function MukpickApp() {
   const restoreAttemptedRef = useRef(false);
+  const userOptionsLoadedRef = useRef(false);
+  const meetingRecommendationsCacheRef = useRef(new Map<number, DisplayRecommendation[]>());
   const [flow, setFlow] = useState<Flow>("start");
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [nickname, setNickname] = useState("");
@@ -167,6 +255,31 @@ export function MukpickApp() {
     await setHistoriesFromPayload(await mealHistoryApi.listMine());
   }, [setHistoriesFromPayload]);
 
+  const mapHistoryFromPayload = useCallback(
+    async (payload: unknown) => {
+      const history = mapHistory(payload, menuOptions);
+      if (!history) return null;
+
+      try {
+        const [decorated] = await decorateHistoriesWithInteractions([history]);
+        return decorated ?? history;
+      } catch {
+        return history;
+      }
+    },
+    [decorateHistoriesWithInteractions, menuOptions]
+  );
+
+  const upsertHistory = useCallback((history: DisplayHistory) => {
+    setHistoryItems((current) => {
+      const exists = typeof history.id === "number" && current.some((item) => item.id === history.id);
+      const next = exists
+        ? current.map((item) => (item.id === history.id ? { ...item, ...history } : item))
+        : [history, ...current];
+      return sortHistoriesByDate(next);
+    });
+  }, []);
+
   const upsertMeeting = useCallback((meeting: DisplayMeeting) => {
     if (!meeting.id) return;
     setMeetingItems((current) => {
@@ -175,6 +288,24 @@ export function MukpickApp() {
       return current.map((item) => (item.id === meeting.id ? { ...item, ...meeting } : item));
     });
   }, []);
+
+  const loadUserOptions = useCallback(async () => {
+    if (userOptionsLoadedRef.current) return;
+    userOptionsLoadedRef.current = true;
+    try {
+      setUserOptions(mapUsers(await usersApi.list()));
+    } catch {
+      userOptionsLoadedRef.current = false;
+    }
+  }, []);
+
+  const setMeetingDialogOpenWithUsers = useCallback(
+    (open: boolean) => {
+      setMeetingDialogOpen(open);
+      if (open) void loadUserOptions();
+    },
+    [loadUserOptions]
+  );
 
   const restoreMeetingDetail = useCallback(async (meetingId: number, selectedMenuId?: number) => {
     const meeting = mapCreatedMeeting(await meetingsApi.get(meetingId));
@@ -185,6 +316,7 @@ export function MukpickApp() {
 
     try {
       const latest = mapRecommendations(await meetingsApi.getLatestRecommendation(meetingId));
+      meetingRecommendationsCacheRef.current.set(meetingId, latest);
       setMeetingRecommendations(latest);
       setSelectedMeetingRecommendation(latest.find((item) => item.menuId === selectedMenuId) ?? null);
     } catch {
@@ -252,6 +384,7 @@ export function MukpickApp() {
   });
 
   const clearGuestFinalizedSession = useCallback(() => {
+    clearMasterDataCache();
     authSessionStorage.clear();
     sessionStorageMeta.clear();
     appUiStateStorage.clear();
@@ -260,6 +393,8 @@ export function MukpickApp() {
     setActiveTab("home");
     setIsGuestSession(false);
     setSelectedMeeting(null);
+    userOptionsLoadedRef.current = false;
+    meetingRecommendationsCacheRef.current.clear();
     setGuestPreviewMeeting(null);
     setMeetingRecommendations([]);
     setSelectedMeetingRecommendation(null);
@@ -286,6 +421,7 @@ export function MukpickApp() {
 
         try {
           const latest = mapRecommendations(await meetingsApi.getLatestRecommendation(selectedMeeting.id));
+          meetingRecommendationsCacheRef.current.set(selectedMeeting.id, latest);
           setMeetingRecommendations(latest);
           setSelectedMeetingRecommendation((current) =>
             current?.menuId ? latest.find((item) => item.menuId === current.menuId) ?? current : current
@@ -322,71 +458,54 @@ export function MukpickApp() {
     [clearGuestFinalizedSession, isGuestSession, selectedMeeting, showToast]
   );
 
+  const applyMasterData = useCallback((masterData: MasterDataBundle) => {
+    setPickData(masterData.pickData);
+    setMenuOptions(masterData.menus);
+    setMeetingPurposes(masterData.meetingPurposes);
+  }, []);
+
+  const loadMasterDataOnly = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
+    const masterData = await getMasterDataBundle({ force });
+    applyMasterData(masterData);
+    return masterData;
+  }, [applyMasterData]);
+
   const loadInitialApiData = useCallback(
-    async ({ syncPreferences = true }: { syncPreferences?: boolean } = {}) => {
+    async ({ syncPreferences = true, userPayload, preferencesPayload }: LoadInitialApiDataOptions = {}) => {
       setApiStatus("loading");
       setApiError("");
 
+      const masterDataPromise = getMasterDataBundle();
       const results = await Promise.allSettled([
-        masterDataApi.listMenus(),
-        masterDataApi.listMenuCategories(),
-        masterDataApi.listTags(),
-        masterDataApi.listAllergies(),
-        masterDataApi.listMeetingPurposes(),
-        preferencesApi.getMine(),
+        syncPreferences
+          ? preferencesPayload !== undefined
+            ? Promise.resolve(preferencesPayload)
+            : preferencesApi.getMine()
+          : Promise.resolve(undefined),
         meetingsApi.list(),
         mealHistoryApi.listMine(),
-        usersApi.getMe(),
-        usersApi.list(),
+        userPayload !== undefined ? Promise.resolve(userPayload) : usersApi.getMe(),
         userPreferencesApi.get()
       ]);
-
+      const masterData = await masterDataPromise;
       const [
-        menusResult,
-        categoriesResult,
-        tagsResult,
-        allergiesResult,
-        purposesResult,
         preferencesResult,
         meetingsResult,
         historiesResult,
         userResult,
-        usersResult,
         userPreferenceResult
       ] = results;
 
-      const nextMenus = menusResult.status === "fulfilled" ? mapMenus(menusResult.value) : [];
-      const nextPickData: PickData = {
-        categories:
-          categoriesResult.status === "fulfilled"
-            ? mapPickItems(categoriesResult.value, fallbackPickData.categories, "categories")
-            : fallbackPickData.categories,
-        tags:
-          tagsResult.status === "fulfilled"
-            ? mapPickItems(tagsResult.value, fallbackPickData.tags, "tags")
-            : fallbackPickData.tags,
-        allergies:
-          allergiesResult.status === "fulfilled"
-            ? mapPickItems(allergiesResult.value, fallbackPickData.allergies, "allergies")
-            : fallbackPickData.allergies
-      };
-      const nextMeetingPurposes =
-        purposesResult.status === "fulfilled" ? mapMeetingPurposes(purposesResult.value) : [];
-
-      setPickData(nextPickData);
-      setMenuOptions(nextMenus);
-      setMeetingPurposes(nextMeetingPurposes);
+      applyMasterData(masterData);
       const nextMeetings = meetingsResult.status === "fulfilled" ? mapMeetings(meetingsResult.value) : [];
       setMeetingItems(nextMeetings);
       if (historiesResult.status === "fulfilled") {
-        await setHistoriesFromPayload(historiesResult.value, nextMenus);
+        await setHistoriesFromPayload(historiesResult.value, masterData.menus);
       } else {
         setHistoryItems([]);
       }
-      setUserOptions(usersResult.status === "fulfilled" ? mapUsers(usersResult.value) : []);
-
-      if (syncPreferences && preferencesResult.status === "fulfilled") {
-        applyPreferences(preferencesResult.value, nextPickData);
+      if (syncPreferences && preferencesResult.status === "fulfilled" && preferencesResult.value !== undefined) {
+        applyPreferences(preferencesResult.value, masterData.pickData);
       }
 
       if (userPreferenceResult.status === "fulfilled") {
@@ -399,7 +518,13 @@ export function MukpickApp() {
         applyUserPayload(userResult.value);
       }
 
-      const rejected = results.slice(0, 10).find((result) => result.status === "rejected");
+      const requiredResults = [
+        ...(syncPreferences ? [preferencesResult] : []),
+        meetingsResult,
+        historiesResult,
+        userResult
+      ];
+      const rejected = requiredResults.find((result) => result.status === "rejected");
       if (rejected?.status === "rejected") {
         const message = errorMessage(rejected.reason);
         setApiStatus("error");
@@ -408,9 +533,14 @@ export function MukpickApp() {
         setApiStatus("ready");
       }
 
-      return { pickData: nextPickData, menus: nextMenus, meetingPurposes: nextMeetingPurposes, meetings: nextMeetings };
+      return {
+        pickData: masterData.pickData,
+        menus: masterData.menus,
+        meetingPurposes: masterData.meetingPurposes,
+        meetings: nextMeetings
+      };
     },
-    [applyPreferences, applyUserPayload, setHistoriesFromPayload]
+    [applyMasterData, applyPreferences, applyUserPayload, setHistoriesFromPayload]
   );
 
   const completeOAuthLogin = useCallback(
@@ -422,23 +552,26 @@ export function MukpickApp() {
       setApiError("");
 
       try {
-        const userPayload = await usersApi.getMe();
+        const [userPayload, preferences] = await Promise.all([
+          usersApi.getMe(),
+          preferencesApi.getMine().catch(() => null)
+        ]);
         const user = (userPayload as any)?.user ?? userPayload;
         const currentNickname = readString(user, ["nickname", "name", "email"]) ?? "";
         setProfileUserId(readNumber(user, ["userId", "user_id", "id"]) ?? null);
-        const preferences = await preferencesApi.getMine();
         const hasPreferences = hasPreferenceRows(preferences);
 
         setIsGuestSession(false);
         setProfileName(currentNickname || "밥");
-        await loadInitialApiData({ syncPreferences: hasPreferences });
 
         if (hasPreferences) {
+          await loadInitialApiData({ syncPreferences: true, userPayload, preferencesPayload: preferences });
           setIsOAuthOnboarding(false);
           setFlow("app");
           await applyRouteState(readAppRoute(), { restoreStoredFallback: true });
           showToast("소셜 로그인으로 접속했습니다.");
         } else {
+          await loadMasterDataOnly();
           setNickname("");
           setIsOAuthOnboarding(true);
           setFlow("oauth-nickname");
@@ -452,7 +585,7 @@ export function MukpickApp() {
         setAuthError(errorMessage(error));
       }
     },
-    [applyRouteState, loadInitialApiData, showToast]
+    [applyRouteState, loadInitialApiData, loadMasterDataOnly, showToast]
   );
 
   useEffect(() => {
@@ -501,7 +634,7 @@ export function MukpickApp() {
         setProfileName(displayName);
         setFlow(isGuest && !meta?.meetingId ? "guest-join-meeting" : "app");
 
-        await loadInitialApiData();
+        await loadInitialApiData({ userPayload });
 
         if (isGuest && meta?.meetingId) {
           setGuestMeetingId(String(meta.meetingId));
@@ -552,13 +685,14 @@ export function MukpickApp() {
       setIsOAuthOnboarding(false);
       const preferences = await preferencesApi.getMine().catch(() => null);
       const hasPreferences = hasPreferenceRows(preferences);
-      await loadInitialApiData({ syncPreferences: hasPreferences });
 
       if (hasPreferences) {
+        await loadInitialApiData({ syncPreferences: true, preferencesPayload: preferences });
         setFlow("app");
         await applyRouteState(readAppRoute(), { restoreStoredFallback: true });
         showToast("로그인했습니다.");
       } else {
+        await loadMasterDataOnly();
         setFlow("signup-categories");
         setApiStatus("ready");
         showToast("이메일 인증이 완료되었습니다. 선호도를 설정해주세요.");
@@ -611,7 +745,7 @@ export function MukpickApp() {
       if (signupResponse.accessToken) {
         persistAccessToken(signupResponse);
         setIsOAuthOnboarding(false);
-        await loadInitialApiData({ syncPreferences: false });
+        await loadMasterDataOnly();
         setFlow("signup-categories");
         setApiStatus("ready");
         showToast("선호도 설정을 계속해주세요.");
@@ -701,7 +835,7 @@ export function MukpickApp() {
       setProfileName(normalizedNickname);
       setIsGuestSession(false);
       setIsOAuthOnboarding(false);
-      const loaded = await loadInitialApiData({ syncPreferences: false });
+      const loaded = await loadMasterDataOnly();
       await preferencesApi.replaceMine(
         buildPreferencePayload({
           selectedCategories,
@@ -715,6 +849,7 @@ export function MukpickApp() {
       setFlow("app");
       setActiveTab("home");
       setApiStatus("ready");
+      void loadInitialApiData({ syncPreferences: false });
       showToast("가입 정보와 선호도를 API에 저장했습니다.");
     } catch (error) {
       const message = errorMessage(error);
@@ -736,7 +871,7 @@ export function MukpickApp() {
       sessionStorageMeta.set({ isGuest: true });
       setProfileName(guestResponse.nickname);
       setIsGuestSession(true);
-      const loaded = await loadInitialApiData({ syncPreferences: false });
+      const loaded = await loadMasterDataOnly();
       await preferencesApi.replaceMine(
         buildPreferencePayload({
           selectedCategories,
@@ -976,13 +1111,18 @@ export function MukpickApp() {
     setHistorySaving(true);
     setApiError("");
     try {
-      await mealHistoryApi.create({
+      const created = await mealHistoryApi.create({
         menuId,
         rating,
         memo: memo.trim() || undefined,
         eatenAt: new Date().toISOString()
       });
-      await reloadHistories();
+      const nextHistory = await mapHistoryFromPayload(created);
+      if (nextHistory) {
+        upsertHistory(nextHistory);
+      } else {
+        await reloadHistories();
+      }
       setApiStatus("ready");
       showToast("식사 기록을 저장했습니다.");
     } catch (error) {
@@ -1002,13 +1142,18 @@ export function MukpickApp() {
     setHistorySaving(true);
     setApiError("");
     try {
-      await mealHistoryApi.update(historyId, {
+      const updated = await mealHistoryApi.update(historyId, {
         menuId,
         rating,
         memo: memo.trim(),
         eatenAt
       });
-      await reloadHistories();
+      const nextHistory = await mapHistoryFromPayload(updated);
+      if (nextHistory) {
+        upsertHistory(nextHistory);
+      } else {
+        await reloadHistories();
+      }
       setApiStatus("ready");
       showToast("식사 기록을 수정했습니다.");
     } catch (error) {
@@ -1044,7 +1189,7 @@ export function MukpickApp() {
 
   const handleConfirmPersonalRecommendation = async () => {
     if (!selectedPersonalRecommendation?.menuId) return;
-    await recordMenuInteraction(selectedPersonalRecommendation, "pick");
+    void recordMenuInteraction(selectedPersonalRecommendation, "pick");
     await handleCreateHistory({
       menuId: selectedPersonalRecommendation.menuId,
       rating: 5,
@@ -1059,9 +1204,15 @@ export function MukpickApp() {
     setSelectedMeetingRecommendation(null);
     setExcludedMeetingUserIds([]);
     if (!meeting.id) return;
+    const cachedRecommendations = meetingRecommendationsCacheRef.current.get(meeting.id);
+    if (cachedRecommendations) {
+      setMeetingRecommendations(cachedRecommendations);
+      return;
+    }
     try {
-      const latest = await meetingsApi.getLatestRecommendation(meeting.id);
-      setMeetingRecommendations(mapRecommendations(latest));
+      const latest = mapRecommendations(await meetingsApi.getLatestRecommendation(meeting.id));
+      meetingRecommendationsCacheRef.current.set(meeting.id, latest);
+      setMeetingRecommendations(latest);
     } catch {
       setMeetingRecommendations([]);
     }
@@ -1073,6 +1224,7 @@ export function MukpickApp() {
     try {
       const response = await meetingsApi.createRecommendation(meetingId, { limit: 3, participantUserIds });
       const nextRecommendations = mapRecommendations(response);
+      meetingRecommendationsCacheRef.current.set(meetingId, nextRecommendations);
       setMeetingRecommendations(nextRecommendations);
       setSelectedMeetingRecommendation(null);
       setSelectedMeeting((current) =>
@@ -1103,12 +1255,14 @@ export function MukpickApp() {
     setApiError("");
     try {
       const updated = await meetingsApi.selectMenu(meetingId, item.menuId);
-      await mealHistoryApi.create({
+      meetingRecommendationsCacheRef.current.delete(meetingId);
+      const historyCreated = await mealHistoryApi.create({
         menuId: item.menuId,
         rating: 5,
         memo: `${selectedMeeting?.title ?? "모임"}에서 선택`
       });
       const updatedMeeting = mapCreatedMeeting(updated);
+      const nextHistory = await mapHistoryFromPayload(historyCreated);
       setSelectedMeeting((current) =>
         current
           ? {
@@ -1124,7 +1278,7 @@ export function MukpickApp() {
           meeting.id === meetingId ? { ...meeting, ...updatedMeeting, status: "DECIDED", selectedMenuId: item.menuId } : meeting
         )
       );
-      void reloadHistories();
+      if (nextHistory) upsertHistory(nextHistory);
       setApiStatus("ready");
       showToast("모임 메뉴를 확정하고 식사 기록에 저장했습니다.");
     } catch (error) {
@@ -1145,14 +1299,10 @@ export function MukpickApp() {
         title: meeting.title,
         meetingTime: new Date(meeting.meetingTime).toISOString(),
         meetingPurposeId: meeting.meetingPurposeId,
-        location: meeting.place
+        location: meeting.place,
+        participantUserIds: meeting.participantUserIds
       });
-      const createdMeeting = mapCreatedMeeting(created);
-      const meetingId = createdMeeting.id;
-      if (meetingId) {
-        await Promise.all(meeting.participantUserIds.map((userId) => meetingsApi.addParticipant(meetingId, userId)));
-      }
-      const nextMeeting = meetingId ? mapCreatedMeeting(await meetingsApi.get(meetingId)) : createdMeeting;
+      const nextMeeting = mapCreatedMeeting(created);
       upsertMeeting(nextMeeting);
       setSelectedMeeting(nextMeeting);
       setMeetingRecommendations([]);
@@ -1201,6 +1351,7 @@ export function MukpickApp() {
       // 서버 토큰이 만료되었거나 이미 삭제된 경우에도 로컬 세션은 반드시 정리합니다.
     }
     // 로그아웃은 서버 응답과 관계없이 브라우저에 남은 세션 정보를 모두 제거합니다.
+    clearMasterDataCache();
     authSessionStorage.clear();
     sessionStorageMeta.clear();
     appUiStateStorage.clear();
@@ -1210,6 +1361,8 @@ export function MukpickApp() {
     setIsGuestSession(false);
     setProfileUserId(null);
     setSelectedMeeting(null);
+    userOptionsLoadedRef.current = false;
+    meetingRecommendationsCacheRef.current.clear();
     setGuestPreviewMeeting(null);
     setMeetingRecommendations([]);
     setSelectedMeetingRecommendation(null);
@@ -1339,7 +1492,7 @@ export function MukpickApp() {
       setBudgetMin={setBudgetMin}
       setBudgetMax={setBudgetMax}
       setSelectedPersonalRecommendation={setSelectedPersonalRecommendation}
-      setMeetingDialogOpen={setMeetingDialogOpen}
+      setMeetingDialogOpen={setMeetingDialogOpenWithUsers}
       setSelectedMeeting={setSelectedMeeting}
       setSelectedMeetingRecommendation={setSelectedMeetingRecommendation}
       setExcludedMeetingUserIds={setExcludedMeetingUserIds}
