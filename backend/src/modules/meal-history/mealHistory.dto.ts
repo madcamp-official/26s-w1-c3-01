@@ -3,6 +3,7 @@ export type CreateMealHistoryRequest = {
   eatenAt?: string;
   rating?: number;
   memo?: string;
+  personalRecommendationRunId?: number;
 };
 
 export type UpdateMealHistoryRequest = Partial<CreateMealHistoryRequest>;
