@@ -7,6 +7,17 @@ const latestRecommendationSelect = `
   menu_id,
   rank_no,
   total_score,
+  scores_json,
+  reason,
+  menus(menu_id, name)
+`;
+
+const legacyRecommendationSelect = `
+  recommendation_id,
+  run_id,
+  menu_id,
+  rank_no,
+  total_score,
   reason,
   menus(menu_id, name)
 `;
@@ -149,17 +160,7 @@ export const meetingRecommendationRepository = {
     if (runError) throw runError;
 
     if (results.length > 0) {
-      const { error: resultError } = await supabaseAdmin
-        .from("meeting_recommendations")
-        .insert(results.map((result) => ({
-          run_id: run.run_id,
-          menu_id: result.menuId,
-          rank_no: result.rankNo,
-          total_score: result.totalScore,
-          reason: result.reason
-        })));
-
-      if (resultError) throw resultError;
+      await insertMeetingRecommendationResults(Number(run.run_id), results);
     }
 
     // 추천 결과가 생성되면 모임 상태도 추천 완료로 맞춰 이후 확정 단계와 구분한다.
@@ -187,25 +188,29 @@ export const meetingRecommendationRepository = {
   },
 
   async findResultsByRunId(runId: number) {
-    const { data, error } = await supabaseAdmin
+    const result = await supabaseAdmin
       .from("meeting_recommendations")
       .select(latestRecommendationSelect)
       .eq("run_id", runId)
       .order("rank_no", { ascending: true });
 
+    const { data, error } = isMissingScoresColumnError(result.error)
+      ? await supabaseAdmin
+        .from("meeting_recommendations")
+        .select(legacyRecommendationSelect)
+        .eq("run_id", runId)
+        .order("rank_no", { ascending: true })
+      : result;
+
     if (error) throw error;
 
-    return (data ?? []).map((row) => ({
+    return (data ?? []).map((row: any) => ({
       rankNo: row.rank_no,
       menuId: row.menu_id,
       menuName: firstOrSelf(row.menus)?.name ?? "",
       totalScore: Number(row.total_score),
       reason: row.reason ?? "",
-      scores: {
-        group_preference_score: 0,
-        minimum_participant_score: 0,
-        purpose_score: 0
-      }
+      scores: normalizeMeetingScores(row.scores_json)
     }));
   },
 
@@ -275,4 +280,52 @@ function safeInValues(values: number[]) {
 function firstOrSelf<T>(value: T | T[] | null | undefined): T | null {
   if (Array.isArray(value)) return value[0] ?? null;
   return value ?? null;
+}
+
+async function insertMeetingRecommendationResults(runId: number, results: MeetingRecommendationResult[]) {
+  const rows = results.map((result) => ({
+    run_id: runId,
+    menu_id: result.menuId,
+    rank_no: result.rankNo,
+    total_score: result.totalScore,
+    scores_json: result.scores,
+    reason: result.reason
+  }));
+  const { error } = await supabaseAdmin
+    .from("meeting_recommendations")
+    .insert(rows);
+
+  if (!isMissingScoresColumnError(error)) {
+    if (error) throw error;
+    return;
+  }
+
+  const { error: legacyError } = await supabaseAdmin
+    .from("meeting_recommendations")
+    .insert(rows.map(({ scores_json: _scoresJson, ...row }) => row));
+
+  if (legacyError) throw legacyError;
+}
+
+function isMissingScoresColumnError(error: any) {
+  return Boolean(error && (error.code === "42703" || String(error.message ?? "").includes("scores_json")));
+}
+
+function normalizeMeetingScores(value: unknown) {
+  const scores = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  return {
+    category_score: readNumericScore(scores.category_score),
+    tag_score: readNumericScore(scores.tag_score),
+    menu_preference_score: readNumericScore(scores.menu_preference_score),
+    budget_score: readNumericScore(scores.budget_score),
+    group_preference_score: readNumericScore(scores.group_preference_score),
+    minimum_participant_score: readNumericScore(scores.minimum_participant_score),
+    purpose_score: readNumericScore(scores.purpose_score)
+  };
+}
+
+function readNumericScore(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value))) return Number(value);
+  return undefined;
 }

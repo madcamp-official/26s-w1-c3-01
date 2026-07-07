@@ -126,18 +126,27 @@ export function rankMeetingMenus(
           budgetMin,
           budgetMax
         );
+        const categoryScore = calculateCategoryScore(categoryPreference);
+        const tagScore = calculateTagScore(tagPreference);
+        const menuPreferenceScore = calculateMenuPreferenceScore(menuPreference);
 
         const rawScore =
-          calculateCategoryScore(categoryPreference) +
-          calculateTagScore(tagPreference) +
-          calculateMenuPreferenceScore(menuPreference) +
+          categoryScore +
+          tagScore +
+          menuPreferenceScore +
           budgetScore;
 
-        return roundScore(rawScore / 85 * 80);
+        return {
+          categoryScore,
+          tagScore,
+          menuPreferenceScore,
+          budgetScore,
+          totalScore: roundScore(rawScore / 85 * 80)
+        };
       });
 
-      const groupPreferenceScore = average(participantScores);
-      const minimumParticipantScore = participantScores.length > 0 ? Math.min(...participantScores) : 0;
+      const groupPreferenceScore = average(participantScores.map((score) => score.totalScore));
+      const minimumParticipantScore = participantScores.length > 0 ? Math.min(...participantScores.map((score) => score.totalScore)) : 0;
       const purposeScore = calculatePurposeScore(purposeScoreMap.get(menuId) ?? 0);
       const totalScore = roundScore(clamp(groupPreferenceScore + purposeScore, 0, 100));
       const reasons = getReasonTags(groupPreferenceScore, minimumParticipantScore, purposeScore);
@@ -149,6 +158,10 @@ export function rankMeetingMenus(
         totalScore,
         reason: reasons.length ? reasons.join(", ") : "참여자 선호도와 모임 목적을 기준으로 추천한 메뉴",
         scores: {
+          category_score: average(participantScores.map((score) => score.categoryScore)),
+          tag_score: average(participantScores.map((score) => score.tagScore)),
+          menu_preference_score: average(participantScores.map((score) => score.menuPreferenceScore)),
+          budget_score: average(participantScores.map((score) => score.budgetScore)),
           group_preference_score: groupPreferenceScore,
           minimum_participant_score: minimumParticipantScore,
           purpose_score: purposeScore
@@ -253,9 +266,9 @@ function average(values: number[]) {
 function compareMeetingResults(a: MeetingRecommendationResult, b: MeetingRecommendationResult) {
   return (
     b.totalScore - a.totalScore ||
-    b.scores.minimum_participant_score - a.scores.minimum_participant_score ||
-    b.scores.purpose_score - a.scores.purpose_score ||
-    b.scores.group_preference_score - a.scores.group_preference_score ||
+    (b.scores.minimum_participant_score ?? 0) - (a.scores.minimum_participant_score ?? 0) ||
+    (b.scores.purpose_score ?? 0) - (a.scores.purpose_score ?? 0) ||
+    (b.scores.group_preference_score ?? 0) - (a.scores.group_preference_score ?? 0) ||
     a.menuName.localeCompare(b.menuName, "ko") ||
     a.menuId - b.menuId
   );

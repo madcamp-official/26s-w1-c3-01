@@ -8,6 +8,7 @@ import X from "lucide-react/dist/esm/icons/x";
 import { Page } from "../../components/layout/Page";
 import { PageHeader } from "../../components/layout/PageHeader";
 import type { DisplayMeeting, DisplayMember, DisplayRecommendation, MeetingPurpose } from "../../domain/mapper";
+import { budgetOptions, readBudgetValue } from "../recommendations/budgetOptions";
 import { RecommendationList } from "../recommendations/RecommendationList";
 import type { MeetingFormValue } from "./MeetingCreateDialog";
 import { MeetingIdRow } from "./MeetingIdRow";
@@ -49,7 +50,6 @@ export function MeetingDetail({
   isGuestSession
 }: MeetingDetailProps) {
   const [editing, setEditing] = useState(false);
-  const [detailsExpanded, setDetailsExpanded] = useState(false);
   const [budgetLevel, setBudgetLevel] = useState<number | null>(null);
   const isDecided = selectedMeeting.status === "DECIDED" || selectedMeeting.status === "CLOSED";
   const isCreator = typeof selectedMeeting.createdBy === "number" && selectedMeeting.createdBy === currentUserId;
@@ -81,6 +81,36 @@ export function MeetingDetail({
         </button>
       )}
       <PageHeader title={selectedMeeting.title} description="참여자 정보와 이 모임의 추천 결과를 확인합니다." />
+      <div className="meeting-participants-panel">
+        <div className="meeting-participants-heading">
+          <strong>참여자</strong>
+          <span>{includedUserIds.length}/{selectedMeeting.members.length}명 포함</span>
+        </div>
+        <div className="member-row selectable-members" aria-label="추천 계산에 포함할 구성원">
+          {selectedMeeting.members.map((member) => (
+            <button
+              type="button"
+              key={`${member.userId ?? "member"}-${member.name}`}
+              className={[
+                typeof member.userId === "number" && excludedUserIds.includes(member.userId) ? "excluded" : "",
+                typeof member.userId === "number" && member.userId === selectedMeeting.createdBy ? "creator" : "",
+                typeof member.userId === "number" && member.userId === currentUserId ? "self" : ""
+              ].filter(Boolean).join(" ")}
+              onClick={() => toggleMember(member)}
+              disabled={!canManage || isDecided || typeof member.userId !== "number"}
+              aria-pressed={typeof member.userId === "number" && !excludedUserIds.includes(member.userId)}
+            >
+              <span>{member.name}</span>
+              {typeof member.userId === "number" && member.userId === selectedMeeting.createdBy ? <small>모임장</small> : null}
+              {typeof member.userId === "number" && member.userId === currentUserId ? <small>나</small> : null}
+            </button>
+          ))}
+        </div>
+        {!canManage ? (
+          <p className="meeting-permission-note">참여자는 추천 결과를 확인할 수 있고, 추천 계산과 메뉴 확정은 모임장이 진행합니다.</p>
+        ) : null}
+        {!isDecided ? <p className="meeting-live-note">참여자 정보는 주기적으로 자동 갱신됩니다.</p> : null}
+      </div>
       <section className="section-block meeting-detail-card">
         <div className="meeting-topline">
           <strong>{statusLabel(selectedMeeting.status)}</strong>
@@ -95,14 +125,6 @@ export function MeetingDetail({
           <span><Clock size={15} />{selectedMeeting.time}</span>
           <span><MapPin size={15} />{selectedMeeting.place}</span>
         </div>
-        <button
-          className="meeting-detail-toggle"
-          type="button"
-          onClick={() => setDetailsExpanded((value) => !value)}
-          aria-expanded={detailsExpanded}
-        >
-          {detailsExpanded ? "참여자 접기" : `참여자 ${selectedMeeting.members.length}명 보기`}
-        </button>
         {canManage && !isDecided && selectedMeeting.id ? (
           <button className="secondary-button meeting-edit-button" type="button" onClick={() => setEditing((value) => !value)}>
             {editing ? <X size={15} /> : <Pencil size={15} />}
@@ -113,62 +135,26 @@ export function MeetingDetail({
           <MeetingEditPanel
             meeting={selectedMeeting}
             meetingPurposes={meetingPurposes}
+            budgetLevel={budgetLevel}
             isSaving={isLoading}
+            onBudgetLevelChange={setBudgetLevel}
             onCancel={() => setEditing(false)}
             onSubmit={(value) => onUpdateMeeting(selectedMeeting.id!, value).then(() => setEditing(false))}
           />
-        ) : null}
-        {detailsExpanded || editing ? (
-          <>
-            <div className="member-row selectable-members" aria-label="추천 계산에 포함할 구성원">
-              {selectedMeeting.members.map((member) => (
-                <button
-                  type="button"
-                  key={`${member.userId ?? "member"}-${member.name}`}
-                  className={[
-                    typeof member.userId === "number" && excludedUserIds.includes(member.userId) ? "excluded" : "",
-                    typeof member.userId === "number" && member.userId === selectedMeeting.createdBy ? "creator" : "",
-                    typeof member.userId === "number" && member.userId === currentUserId ? "self" : ""
-                  ].filter(Boolean).join(" ")}
-                  onClick={() => toggleMember(member)}
-                  disabled={!canManage || isDecided || typeof member.userId !== "number"}
-                  aria-pressed={typeof member.userId === "number" && !excludedUserIds.includes(member.userId)}
-                >
-                  <span>{member.name}</span>
-                  {typeof member.userId === "number" && member.userId === selectedMeeting.createdBy ? <small>모임장</small> : null}
-                  {typeof member.userId === "number" && member.userId === currentUserId ? <small>나</small> : null}
-                </button>
-              ))}
-            </div>
-            {!canManage ? (
-              <p className="meeting-permission-note">참여자는 추천 결과를 확인할 수 있고, 추천 계산과 메뉴 확정은 모임장이 진행합니다.</p>
-            ) : null}
-            {!isDecided ? <p className="meeting-live-note">참여자 정보는 주기적으로 자동 갱신됩니다.</p> : null}
-          </>
         ) : null}
       </section>
       <section className="section-block group-result">
         <div className="section-heading">
           <h3>이 모임의 추천 메뉴</h3>
           {selectedMeeting.id && !isDecided && canManage ? (
-            <div className="meeting-recommendation-actions">
-              <label className="meeting-budget-filter">
-                <span>가격대</span>
-                <select value={budgetLevel ?? ""} onChange={(event) => setBudgetLevel(readBudgetValue(event.target.value))}>
-                  {budgetOptions.map((option) => (
-                    <option key={option.value ?? "none"} value={option.value ?? ""}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button
-                onClick={() => onCreateRecommendation(selectedMeeting.id!, includedUserIds, budgetLevel)}
-                disabled={isLoading || includedUserIds.length === 0}
-              >
-                {meetingRecommendations.length ? "다시 계산" : "추천 계산"}
-              </button>
-            </div>
+            <button
+              className="secondary-button meeting-recommendation-refresh"
+              onClick={() => onCreateRecommendation(selectedMeeting.id!, includedUserIds, budgetLevel)}
+              disabled={isLoading || includedUserIds.length === 0}
+              title={`가격대 ${budgetOptions.find((option) => option.value === budgetLevel)?.label ?? "가격대 선택 안 함"}`}
+            >
+              {meetingRecommendations.length ? "다시 계산" : "추천 계산"}
+            </button>
           ) : null}
         </div>
         <div className="meeting-recommendation-scroll">
@@ -206,28 +192,33 @@ export function MeetingDetail({
 function MeetingEditPanel({
   meeting,
   meetingPurposes,
+  budgetLevel,
   isSaving,
+  onBudgetLevelChange,
   onCancel,
   onSubmit
 }: {
   meeting: DisplayMeeting;
   meetingPurposes: MeetingPurpose[];
+  budgetLevel: number | null;
   isSaving: boolean;
+  onBudgetLevelChange: (value: number | null) => void;
   onCancel: () => void;
   onSubmit: (value: MeetingFormValue) => Promise<void>;
 }) {
   const [title, setTitle] = useState(meeting.title);
   const [meetingTime, setMeetingTime] = useState(toDateTimeLocal(meeting.meetingTime));
-  const [place, setPlace] = useState(meeting.place);
+  const [draftBudgetLevel, setDraftBudgetLevel] = useState<number | null>(budgetLevel);
   const [purposeId, setPurposeId] = useState(String(meeting.meetingPurposeId ?? meetingPurposes[0]?.id ?? 1));
   const purposeOptions = meetingPurposes.length ? meetingPurposes : [{ id: Number(purposeId || 1), name: "식사" }];
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    onBudgetLevelChange(draftBudgetLevel);
     void onSubmit({
       title: title.trim() || "새 모임",
       meetingTime,
-      place: place.trim() || "장소 미정",
+      place: meeting.place,
       meetingPurposeId: Number(purposeId || purposeOptions[0]?.id || 1)
     });
   };
@@ -253,8 +244,14 @@ function MeetingEditPanel({
         </select>
       </label>
       <label className="text-field">
-        <span>장소</span>
-        <input value={place} onChange={(event) => setPlace(event.target.value)} />
+        <span>가격대</span>
+        <select value={draftBudgetLevel ?? ""} onChange={(event) => setDraftBudgetLevel(readBudgetValue(event.target.value))}>
+          {budgetOptions.map((option) => (
+            <option key={option.value ?? "none"} value={option.value ?? ""}>
+              {option.label}
+            </option>
+          ))}
+        </select>
       </label>
       <div className="meeting-edit-actions">
         <button className="secondary-button" type="button" onClick={onCancel} disabled={isSaving}>
@@ -276,16 +273,3 @@ function toDateTimeLocal(value?: string) {
   const offsetMs = date.getTimezoneOffset() * 60 * 1000;
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
 }
-
-function readBudgetValue(value: string) {
-  return value ? Number(value) : null;
-}
-
-const budgetOptions: Array<{ value: number | null; label: string }> = [
-  { value: null, label: "가격대 선택 안 함" },
-  { value: 1, label: "1단계 · 0~5,000원" },
-  { value: 2, label: "2단계 · 5,000~10,000원" },
-  { value: 3, label: "3단계 · 10,000~15,000원" },
-  { value: 4, label: "4단계 · 15,000~20,000원" },
-  { value: 5, label: "5단계 · 20,000원 이상" }
-];

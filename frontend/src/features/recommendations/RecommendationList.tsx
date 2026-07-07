@@ -33,6 +33,7 @@ export function RecommendationList({
     <div className={`recommendation-list recommendation-list--${listVariant} ${listVariant === "compact" ? "compact" : ""}`}>
       {items.slice(0, 6).map((item) => {
         const isSelected = typeof item.menuId === "number" && item.menuId === selectedMenuId;
+        const scoreBreakdown = getScoreBreakdown(item);
         return (
           <article
             className={`recommendation-card ${isSelected ? "selected" : ""} ${onSelect ? "selectable" : ""}`}
@@ -47,19 +48,16 @@ export function RecommendationList({
                 <span>{item.score}점</span>
               </div>
               <p>{item.reason}</p>
-              {item.scores ? (
+              {scoreBreakdown.length ? (
                 <div className="score-breakdown" aria-label={`${item.menu} 추천 점수 상세`}>
-                  <span>카테고리 {formatScore(item.scores.categoryScore)}</span>
-                  <span>평점 {formatScore(item.scores.ratingScore)}</span>
-                  <span>가격 {formatScore(item.scores.priceScore)}</span>
-                  <span>인기 {formatScore(item.scores.popularityScore)}</span>
-                  <span>새로움 {formatScore(item.scores.noveltyScore)}</span>
-                  <span>반복 {formatScore(item.scores.repeatScore)}</span>
+                  {scoreBreakdown.map((score) => (
+                    <span key={score.label}>{score.label} {formatScore(score.value)}</span>
+                  ))}
                 </div>
               ) : null}
-              <div className="tag-row">
-                <span>{item.category}</span>
-                {actionLabel && onAction ? (
+              {actionLabel && onAction ? (
+                <div className="tag-row">
+                  {item.category && item.category !== "API" ? <span>{item.category}</span> : null}
                   <button
                     onClick={(event) => {
                       event.stopPropagation();
@@ -69,8 +67,8 @@ export function RecommendationList({
                   >
                     {actionLabel}
                   </button>
-                ) : null}
-              </div>
+                </div>
+              ) : null}
             </div>
           </article>
         );
@@ -95,4 +93,26 @@ function RecommendationMedia({ item }: { item: DisplayRecommendation }) {
 
 function formatScore(value?: number) {
   return typeof value === "number" ? Math.round(value * 10) / 10 : "-";
+}
+
+function getScoreBreakdown(item: DisplayRecommendation) {
+  const scores = item.scores;
+  if (!scores) return [];
+
+  const entries = [
+    { label: "카테고리", value: scores.categoryScore },
+    { label: "태그", value: scores.tagScore },
+    { label: "메뉴", value: scores.menuPreferenceScore },
+    { label: "예산", value: scores.budgetScore ?? scores.priceScore },
+    { label: "패널티", value: scores.historyPenalty ?? scores.negativeFeedbackScore },
+    { label: "참여자 평균", value: scores.groupPreferenceScore },
+    { label: "최저 참여자", value: scores.minimumParticipantScore },
+    { label: "모임 적합도", value: scores.purposeScore },
+    { label: "평점", value: scores.ratingScore },
+    { label: "인기", value: scores.popularityScore },
+    { label: "새로움", value: scores.noveltyScore },
+    { label: "반복", value: scores.repeatScore }
+  ];
+
+  return entries.filter((entry) => typeof entry.value === "number");
 }

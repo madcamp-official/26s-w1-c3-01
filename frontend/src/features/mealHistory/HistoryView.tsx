@@ -43,6 +43,8 @@ export function HistoryView({
   const selectedHistory = historiesData.find((history) => history.id === selectedHistoryId) ?? historiesData[0] ?? null;
   const calendarDays = buildCalendarDays(visibleMonth);
   const historiesByDate = groupHistoriesByDate(historiesData);
+  const selectedDateKey = selectedHistory ? historyDateKey(selectedHistory) : "";
+  const selectedDayHistories = selectedDateKey ? historiesByDate.get(selectedDateKey) ?? [] : [];
 
   const startEdit = (history: DisplayHistory) => {
     if (!history.id) return;
@@ -121,74 +123,29 @@ export function HistoryView({
           </section>
 
           <aside className="history-detail-panel">
-            {selectedHistory ? (
+            {selectedDayHistories.length ? (
               <>
-                <div className="history-detail-head">
-                  <HistoryImage image={selectedHistory.image} />
-                  <div>
-                    <span>{formatDetailDate(selectedHistory.eatenAt)}</span>
-                    <h3>{selectedHistory.menu}</h3>
-                    <p>{selectedHistory.memo}</p>
-                  </div>
+                <div className="history-day-summary">
+                  <span>{formatSelectedDate(selectedDayHistories[0])}</span>
+                  <strong>{selectedDayHistories.length}개 메뉴</strong>
                 </div>
-                <div className="history-detail-rating" aria-label={`${selectedHistory.menu} 만족도`}>
-                  <StarRating value={selectedHistory.rating ?? 0} readOnly />
-                  <strong>{selectedHistory.rating ?? "-"} / 5</strong>
+                <div className="history-day-list">
+                  {selectedDayHistories.map((history) => (
+                    <HistoryDetailCard
+                      key={history.id ?? `${historyDateKey(history)}-${history.menu}`}
+                      history={history}
+                      menus={menus}
+                      isSaving={isSaving}
+                      isEditing={editingId === history.id}
+                      draft={draft}
+                      setDraft={setDraft}
+                      onStartEdit={startEdit}
+                      onSubmit={handleSubmit}
+                      onCancelEdit={() => setEditingId(null)}
+                      onDeleteHistory={onDeleteHistory}
+                    />
+                  ))}
                 </div>
-                <div className="history-actions detail-actions">
-                  <button type="button" aria-label="식사 기록 수정" onClick={() => startEdit(selectedHistory)} disabled={!selectedHistory.id || isSaving}>
-                    <Pencil size={15} />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="식사 기록 삭제"
-                    onClick={() => selectedHistory.id && onDeleteHistory(selectedHistory.id)}
-                    disabled={!selectedHistory.id || isSaving}
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-
-                {editingId === selectedHistory.id ? (
-                  <form className="history-edit-form" onSubmit={handleSubmit}>
-                    <label className="text-field">
-                      <span>메뉴</span>
-                      <select value={draft.menuId} onChange={(event) => setDraft({ ...draft, menuId: event.target.value })}>
-                        {menus.map((menu) => (
-                          <option key={menu.menuId} value={String(menu.menuId)}>
-                            {menu.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="text-field">
-                      <span>시간</span>
-                      <input
-                        type="datetime-local"
-                        value={draft.eatenAt}
-                        onChange={(event) => setDraft({ ...draft, eatenAt: event.target.value })}
-                      />
-                    </label>
-                    <div className="text-field rating-field">
-                      <span>만족도</span>
-                      <StarRating value={Number(draft.rating) || 0} onChange={(rating) => setDraft({ ...draft, rating: String(rating) })} />
-                    </div>
-                    <label className="text-field full">
-                      <span>메모</span>
-                      <input value={draft.memo} onChange={(event) => setDraft({ ...draft, memo: event.target.value })} />
-                    </label>
-                    <div className="history-edit-actions">
-                      <button className="secondary-button" type="button" onClick={() => setEditingId(null)} disabled={isSaving}>
-                        <X size={15} />
-                        취소
-                      </button>
-                      <button className="primary-button" type="submit" disabled={isSaving || !draft.menuId}>
-                        <Check size={15} />
-                        수정 완료
-                      </button>
-                    </div>
-                  </form>
-                ) : null}
               </>
             ) : null}
           </aside>
@@ -197,6 +154,101 @@ export function HistoryView({
         <EmptyState title="식사 기록이 없습니다" description="식사 기록 API가 아직 빈 목록을 반환했습니다." />
       )}
     </Page>
+  );
+}
+
+function HistoryDetailCard({
+  history,
+  menus,
+  isSaving,
+  isEditing,
+  draft,
+  setDraft,
+  onStartEdit,
+  onSubmit,
+  onCancelEdit,
+  onDeleteHistory
+}: {
+  history: DisplayHistory;
+  menus: RemoteMenu[];
+  isSaving: boolean;
+  isEditing: boolean;
+  draft: HistoryDraft;
+  setDraft: (draft: HistoryDraft) => void;
+  onStartEdit: (history: DisplayHistory) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onCancelEdit: () => void;
+  onDeleteHistory: (historyId: number) => Promise<void>;
+}) {
+  return (
+    <article className="history-detail-card">
+      <div className="history-detail-head">
+        <HistoryImage image={history.image} />
+        <div>
+          <span>{formatDetailDate(history.eatenAt)}</span>
+          <h3>{history.menu}</h3>
+          <p>{history.memo}</p>
+        </div>
+      </div>
+      <div className="history-detail-rating" aria-label={`${history.menu} 만족도`}>
+        <StarRating value={history.rating ?? 0} readOnly />
+        <strong>{history.rating ?? "-"} / 5</strong>
+      </div>
+      <div className="history-actions detail-actions">
+        <button type="button" aria-label="식사 기록 수정" onClick={() => onStartEdit(history)} disabled={!history.id || isSaving}>
+          <Pencil size={15} />
+        </button>
+        <button
+          type="button"
+          aria-label="식사 기록 삭제"
+          onClick={() => history.id && onDeleteHistory(history.id)}
+          disabled={!history.id || isSaving}
+        >
+          <Trash2 size={15} />
+        </button>
+      </div>
+
+      {isEditing ? (
+        <form className="history-edit-form" onSubmit={onSubmit}>
+          <label className="text-field">
+            <span>메뉴</span>
+            <select value={draft.menuId} onChange={(event) => setDraft({ ...draft, menuId: event.target.value })}>
+              {menus.map((menu) => (
+                <option key={menu.menuId} value={String(menu.menuId)}>
+                  {menu.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-field">
+            <span>시간</span>
+            <input
+              type="datetime-local"
+              value={draft.eatenAt}
+              onChange={(event) => setDraft({ ...draft, eatenAt: event.target.value })}
+            />
+          </label>
+          <div className="text-field rating-field">
+            <span>만족도</span>
+            <StarRating value={Number(draft.rating) || 0} onChange={(rating) => setDraft({ ...draft, rating: String(rating) })} />
+          </div>
+          <label className="text-field full">
+            <span>메모</span>
+            <input value={draft.memo} onChange={(event) => setDraft({ ...draft, memo: event.target.value })} />
+          </label>
+          <div className="history-edit-actions">
+            <button className="secondary-button" type="button" onClick={onCancelEdit} disabled={isSaving}>
+              <X size={15} />
+              취소
+            </button>
+            <button className="primary-button" type="submit" disabled={isSaving || !draft.menuId}>
+              <Check size={15} />
+              수정 완료
+            </button>
+          </div>
+        </form>
+      ) : null}
+    </article>
   );
 }
 
@@ -266,10 +318,14 @@ function buildCalendarDays(month: Date) {
 function groupHistoriesByDate(histories: DisplayHistory[]) {
   const grouped = new Map<string, DisplayHistory[]>();
   for (const history of histories) {
-    const key = history.eatenAt ? dateKey(new Date(history.eatenAt)) : history.date;
+    const key = historyDateKey(history);
     grouped.set(key, [...(grouped.get(key) ?? []), history]);
   }
   return grouped;
+}
+
+function historyDateKey(history: DisplayHistory) {
+  return history.eatenAt ? dateKey(new Date(history.eatenAt)) : history.date;
 }
 
 function dateKey(date: Date) {
@@ -294,4 +350,8 @@ function formatDetailDate(value?: string) {
     hour: "2-digit",
     minute: "2-digit"
   }).format(date);
+}
+
+function formatSelectedDate(history: DisplayHistory) {
+  return formatDetailDate(history.eatenAt ?? history.date);
 }

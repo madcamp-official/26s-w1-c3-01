@@ -93,6 +93,13 @@ export type RecommendationRefreshValue = {
 
 export type RecommendationScoreBreakdown = {
   categoryScore?: number;
+  tagScore?: number;
+  menuPreferenceScore?: number;
+  budgetScore?: number;
+  historyPenalty?: number;
+  groupPreferenceScore?: number;
+  minimumParticipantScore?: number;
+  purposeScore?: number;
   ratingScore?: number;
   reviewConfidenceScore?: number;
   priceScore?: number;
@@ -228,6 +235,13 @@ function mapRecommendationScores(scores: any): RecommendationScoreBreakdown | un
 
   return {
     categoryScore: readNumber(scores, ["categoryScore", "category_score"]),
+    tagScore: readNumber(scores, ["tagScore", "tag_score"]),
+    menuPreferenceScore: readNumber(scores, ["menuPreferenceScore", "menu_preference_score"]),
+    budgetScore: readNumber(scores, ["budgetScore", "budget_score"]),
+    historyPenalty: readNumber(scores, ["historyPenalty", "history_penalty"]),
+    groupPreferenceScore: readNumber(scores, ["groupPreferenceScore", "group_preference_score"]),
+    minimumParticipantScore: readNumber(scores, ["minimumParticipantScore", "minimum_participant_score"]),
+    purposeScore: readNumber(scores, ["purposeScore", "purpose_score"]),
     ratingScore: readNumber(scores, ["ratingScore", "rating_score"]),
     reviewConfidenceScore: readNumber(scores, ["reviewConfidenceScore", "review_confidence_score"]),
     priceScore: readNumber(scores, ["priceScore", "price_score"]),
@@ -301,6 +315,7 @@ export function mapHistories(payload: unknown, menus: RemoteMenu[]): DisplayHist
   return rows.map((row: any) => {
     const menuId = readNumber(row, ["menuId", "menu_id"]);
     const menu = typeof menuId === "number" ? menuById.get(menuId) : undefined;
+    const menuName = menu?.name ?? readRelatedMenuName(row) ?? readString(row, ["menuName", "menu_name"]) ?? "식사 기록";
     const rating = readNumber(row, ["rating"]);
     return {
       id: readNumber(row, ["historyId", "history_id", "id"]),
@@ -308,9 +323,9 @@ export function mapHistories(payload: unknown, menus: RemoteMenu[]): DisplayHist
       eatenAt: readString(row, ["eatenAt", "eaten_at", "date"]),
       rating: typeof rating === "number" ? rating : null,
       date: formatShortDate(readString(row, ["eatenAt", "eaten_at", "date"]) ?? ""),
-      menu: menu?.name ?? readString(row, ["menuName", "menu_name"]) ?? "식사 기록",
+      menu: menuName,
       memo: readString(row, ["memo"]) ?? `만족도 ${readNumber(row, ["rating"]) ?? "-"}`,
-      image: menu?.image || menuAsset(menuId) || imageForMenu(menu?.name)
+      image: menu?.image || menuAsset(menuId) || imageForMenu(menuName)
     };
   });
 }
@@ -325,6 +340,11 @@ function imageForMenu(menuName?: string) {
   if (menuName.includes("찌개") || menuName.includes("비빔")) return fallbackCategories[0].image;
   if (menuName.includes("돈") || menuName.includes("카츠")) return fallbackCategories[3].image;
   return fallbackCategories[0].image;
+}
+
+function readRelatedMenuName(row: any) {
+  const relatedMenu = Array.isArray(row?.menus) ? row.menus[0] : row?.menus;
+  return readString(relatedMenu, ["name", "menuName", "menu_name"]);
 }
 
 function formatDateLabel(value: string) {

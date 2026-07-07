@@ -7,9 +7,13 @@ export type MeetingRecommendationRequest = {
 };
 
 export type MeetingRecommendationScoreBreakdown = {
-  group_preference_score: number;
-  minimum_participant_score: number;
-  purpose_score: number;
+  category_score?: number;
+  tag_score?: number;
+  menu_preference_score?: number;
+  budget_score?: number;
+  group_preference_score?: number;
+  minimum_participant_score?: number;
+  purpose_score?: number;
 };
 
 export type MeetingRecommendationResult = {

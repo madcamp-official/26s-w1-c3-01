@@ -68,7 +68,10 @@ export function useMeetings() {
     setExcludedMeetingUserIds([]);
 
     try {
-      const latest = mapRecommendations(await meetingsApi.getLatestRecommendation(meetingId));
+      const latest = mergeRecommendationScores(
+        mapRecommendations(await meetingsApi.getLatestRecommendation(meetingId)),
+        meetingRecommendationsCacheRef.current.get(meetingId) ?? []
+      );
       meetingRecommendationsCacheRef.current.set(meetingId, latest);
       setMeetingRecommendations(latest);
       setSelectedMeetingRecommendation(latest.find((item) => item.menuId === selectedMenuId) ?? null);
@@ -93,7 +96,10 @@ export function useMeetings() {
     }
 
     try {
-      const latest = mapRecommendations(await meetingsApi.getLatestRecommendation(meeting.id));
+      const latest = mergeRecommendationScores(
+        mapRecommendations(await meetingsApi.getLatestRecommendation(meeting.id)),
+        meetingRecommendationsCacheRef.current.get(meeting.id) ?? []
+      );
       meetingRecommendationsCacheRef.current.set(meeting.id, latest);
       setMeetingRecommendations(latest);
     } catch {
@@ -118,7 +124,10 @@ export function useMeetings() {
     );
 
     try {
-      const latest = mapRecommendations(await meetingsApi.getLatestRecommendation(selectedMeeting.id));
+      const latest = mergeRecommendationScores(
+        mapRecommendations(await meetingsApi.getLatestRecommendation(selectedMeeting.id)),
+        meetingRecommendationsCacheRef.current.get(selectedMeeting.id) ?? meetingRecommendations
+      );
       meetingRecommendationsCacheRef.current.set(selectedMeeting.id, latest);
       setMeetingRecommendations(latest);
       setSelectedMeetingRecommendation((current) =>
@@ -204,4 +213,22 @@ export function useMeetings() {
     applyMeetingRecommendationPayload,
     applyDecidedMeetingPayload
   };
+}
+
+function mergeRecommendationScores(next: DisplayRecommendation[], previous: DisplayRecommendation[]) {
+  if (!previous.length) return next;
+  const previousByMenuId = new Map(previous.map((item) => [item.menuId, item]));
+
+  return next.map((item) => {
+    if (hasScoreBreakdown(item)) return item;
+    const previousItem = previousByMenuId.get(item.menuId);
+    return previousItem?.scores ? { ...item, scores: previousItem.scores } : item;
+  });
+}
+
+function hasScoreBreakdown(item: DisplayRecommendation) {
+  return Boolean(
+    item.scores &&
+      Object.values(item.scores).some((value) => typeof value === "number")
+  );
 }

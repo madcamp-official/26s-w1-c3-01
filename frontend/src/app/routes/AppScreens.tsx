@@ -177,7 +177,6 @@ export function AppScreens({
       apiStatus={apiStatus}
       apiError={apiError}
       toastMessage={toastMessage}
-      onGoPreferences={() => setActiveTab("preferences")}
       onTabChange={setActiveTab}
       overlay={
         meetingDialogOpen ? (
