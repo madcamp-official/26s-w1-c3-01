@@ -49,7 +49,6 @@ export function RecommendationList({
                   <span>태그 {formatScore(item.scores.tagScore)}</span>
                   <span>메뉴 선호 {formatScore(item.scores.menuPreferenceScore)}</span>
                   <span>예산 {formatScore(item.scores.budgetScore)}</span>
-                  <span>새 메뉴 {formatScore(item.scores.newMenuScore)}</span>
                   <span>최근 패널티 {formatScore(item.scores.historyPenalty)}</span>
                 </div>
               ) : null}

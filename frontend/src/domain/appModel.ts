@@ -97,7 +97,6 @@ export type RecommendationScoreBreakdown = {
   tagScore?: number;
   menuPreferenceScore?: number;
   budgetScore?: number;
-  newMenuScore?: number;
   historyPenalty?: number;
 };
 
@@ -230,7 +229,6 @@ function mapRecommendationScores(scores: any): RecommendationScoreBreakdown | un
     tagScore: readNumber(scores, ["tagScore", "tag_score"]),
     menuPreferenceScore: readNumber(scores, ["menuPreferenceScore", "menu_preference_score"]),
     budgetScore: readNumber(scores, ["budgetScore", "budget_score"]),
-    newMenuScore: readNumber(scores, ["newMenuScore", "new_menu_score"]),
     historyPenalty: readNumber(scores, ["historyPenalty", "history_penalty"])
   };
 }
