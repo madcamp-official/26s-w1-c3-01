@@ -28,12 +28,12 @@ export const replaceCategoryPreferencesByNameSchema = z.object({
     z
       .object({
         category: z.string().trim().min(1),
-        preferenceScore: z.coerce.number().min(-1).max(1).optional(),
-        preference_score: z.coerce.number().min(-1).max(1).optional()
+        preferenceScore: z.coerce.number().int().min(0).max(5).optional(),
+        preference_score: z.coerce.number().int().min(0).max(5).optional()
       })
       .transform((value) => ({
         category: value.category,
-        preferenceScore: value.preferenceScore ?? value.preference_score ?? 0
+        preferenceScore: value.preferenceScore ?? value.preference_score ?? 5
       }))
   )
 });
