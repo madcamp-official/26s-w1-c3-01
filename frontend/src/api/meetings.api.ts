@@ -21,7 +21,7 @@ export const meetingsApi = {
     });
   },
   preview(meetingId: number) {
-    return apiRequest(`/meetings/${meetingId}/preview`);
+    return apiRequest(`/meetings/${meetingId}/preview`, { auth: false });
   },
   addParticipant(meetingId: number, userId: number, displayName?: string) {
     return apiRequest(`/meetings/${meetingId}/participants`, {

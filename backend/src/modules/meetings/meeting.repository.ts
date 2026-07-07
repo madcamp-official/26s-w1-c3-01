@@ -13,7 +13,7 @@ const meetingSelect = `
   created_at,
   meeting_purposes(meeting_purpose_id, name),
   users!meetings_created_by_fkey(user_id, nickname),
-  meeting_participants(participant_id, user_id, display_name, attendance_status, joined_at)
+  meeting_participants(participant_id, user_id, display_name, attendance_status)
 `;
 
 export const meetingRepository = {
@@ -32,7 +32,6 @@ export const meetingRepository = {
       .single();
 
     if (error) throw error;
-    await insertInitialParticipants(Number(data.meeting_id), userId, input.participantUserIds ?? []);
     return this.findByIdForUser(Number(data.meeting_id), userId);
   },
 
@@ -143,14 +142,14 @@ export const meetingRepository = {
         display_name: displayName,
         attendance_status: attendanceStatus
       })
-      .select("participant_id, meeting_id, user_id, display_name, attendance_status, joined_at")
+      .select("participant_id, meeting_id, user_id, display_name, attendance_status")
       .single();
 
     if (error) {
       if (error.code === "23505") {
         const { data: existing, error: existingError } = await supabaseAdmin
           .from("meeting_participants")
-          .select("participant_id, meeting_id, user_id, display_name, attendance_status, joined_at")
+          .select("participant_id, meeting_id, user_id, display_name, attendance_status")
           .eq("meeting_id", meetingId)
           .eq("user_id", input.userId)
           .maybeSingle();
@@ -182,14 +181,43 @@ export const meetingRepository = {
       throw Object.assign(new Error("이미 메뉴가 확정된 모임입니다."), { status: 409, code: "CONFLICT" });
     }
 
-    const participant = await this.addParticipant(meetingId, { userId, displayName }, "JOINED");
+    const { data: participantRow, error: participantError } = await supabaseAdmin
+      .from("meeting_participants")
+      .insert({
+        meeting_id: meetingId,
+        user_id: userId,
+        display_name: displayName.trim(),
+        attendance_status: "JOINED"
+      })
+      .select("participant_id, meeting_id, user_id, display_name, attendance_status")
+      .single();
+
+    if (participantError) {
+      if (participantError.code === "23505") {
+        const { data: existing, error: existingError } = await supabaseAdmin
+          .from("meeting_participants")
+          .select("participant_id, meeting_id, user_id, display_name, attendance_status")
+          .eq("meeting_id", meetingId)
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (existingError) throw existingError;
+        if (existing) return { meeting: await this.findByIdForUser(meetingId, userId), participant: toParticipant(existing) };
+
+        throw Object.assign(new Error("이 모임에서 이미 사용 중인 표시 이름입니다."), { status: 409, code: "CONFLICT" });
+      }
+
+      throw participantError;
+    }
+
+    const participant = toParticipant(participantRow);
     return { meeting: await this.findByIdForUser(meetingId, userId), participant };
   },
 
   async listParticipants(meetingId: number) {
     const { data, error } = await supabaseAdmin
       .from("meeting_participants")
-      .select("participant_id, meeting_id, user_id, display_name, attendance_status, joined_at")
+      .select("participant_id, meeting_id, user_id, display_name, attendance_status")
       .eq("meeting_id", meetingId)
       .order("participant_id");
 
@@ -199,6 +227,10 @@ export const meetingRepository = {
 };
 
 function toMeeting(row: any) {
+  const participants = row.meeting_participants ?? [];
+  const creatorUserId = Number(row.created_by);
+  const hasCreatorParticipant = participants.some((participant: any) => Number(participant.user_id) === creatorUserId);
+
   return {
     meetingId: Number(row.meeting_id),
     title: row.title,
@@ -211,7 +243,18 @@ function toMeeting(row: any) {
     selectedMenuId: row.selected_menu_id == null ? null : Number(row.selected_menu_id),
     status: row.status,
     createdAt: row.created_at,
-    participants: (row.meeting_participants ?? []).map(toParticipant)
+    participants: [
+      ...(hasCreatorParticipant
+        ? []
+        : [{
+            participantId: 0,
+            meetingId: Number(row.meeting_id),
+            userId: creatorUserId,
+            displayName: row.users?.nickname ?? "모임장",
+            attendanceStatus: "JOINED"
+          }]),
+      ...participants.map(toParticipant)
+    ]
   };
 }
 
@@ -221,37 +264,6 @@ function toParticipant(row: any) {
     meetingId: row.meeting_id == null ? undefined : Number(row.meeting_id),
     userId: row.user_id == null ? null : Number(row.user_id),
     displayName: row.display_name,
-    attendanceStatus: row.attendance_status,
-    joinedAt: row.joined_at
+    attendanceStatus: row.attendance_status
   };
-}
-
-async function insertInitialParticipants(meetingId: number, creatorUserId: number, participantUserIds: number[]) {
-  const invitedUserIds = Array.from(new Set(participantUserIds.map(Number).filter((userId) => userId !== creatorUserId)));
-  const userIds = [creatorUserId, ...invitedUserIds];
-  const { data: users, error } = await supabaseAdmin
-    .from("users")
-    .select("user_id, nickname")
-    .in("user_id", userIds);
-
-  if (error) throw error;
-
-  const userById = new Map((users ?? []).map((user) => [Number(user.user_id), user.nickname]));
-  const missingUserId = userIds.find((userId) => !userById.has(userId));
-  if (missingUserId) {
-    throw Object.assign(new Error("존재하지 않는 사용자가 참여자에 포함되어 있습니다."), { status: 404, code: "NOT_FOUND" });
-  }
-
-  const { error: insertError } = await supabaseAdmin
-    .from("meeting_participants")
-    .insert(
-      userIds.map((userId) => ({
-        meeting_id: meetingId,
-        user_id: userId,
-        display_name: userById.get(userId)!,
-        attendance_status: userId === creatorUserId ? "JOINED" : "PENDING"
-      }))
-    );
-
-  if (insertError) throw insertError;
 }

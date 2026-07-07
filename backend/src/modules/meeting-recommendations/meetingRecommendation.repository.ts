@@ -8,7 +8,7 @@ const latestRecommendationSelect = `
   rank_no,
   total_score,
   reason,
-  menus(menu_id, name, description)
+  menus(menu_id, name)
 `;
 
 export const meetingRecommendationRepository = {
@@ -48,10 +48,11 @@ export const meetingRecommendationRepository = {
 
     if (participantError) throw participantError;
 
+    const participantsWithCreator = ensureCreatorParticipant(meeting, participants ?? []);
     const selectedParticipantSet = selectedParticipantUserIds?.length
       ? new Set(selectedParticipantUserIds.map(Number))
       : null;
-    const participantUserIds = (participants ?? [])
+    const participantUserIds = participantsWithCreator
       .map((participant) => participant.user_id)
       .filter((userId): userId is number => userId !== null)
       .filter((userId) => !selectedParticipantSet || selectedParticipantSet.has(Number(userId)));
@@ -69,7 +70,7 @@ export const meetingRecommendationRepository = {
     ] = await Promise.all([
       supabaseAdmin
         .from("menus")
-        .select("menu_id, category_id, name, description")
+        .select("menu_id, category_id, name")
         .order("menu_id"),
 
       supabaseAdmin
@@ -127,7 +128,7 @@ export const meetingRecommendationRepository = {
 
     return {
       meeting,
-      participants: participants ?? [],
+      participants: participantsWithCreator,
       menus: menus.data ?? [],
       menuTags: menuTags.data ?? [],
       menuAllergies: menuAllergies.data ?? [],
@@ -240,6 +241,32 @@ export const meetingRecommendationRepository = {
     return data;
   }
 };
+
+function ensureCreatorParticipant(
+  meeting: { meeting_id: number; created_by: number },
+  participants: Array<{
+    participant_id: number;
+    meeting_id: number;
+    user_id: number | null;
+    display_name: string;
+    attendance_status: string;
+  }>
+) {
+  const creatorUserId = Number(meeting.created_by);
+  const hasCreator = participants.some((participant) => Number(participant.user_id) === creatorUserId);
+  if (hasCreator) return participants;
+
+  return [
+    {
+      participant_id: 0,
+      meeting_id: Number(meeting.meeting_id),
+      user_id: creatorUserId,
+      display_name: "모임장",
+      attendance_status: "JOINED"
+    },
+    ...participants
+  ];
+}
 
 // Supabase .in()은 빈 배열을 받으면 에러가 날 수 있어 존재하지 않는 ID로 대체합니다.
 function safeInValues(values: number[]) {

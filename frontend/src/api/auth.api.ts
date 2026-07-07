@@ -31,6 +31,9 @@ export const authApi = {
       body: JSON.stringify({ refreshToken })
     });
   },
+  syncProfile() {
+    return apiRequest<{ user: unknown }>("/auth/profile", { method: "POST" });
+  },
   checkNickname(nickname: string) {
     return apiRequest<NicknameAvailabilityResponse>(`/auth/nickname?nickname=${encodeURIComponent(nickname.trim())}`, {
       auth: false

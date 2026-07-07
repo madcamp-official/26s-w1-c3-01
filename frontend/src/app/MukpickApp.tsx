@@ -23,7 +23,6 @@ import {
   mapMenus,
   mapPickItems,
   mapRecommendations,
-  mapUsers,
   readNumber,
   readString,
   scoreMapFromPreferenceRows,
@@ -36,8 +35,7 @@ import {
   type PickData,
   type PreferenceScoreMap,
   type RecommendationRefreshValue,
-  type RemoteMenu,
-  type UserOption
+  type RemoteMenu
 } from "../domain/mapper";
 import { AuthFlow, type LoginCredentials, type SignupCredentials } from "../features/auth/AuthFlow";
 import type { MealHistoryFormValue } from "../features/mealHistory/MealHistoryDialog";
@@ -133,7 +131,6 @@ function sortHistoriesByDate(histories: DisplayHistory[]) {
 
 export function MukpickApp() {
   const restoreAttemptedRef = useRef(false);
-  const userOptionsLoadedRef = useRef(false);
   const meetingRecommendationsCacheRef = useRef(new Map<number, DisplayRecommendation[]>());
   const [flow, setFlow] = useState<Flow>("start");
   const [activeTab, setActiveTab] = useState<Tab>("home");
@@ -158,7 +155,6 @@ export function MukpickApp() {
   const [pickData, setPickData] = useState<PickData>(fallbackPickData);
   const [menuOptions, setMenuOptions] = useState<RemoteMenu[]>([]);
   const [meetingPurposes, setMeetingPurposes] = useState<MeetingPurpose[]>([]);
-  const [userOptions, setUserOptions] = useState<UserOption[]>([]);
   const [recommendationItems, setRecommendationItems] = useState<DisplayRecommendation[]>([]);
   const [personalRecommendationReady, setPersonalRecommendationReady] = useState(false);
   const [selectedPersonalRecommendation, setSelectedPersonalRecommendation] = useState<DisplayRecommendation | null>(null);
@@ -289,24 +285,6 @@ export function MukpickApp() {
     });
   }, []);
 
-  const loadUserOptions = useCallback(async () => {
-    if (userOptionsLoadedRef.current) return;
-    userOptionsLoadedRef.current = true;
-    try {
-      setUserOptions(mapUsers(await usersApi.list()));
-    } catch {
-      userOptionsLoadedRef.current = false;
-    }
-  }, []);
-
-  const setMeetingDialogOpenWithUsers = useCallback(
-    (open: boolean) => {
-      setMeetingDialogOpen(open);
-      if (open) void loadUserOptions();
-    },
-    [loadUserOptions]
-  );
-
   const restoreMeetingDetail = useCallback(async (meetingId: number, selectedMenuId?: number) => {
     const meeting = mapCreatedMeeting(await meetingsApi.get(meetingId));
     setSelectedMeeting(meeting.id ? meeting : null);
@@ -393,7 +371,6 @@ export function MukpickApp() {
     setActiveTab("home");
     setIsGuestSession(false);
     setSelectedMeeting(null);
-    userOptionsLoadedRef.current = false;
     meetingRecommendationsCacheRef.current.clear();
     setGuestPreviewMeeting(null);
     setMeetingRecommendations([]);
@@ -552,6 +529,7 @@ export function MukpickApp() {
       setApiError("");
 
       try {
+        await authApi.syncProfile();
         const [userPayload, preferences] = await Promise.all([
           usersApi.getMe(),
           preferencesApi.getMine().catch(() => null)
@@ -1299,8 +1277,7 @@ export function MukpickApp() {
         title: meeting.title,
         meetingTime: new Date(meeting.meetingTime).toISOString(),
         meetingPurposeId: meeting.meetingPurposeId,
-        location: meeting.place,
-        participantUserIds: meeting.participantUserIds
+        location: meeting.place
       });
       const nextMeeting = mapCreatedMeeting(created);
       upsertMeeting(nextMeeting);
@@ -1361,7 +1338,6 @@ export function MukpickApp() {
     setIsGuestSession(false);
     setProfileUserId(null);
     setSelectedMeeting(null);
-    userOptionsLoadedRef.current = false;
     meetingRecommendationsCacheRef.current.clear();
     setGuestPreviewMeeting(null);
     setMeetingRecommendations([]);
@@ -1371,7 +1347,6 @@ export function MukpickApp() {
     setPersonalRecommendationReady(false);
     setHistoryItems([]);
     setMeetingItems([]);
-    setUserOptions([]);
     setApiStatus("idle");
     setApiError("");
     setAuthError("");
@@ -1479,7 +1454,6 @@ export function MukpickApp() {
       personalRecommendationLoading={personalRecommendationLoading}
       meetingActionLoading={meetingActionLoading || meetingSaving}
       historySaving={historySaving}
-      userOptions={userOptions}
       toastMessage={toastMessage}
       setActiveTab={setActiveTab}
       setSelectedCategories={setSelectedCategories}
@@ -1492,7 +1466,7 @@ export function MukpickApp() {
       setBudgetMin={setBudgetMin}
       setBudgetMax={setBudgetMax}
       setSelectedPersonalRecommendation={setSelectedPersonalRecommendation}
-      setMeetingDialogOpen={setMeetingDialogOpenWithUsers}
+      setMeetingDialogOpen={setMeetingDialogOpen}
       setSelectedMeeting={setSelectedMeeting}
       setSelectedMeetingRecommendation={setSelectedMeetingRecommendation}
       setExcludedMeetingUserIds={setExcludedMeetingUserIds}

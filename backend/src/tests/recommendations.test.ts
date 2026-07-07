@@ -15,10 +15,7 @@ const sampleMenu: MenuRow = {
   menu_id: 1,
   category_id: 1,
   name: "김치찌개",
-  description: null,
-  spicy_level: 2,
-  price_level: 3,
-  calorie: null
+  price_level: 3
 };
 
 describe("personal recommendation scoring", () => {

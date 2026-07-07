@@ -7,7 +7,7 @@ import type {
 
 type GlobalRecommendationData = Pick<
   RecommendationBaseData,
-  "menus" | "menuTags" | "menuAllergies" | "purposeSuitability" | "ratingStats" | "popularityStats"
+  "menus" | "menuAllergies" | "ratingStats" | "popularityStats"
 >;
 
 const GLOBAL_RECOMMENDATION_DATA_TTL_MS = 5 * 60 * 1000;
@@ -26,9 +26,7 @@ export const recommendationRepository = {
     const globalDataPromise = getGlobalRecommendationData();
     const [
       globalData,
-      userMenuPreferences,
       userCategoryPreferences,
-      userTagPreferences,
       userAllergies,
       mealHistory,
       userPreference,
@@ -37,18 +35,8 @@ export const recommendationRepository = {
       globalDataPromise,
 
       supabaseAdmin
-        .from("user_menu_preferences")
-        .select("menu_id, preference_score")
-        .eq("user_id", userId),
-
-      supabaseAdmin
         .from("user_category_preferences")
         .select("category_id, preference_score")
-        .eq("user_id", userId),
-
-      supabaseAdmin
-        .from("user_tag_preferences")
-        .select("tag_id, preference_score")
         .eq("user_id", userId),
 
       supabaseAdmin
@@ -59,7 +47,7 @@ export const recommendationRepository = {
       // 최근 식사 제외와 과거 평점 반영을 위해 식사 기록을 함께 읽습니다.
       supabaseAdmin
         .from("meal_history")
-        .select("menu_id, rating, eaten_at")
+        .select("menu_id, eaten_at")
         .eq("user_id", userId)
         .order("eaten_at", { ascending: false }),
 
@@ -74,15 +62,13 @@ export const recommendationRepository = {
       optionalRows(
         supabaseAdmin
           .from("user_menu_interactions")
-          .select("user_id, menu_id, interaction_type, created_at")
+          .select("menu_id, interaction_type, created_at")
           .eq("user_id", userId)
       )
     ]);
 
     for (const result of [
-      userMenuPreferences,
       userCategoryPreferences,
-      userTagPreferences,
       userAllergies,
       mealHistory,
       userPreference,
@@ -93,9 +79,7 @@ export const recommendationRepository = {
 
     return {
       ...globalData,
-      userMenuPreferences: (userMenuPreferences.data ?? []) as RecommendationBaseData["userMenuPreferences"],
       userCategoryPreferences: (userCategoryPreferences.data ?? []) as RecommendationBaseData["userCategoryPreferences"],
-      userTagPreferences: (userTagPreferences.data ?? []) as RecommendationBaseData["userTagPreferences"],
       userAllergies: (userAllergies.data ?? []) as RecommendationBaseData["userAllergies"],
       mealHistory: (mealHistory.data ?? []) as RecommendationBaseData["mealHistory"],
       userPreference: (userPreference.data ?? null) as RecommendationBaseData["userPreference"],
@@ -172,28 +156,18 @@ async function getGlobalRecommendationData(): Promise<GlobalRecommendationData> 
 async function loadGlobalRecommendationData(): Promise<GlobalRecommendationData> {
   const [
     menus,
-    menuTags,
     menuAllergies,
-    purposeSuitability,
     ratingStats,
     popularityStats
   ] = await Promise.all([
     supabaseAdmin
       .from("menus")
-      .select("menu_id, category_id, name, description, spicy_level, price_level, calorie, menu_categories(category_id, name)")
+      .select("menu_id, category_id, name, price_level, menu_categories(category_id, name)")
       .order("menu_id"),
-
-    supabaseAdmin
-      .from("menu_tags")
-      .select("menu_id, tag_id"),
 
     supabaseAdmin
       .from("menu_allergies")
       .select("menu_id, allergy_id"),
-
-    supabaseAdmin
-      .from("menu_purpose_suitability")
-      .select("menu_id, meeting_purpose_id, suitability_score"),
 
     optionalRows(
       supabaseAdmin
@@ -208,15 +182,13 @@ async function loadGlobalRecommendationData(): Promise<GlobalRecommendationData>
     )
   ]);
 
-  for (const result of [menus, menuTags, menuAllergies, purposeSuitability, ratingStats, popularityStats]) {
+  for (const result of [menus, menuAllergies, ratingStats, popularityStats]) {
     if ("error" in result && result.error) throw result.error;
   }
 
   return {
     menus: (menus.data ?? []) as RecommendationBaseData["menus"],
-    menuTags: (menuTags.data ?? []) as RecommendationBaseData["menuTags"],
     menuAllergies: (menuAllergies.data ?? []) as RecommendationBaseData["menuAllergies"],
-    purposeSuitability: (purposeSuitability.data ?? []) as RecommendationBaseData["purposeSuitability"],
     ratingStats: (ratingStats.data ?? []) as RecommendationBaseData["ratingStats"],
     popularityStats: (popularityStats.data ?? []) as RecommendationBaseData["popularityStats"]
   };

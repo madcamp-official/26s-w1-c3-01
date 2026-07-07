@@ -36,6 +36,17 @@ export const userRepository = {
     return toCamelProfile(data);
   },
 
+  async findByAuthUserId(authUserId: string) {
+    const { data, error } = await supabaseAdmin
+      .from("users")
+      .select("user_id, auth_user_id, email, nickname, user_type")
+      .eq("auth_user_id", authUserId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data ? toCamelProfile(data) : null;
+  },
+
   async findById(userId: number) {
     const { data, error } = await supabaseAdmin
       .from("users")
@@ -61,7 +72,7 @@ export const userRepository = {
   async search(query = "") {
     const builder = supabaseAdmin
       .from("users")
-      .select("user_id, auth_user_id, email, nickname, user_type")
+      .select("user_id, nickname")
       .order("nickname")
       .limit(20);
 
