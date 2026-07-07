@@ -160,7 +160,7 @@
 |---|---|---|---|---|
 | `user_id` | `BIGINT` | PK, FK | NOT NULL | 사용자 ID |
 | `menu_id` | `BIGINT` | PK, FK | NOT NULL | 메뉴 ID |
-| `preference_score` | `INT` |  | NOT NULL | 메뉴 선호도 점수. -5~5 |
+| `preference_score` | `INT` |  | NOT NULL | 메뉴 선호도 점수. 0~5 |
 | `updated_at` | `DATETIME` |  | NOT NULL | 선호도 갱신 일시 |
 
 복합 기본키: (`user_id`, `menu_id`)
@@ -176,9 +176,8 @@
 |---:|---|
 | 5 | 매우 선호 |
 | 3 | 선호 |
-| 0 | 중립 |
-| -3 | 비선호 |
-| -5 | 강한 비선호 |
+| 1 | 낮은 선호 |
+| 0 | 명시적 비선호 |
 
 ---
 
@@ -190,7 +189,7 @@
 |---|---|---|---|---|
 | `user_id` | `BIGINT` | PK, FK | NOT NULL | 사용자 ID |
 | `category_id` | `BIGINT` | PK, FK | NOT NULL | 카테고리 ID |
-| `preference_score` | `INT` |  | NOT NULL | 카테고리 선호도 점수. -5~5 |
+| `preference_score` | `INT` |  | NOT NULL | 카테고리 선호도 점수. 0~5 |
 | `updated_at` | `DATETIME` |  | NOT NULL | 선호도 갱신 일시 |
 
 복합 기본키: (`user_id`, `category_id`)
@@ -210,7 +209,7 @@
 |---|---|---|---|---|
 | `user_id` | `BIGINT` | PK, FK | NOT NULL | 사용자 ID |
 | `tag_id` | `BIGINT` | PK, FK | NOT NULL | 태그 ID |
-| `preference_score` | `INT` |  | NOT NULL | 태그 선호도 점수. -5~5 |
+| `preference_score` | `INT` |  | NOT NULL | 태그 선호도 점수. 0~5 |
 | `updated_at` | `DATETIME` |  | NOT NULL | 선호도 갱신 일시 |
 
 복합 기본키: (`user_id`, `tag_id`)
@@ -561,27 +560,19 @@ group_score =
 
 ```json
 {
-  "menuPreference": 0.5,
-  "categoryPreference": 0.3,
-  "tagPreference": 0.2,
-  "purposeSuitabilityRule": "exclude_if_score_zero",
-  "averageScore": 0.7,
-  "minimumScore": 0.3,
-  "strongDislikePenalty": 20,
-  "strongDislikeScore": -3,
-  "recentDuplicateDays": 3,
   "resultLimit": 3
 }
 ```
 
-최근 식사 중복 패널티는 `recentDuplicateDays = n`, 최근 동일 메뉴를 먹은 시점이 `k`일 전일 때 다음 방식으로 계산한다.
+모임 추천은 참여자별로 카테고리, 태그, 메뉴 선호도, 예산 점수를 계산해 80점 만점으로 환산하고, `menu_purpose_suitability.suitability_score`를 20점 만점으로 더한다.
 
 ```text
-recent_duplicate_penalty = 3 - (3k / n)
-score -= recent_duplicate_penalty
+participantRawScore = categoryScore + tagScore + menuPreferenceScore + budgetScore
+participantPreferenceScore = participantRawScore / 85 * 80
+meetingScore = average(participantPreferenceScore) + purposeScore
 ```
 
-따라서 오늘 먹은 메뉴는 `3`점 감점되고, `n`일 전에 먹은 메뉴는 `0`점에 가까워진다.
+참여자 중 한 명이라도 메뉴 알러지와 충돌하거나, 해당 메뉴 또는 카테고리를 명시적으로 `0`점으로 저장한 경우 후보에서 제외한다. 모임 추천에서는 개인 추천과 달리 최근 식사 중복 패널티를 사용하지 않는다.
 
 ### 5.4 추천 결과 저장
 

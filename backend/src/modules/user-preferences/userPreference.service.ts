@@ -59,6 +59,6 @@ function toCategoryPreferenceResponse(row: {
   return {
     category: category?.name ?? "",
     categoryId: Number(row.category_id),
-    preferenceScore: Number(row.preference_score) / 5
+    preferenceScore: Number(row.preference_score)
   };
 }

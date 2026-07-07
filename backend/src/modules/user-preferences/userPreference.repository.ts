@@ -88,8 +88,7 @@ export const userPreferenceRepository = {
             return {
               user_id: userId,
               category_id: category.category_id,
-              // API는 -1~1을 받지만 기존 DB는 -5~5 int라서 5배로 변환해 저장한다.
-              preference_score: Math.round(item.preferenceScore * 5)
+              preference_score: item.preferenceScore
             };
           })
         );

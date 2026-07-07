@@ -94,22 +94,13 @@ npm run dev
 
 ```json
 {
-  "menuPreference": 0.5,
-  "categoryPreference": 0.3,
-  "tagPreference": 0.2,
-  "purposeSuitabilityRule": "exclude_if_score_zero",
-  "averageScore": 0.7,
-  "minimumScore": 0.3,
-  "strongDislikePenalty": 20,
-  "strongDislikeScore": -3,
-  "recentDuplicateDays": 3,
   "resultLimit": 3
 }
 ```
 
-`recentDuplicateDays`와 `resultLimit`은 요청 body에서 덮어쓸 수 있다. 기존 API 문서와의 호환을 위해 `excludeRecentDays`, `limit`도 받지만 새 이름이 우선된다.
+`resultLimit`은 요청 body에서 덮어쓸 수 있다. 기존 API 문서와의 호환을 위해 `limit`도 받지만 새 이름이 우선된다.
 
-모임 추천 계산에서는 `participantUserIds`를 전달해 특정 구성원만 포함할 수 있다.
+모임 추천 계산에서는 `participantUserIds`를 전달해 특정 구성원만 포함할 수 있다. 알고리즘은 모든 메뉴에 대해 참여자별 선호 점수를 다시 계산하고, 참여자 평균 점수에 모임 목적 적합도 점수를 더한다. 알러지 충돌, 명시적 카테고리 0점, 명시적 메뉴 0점은 후보에서 제외한다.
 
 ```json
 {
