@@ -12,13 +12,13 @@ import type { RecommendationBaseData } from "../modules/recommendations/recommen
 import { rankMeetingMenus } from "../modules/meeting-recommendations/meetingRecommendation.algorithm.js";
 
 describe("personal recommendation scoring", () => {
-  it("maps category preference 0 to 5 into 0 to 30 points", () => {
+  it("maps category preference 0 to 5 into 0 to 35 points", () => {
     expect(calculateCategoryScore(0)).toBe(0);
-    expect(calculateCategoryScore(5)).toBe(30);
+    expect(calculateCategoryScore(5)).toBe(35);
   });
 
-  it("maps tag preference average 4 into 16 points", () => {
-    expect(calculateTagScore(4)).toBe(16);
+  it("maps tag preference average 4 into 20 points", () => {
+    expect(calculateTagScore(4)).toBe(20);
   });
 
   it("maps menu preference 5 into 25 points", () => {
@@ -26,18 +26,18 @@ describe("personal recommendation scoring", () => {
   });
 
   it("scores budget fit with fixed buckets", () => {
-    expect(calculateBudgetScore(3, 2, 4)).toBe(10);
-    expect(calculateBudgetScore(1, 2, 4)).toBe(8);
-    expect(calculateBudgetScore(5, 2, 4)).toBe(5);
-    expect(calculateBudgetScore(3, null, null)).toBe(10);
+    expect(calculateBudgetScore(3, 2, 4)).toBe(15);
+    expect(calculateBudgetScore(1, 2, 4)).toBe(12);
+    expect(calculateBudgetScore(5, 2, 4)).toBe(8);
+    expect(calculateBudgetScore(3, null, null)).toBe(15);
   });
 
   it("calculates linear history penalty inside recent duplicate days", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-07-07T00:00:00.000Z"));
 
-    expect(calculateHistoryPenalty("2026-07-07T00:00:00.000Z", 7)).toBe(20);
-    expect(calculateHistoryPenalty("2026-07-04T00:00:00.000Z", 7)).toBe(11.43);
+    expect(calculateHistoryPenalty("2026-07-07T00:00:00.000Z", 7)).toBe(35);
+    expect(calculateHistoryPenalty("2026-07-04T00:00:00.000Z", 7)).toBe(20);
     expect(calculateHistoryPenalty("2026-06-30T00:00:00.000Z", 7)).toBe(0);
     expect(calculateHistoryPenalty("2026-07-07T00:00:00.000Z", 0)).toBe(0);
 
@@ -52,20 +52,34 @@ describe("personal recommendation scoring", () => {
       priceLevel: 2,
       budgetMin: 1,
       budgetMax: 3,
-      isNewMenu: true,
       lastEatenAt: null,
       recentDuplicateDays: 7
     });
 
     expect(result.total_score).toBe(100);
     expect(result.scores).toEqual({
-      category_score: 30,
-      tag_score: 20,
+      category_score: 35,
+      tag_score: 25,
       menu_preference_score: 25,
-      budget_score: 10,
-      new_menu_score: 15,
+      budget_score: 15,
       history_penalty: 0
     });
+  });
+
+  it("does not add bonus points only because a menu is new", () => {
+    const result = calculatePersonalRecommendationScore({
+      categoryPreference: 0,
+      tagPreferenceAverage: 0,
+      menuPreference: 5,
+      priceLevel: 2,
+      budgetMin: 1,
+      budgetMax: 3,
+      lastEatenAt: null,
+      recentDuplicateDays: 7
+    });
+
+    expect(result.total_score).toBe(40);
+    expect("new_menu_score" in result.scores).toBe(false);
   });
 
   it("subtracts history penalty from final score", () => {
@@ -79,13 +93,12 @@ describe("personal recommendation scoring", () => {
       priceLevel: 2,
       budgetMin: 1,
       budgetMax: 3,
-      isNewMenu: false,
       lastEatenAt: "2026-07-07T00:00:00.000Z",
       recentDuplicateDays: 7
     });
 
-    expect(result.total_score).toBe(15);
-    expect(result.scores.history_penalty).toBe(20);
+    expect(result.total_score).toBe(5);
+    expect(result.scores.history_penalty).toBe(35);
 
     vi.useRealTimers();
   });

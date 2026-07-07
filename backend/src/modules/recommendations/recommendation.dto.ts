@@ -11,7 +11,6 @@ export type RecommendationScoreBreakdown = {
   tag_score: number;
   menu_preference_score: number;
   budget_score: number;
-  new_menu_score: number;
   history_penalty: number;
 };
 

@@ -13,7 +13,6 @@ type MenuScoringStats = {
   priceLevel: number | null;
   budgetMin: number | null;
   budgetMax: number | null;
-  isNewMenu: boolean;
   lastEatenAt: string | null;
   recentDuplicateDays: number;
 };
@@ -59,7 +58,6 @@ export function rankPersonalMenus(
         priceLevel: menu.price_level,
         budgetMin: base.userPreference?.budget_min ?? null,
         budgetMax: base.userPreference?.budget_max ?? null,
-        isNewMenu,
         lastEatenAt: historyStats?.lastEatenAt ?? null,
         recentDuplicateDays
       });
@@ -92,7 +90,6 @@ export function calculatePersonalRecommendationScore(stats: MenuScoringStats): C
   const tag_score = calculateTagScore(stats.tagPreferenceAverage);
   const menu_preference_score = calculateMenuPreferenceScore(stats.menuPreference);
   const budget_score = calculateBudgetScore(stats.priceLevel, stats.budgetMin, stats.budgetMax);
-  const new_menu_score = stats.isNewMenu ? 15 : 0;
   const history_penalty = calculateHistoryPenalty(stats.lastEatenAt, stats.recentDuplicateDays);
 
   const scores: RecommendationScoreBreakdown = {
@@ -100,11 +97,10 @@ export function calculatePersonalRecommendationScore(stats: MenuScoringStats): C
     tag_score,
     menu_preference_score,
     budget_score,
-    new_menu_score,
     history_penalty
   };
 
-  const rawScore = category_score + tag_score + menu_preference_score + budget_score + new_menu_score - history_penalty;
+  const rawScore = category_score + tag_score + menu_preference_score + budget_score - history_penalty;
 
   return {
     total_score: roundScore(clamp(rawScore, 0, 100)),
@@ -114,11 +110,11 @@ export function calculatePersonalRecommendationScore(stats: MenuScoringStats): C
 }
 
 export function calculateCategoryScore(preferenceScore: number) {
-  return roundScore(clamp(preferenceScore, 0, 5) / 5 * 30);
+  return roundScore(clamp(preferenceScore, 0, 5) / 5 * 35);
 }
 
 export function calculateTagScore(tagAverage: number) {
-  return roundScore(clamp(tagAverage, 0, 5) / 5 * 20);
+  return roundScore(clamp(tagAverage, 0, 5) / 5 * 25);
 }
 
 export function calculateMenuPreferenceScore(menuPreference: number) {
@@ -130,10 +126,10 @@ export function calculateBudgetScore(
   budgetMin: number | null,
   budgetMax: number | null
 ) {
-  if (priceLevel === null || budgetMax === null) return 10;
-  if (priceLevel > budgetMax) return 5;
-  if (budgetMin !== null && priceLevel < budgetMin) return 8;
-  return 10;
+  if (priceLevel === null || budgetMax === null) return 15;
+  if (priceLevel > budgetMax) return 8;
+  if (budgetMin !== null && priceLevel < budgetMin) return 12;
+  return 15;
 }
 
 export function calculateHistoryPenalty(lastEatenAt: string | null, recentDuplicateDays: number) {
@@ -145,7 +141,7 @@ export function calculateHistoryPenalty(lastEatenAt: string | null, recentDuplic
   );
 
   if (daysSinceLastEaten >= recentDuplicateDays) return 0;
-  return roundScore(20 * (1 - daysSinceLastEaten / recentDuplicateDays));
+  return roundScore(35 * (1 - daysSinceLastEaten / recentDuplicateDays));
 }
 
 export function getAlgorithmVersion() {
@@ -216,7 +212,6 @@ function compareRecommendationResults(a: RecommendationResult, b: Recommendation
   return (
     b.totalScore - a.totalScore ||
     a.scores.history_penalty - b.scores.history_penalty ||
-    b.scores.new_menu_score - a.scores.new_menu_score ||
     b.scores.menu_preference_score - a.scores.menu_preference_score ||
     b.scores.category_score - a.scores.category_score ||
     b.scores.tag_score - a.scores.tag_score ||
@@ -229,12 +224,11 @@ function compareRecommendationResults(a: RecommendationResult, b: Recommendation
 function getReasonTags(scores: RecommendationScoreBreakdown) {
   const tags: string[] = [];
 
-  if (scores.category_score >= 24) tags.push("선호도가 높은 카테고리의 메뉴입니다.");
-  if (scores.tag_score >= 16) tags.push("선호 태그와 잘 맞는 메뉴입니다.");
+  if (scores.category_score >= 28) tags.push("선호도가 높은 카테고리의 메뉴입니다.");
+  if (scores.tag_score >= 20) tags.push("선호 태그와 잘 맞는 메뉴입니다.");
   if (scores.menu_preference_score >= 20) tags.push("이전 평가 내역 또는 메뉴 선호도가 높은 메뉴입니다.");
-  if (scores.budget_score === 10) tags.push("예산 범위에 잘 맞는 메뉴입니다.");
-  if (scores.new_menu_score > 0) tags.push("아직 먹어보지 않은 새로운 메뉴입니다.");
-  if (scores.history_penalty > 0) tags.push("최근 식사 기록이 있어 일부 감점되었습니다.");
+  if (scores.budget_score === 15) tags.push("예산 범위에 잘 맞는 메뉴입니다.");
+  if (scores.history_penalty > 0) tags.push("최근 식사 기록이 있어 강하게 감점되었습니다.");
 
   return tags.slice(0, 2);
 }

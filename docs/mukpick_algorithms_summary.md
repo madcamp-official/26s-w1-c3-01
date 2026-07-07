@@ -57,7 +57,6 @@ personalScore = categoryScore
               + tagScore
               + menuPreferenceScore
               + budgetScore
-              + newMenuScore
               - historyPenalty
 
 finalScore = clamp(personalScore, 0, 100)
@@ -65,25 +64,25 @@ finalScore = clamp(personalScore, 0, 100)
 
 | 점수 | 범위 | 계산 |
 |---|---:|---|
-| `category_score` | 0~30 | `user_category_preferences.preference_score / 5 * 30` |
-| `tag_score` | 0~20 | 메뉴 태그들의 사용자 태그 선호도 평균 `/ 5 * 20` |
+| `category_score` | 0~35 | `user_category_preferences.preference_score / 5 * 35` |
+| `tag_score` | 0~25 | 메뉴 태그들의 사용자 태그 선호도 평균 `/ 5 * 25` |
 | `menu_preference_score` | 0~25 | 메뉴 직접 선호도, 없으면 식사 기록 rating 평균, 없으면 기본 5점 |
-| `budget_score` | 5/8/10 | 예산 초과 5, 예산 미만 8, 범위 내부 또는 미설정 10 |
-| `new_menu_score` | 0/15 | `meal_history`에 없는 메뉴면 15 |
-| `history_penalty` | 0~20 | `recentDuplicateDays` 기준 최근 식사 선형 감점 |
+| `budget_score` | 8/12/15 | 예산 초과 8, 예산 미만 12, 범위 내부 또는 미설정 15 |
+| `history_penalty` | 0~35 | `recentDuplicateDays` 기준 최근 식사 선형 감점 |
+
+새 메뉴는 별도 보너스 점수를 받지 않는다. `includeNewMenu=true`는 새 메뉴를 후보에 포함한다는 의미이고, 먹던 메뉴를 덜 추천하는 효과는 `history_penalty`의 높은 감점 비중으로 처리한다.
 
 ### 정렬
 
 ```text
 1. totalScore desc
 2. historyPenalty asc
-3. newMenuScore desc
-4. menuPreferenceScore desc
-5. categoryScore desc
-6. tagScore desc
-7. budgetScore desc
-8. menuName ko asc
-9. menuId asc
+3. menuPreferenceScore desc
+4. categoryScore desc
+5. tagScore desc
+6. budgetScore desc
+7. menuName ko asc
+8. menuId asc
 ```
 
 결과는 `personal_recommendation_runs`, `personal_recommendation_results`에 저장한다.
@@ -114,7 +113,7 @@ purposeScore = menu_purpose_suitability.suitability_score / 5 * 20
 meetingScore = clamp(groupPreferenceScore + purposeScore, 0, 100)
 ```
 
-모임 추천에서는 개인 추천의 `newMenuScore`, `historyPenalty`를 사용하지 않는다.
+모임 추천에서는 개인 추천의 `historyPenalty`를 사용하지 않는다.
 
 ### 정렬
 
@@ -140,7 +139,6 @@ meetingScore = clamp(groupPreferenceScore + purposeScore, 0, 100)
 태그
 메뉴 선호
 예산
-새 메뉴
 최근 패널티
 ```
 
