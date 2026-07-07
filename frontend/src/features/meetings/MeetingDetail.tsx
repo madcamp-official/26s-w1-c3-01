@@ -19,7 +19,7 @@ type MeetingDetailProps = {
   selectedRecommendation: DisplayRecommendation | null;
   excludedUserIds: number[];
   onCloseMeeting: () => void;
-  onCreateRecommendation: (meetingId: number, participantUserIds?: number[]) => void;
+  onCreateRecommendation: (meetingId: number, participantUserIds?: number[], budgetLevel?: number | null) => void;
   onDecideMenu: (meetingId: number, item: DisplayRecommendation) => void;
   onSelectRecommendation: (item: DisplayRecommendation) => void;
   onExcludedUserIdsChange: (userIds: number[]) => void;
@@ -50,6 +50,7 @@ export function MeetingDetail({
 }: MeetingDetailProps) {
   const [editing, setEditing] = useState(false);
   const [detailsExpanded, setDetailsExpanded] = useState(false);
+  const [budgetLevel, setBudgetLevel] = useState<number | null>(null);
   const isDecided = selectedMeeting.status === "DECIDED" || selectedMeeting.status === "CLOSED";
   const isCreator = typeof selectedMeeting.createdBy === "number" && selectedMeeting.createdBy === currentUserId;
   const canManage = isCreator && !isGuestSession;
@@ -150,12 +151,24 @@ export function MeetingDetail({
         <div className="section-heading">
           <h3>이 모임의 추천 메뉴</h3>
           {selectedMeeting.id && !isDecided && canManage ? (
-            <button
-              onClick={() => onCreateRecommendation(selectedMeeting.id!, includedUserIds)}
-              disabled={isLoading || includedUserIds.length === 0}
-            >
-              {meetingRecommendations.length ? "다시 계산" : "추천 계산"}
-            </button>
+            <div className="meeting-recommendation-actions">
+              <label className="meeting-budget-filter">
+                <span>가격대</span>
+                <select value={budgetLevel ?? ""} onChange={(event) => setBudgetLevel(readBudgetValue(event.target.value))}>
+                  {budgetOptions.map((option) => (
+                    <option key={option.value ?? "none"} value={option.value ?? ""}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                onClick={() => onCreateRecommendation(selectedMeeting.id!, includedUserIds, budgetLevel)}
+                disabled={isLoading || includedUserIds.length === 0}
+              >
+                {meetingRecommendations.length ? "다시 계산" : "추천 계산"}
+              </button>
+            </div>
           ) : null}
         </div>
         <div className="meeting-recommendation-scroll">
@@ -263,3 +276,16 @@ function toDateTimeLocal(value?: string) {
   const offsetMs = date.getTimezoneOffset() * 60 * 1000;
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
 }
+
+function readBudgetValue(value: string) {
+  return value ? Number(value) : null;
+}
+
+const budgetOptions: Array<{ value: number | null; label: string }> = [
+  { value: null, label: "가격대 선택 안 함" },
+  { value: 1, label: "1단계 · 0~5,000원" },
+  { value: 2, label: "2단계 · 5,000~10,000원" },
+  { value: 3, label: "3단계 · 10,000~15,000원" },
+  { value: 4, label: "4단계 · 15,000~20,000원" },
+  { value: 5, label: "5단계 · 20,000원 이상" }
+];

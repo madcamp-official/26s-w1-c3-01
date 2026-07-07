@@ -88,8 +88,7 @@ export type PreferenceScoreMap = Record<string, number>;
 export type RecommendationRefreshValue = {
   recentDuplicateDays: number;
   includeNewMenu: boolean;
-  budgetMin: number | null;
-  budgetMax: number | null;
+  budgetLevel: number | null;
 };
 
 export type RecommendationScoreBreakdown = {

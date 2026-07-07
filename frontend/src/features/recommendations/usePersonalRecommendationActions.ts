@@ -30,7 +30,9 @@ export function usePersonalRecommendationActions({
 }: UsePersonalRecommendationActionsValue) {
   const confirmInFlightRef = useRef(false);
   const handleRecommendationRefresh = useCallback(
-    async ({ recentDuplicateDays, includeNewMenu, budgetMin, budgetMax }: RecommendationRefreshValue) => {
+    async ({ recentDuplicateDays, includeNewMenu, budgetLevel }: RecommendationRefreshValue) => {
+      const budgetMin = budgetLevel;
+      const budgetMax = budgetLevel;
       setPersonalRecommendationLoading(true);
       setApiError("");
       try {
@@ -46,6 +48,8 @@ export function usePersonalRecommendationActions({
         const response = await recommendationsApi.createPersonal({
           recentDuplicateDays,
           includeNewMenu,
+          budgetMin,
+          budgetMax,
           limit: 6
         });
         const nextRecommendations = applyPersonalRecommendations(response);

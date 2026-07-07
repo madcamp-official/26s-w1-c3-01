@@ -5,6 +5,10 @@ export function storageAsset(path: string) {
   return `${SUPABASE_URL}/storage/v1/object/public/${ASSET_BUCKET}/${path}`;
 }
 
+export function localAsset(path: string) {
+  return `/assets/${path}`;
+}
+
 export function menuAsset(menuId?: number | null) {
   return typeof menuId === "number" && menuId > 0 ? storageAsset(`menus/${menuId}.png`) : "";
 }
@@ -15,45 +19,45 @@ export const logoAssets = {
 };
 
 export const categoryAssets = {
-  korean: storageAsset("categories/korean.png"),
-  japanese: storageAsset("categories/japanese.png"),
-  chinese: storageAsset("categories/chinese.png"),
-  western: storageAsset("categories/western.png"),
-  asian: storageAsset("categories/asian.png"),
-  meat: storageAsset("categories/meat.png"),
-  fastfood: storageAsset("categories/fast-food.png")
+  korean: localAsset("categories/korean.png"),
+  japanese: localAsset("categories/japanese.png"),
+  chinese: localAsset("categories/chinese.png"),
+  western: localAsset("categories/western.png"),
+  asian: localAsset("categories/asian.png"),
+  meat: localAsset("categories/meat.png"),
+  fastfood: localAsset("categories/fast-food.png")
 };
 
 export const tagAssets = {
-  spicy: storageAsset("tags/spicy.png"),
-  soup: storageAsset("tags/soup.png"),
-  grilled: storageAsset("tags/grilled.png"),
-  braised: storageAsset("tags/braised.png"),
-  fried: storageAsset("tags/fried.png"),
-  stirfried: storageAsset("tags/stir-fried.png"),
-  steamed: storageAsset("tags/steamed.png"),
-  boiled: storageAsset("tags/boiled.png"),
-  raw: storageAsset("tags/raw.png")
+  spicy: localAsset("tags/spicy.png"),
+  soup: localAsset("tags/soup.png"),
+  grilled: localAsset("tags/grilled.png"),
+  braised: localAsset("tags/braised.png"),
+  fried: localAsset("tags/fried.png"),
+  stirfried: localAsset("tags/stir-fried.png"),
+  steamed: localAsset("tags/steamed.png"),
+  boiled: localAsset("tags/boiled.png"),
+  raw: localAsset("tags/raw.png")
 };
 
 export const allergyAssets = {
-  shrimp: storageAsset("allergies/shrimp.png"),
-  crab: storageAsset("allergies/crab.png"),
-  milk: storageAsset("allergies/milk.png"),
-  wheat: storageAsset("allergies/wheat.png"),
-  peanut: storageAsset("allergies/peanut.png"),
-  egg: storageAsset("allergies/egg.png"),
-  mackerel: storageAsset("allergies/mackerel.png"),
-  chicken: storageAsset("allergies/chicken.png"),
-  soy: storageAsset("allergies/soy.png"),
-  pork: storageAsset("allergies/pork.png"),
-  buckwheat: storageAsset("allergies/buckwheat.png"),
-  peach: storageAsset("allergies/peach.png"),
-  sulfites: storageAsset("allergies/sulfites.png"),
-  squid: storageAsset("allergies/squid.png"),
-  beef: storageAsset("allergies/beef.png"),
-  pineNut: storageAsset("allergies/pine-nut.png"),
-  shellfish: storageAsset("allergies/shellfish.png"),
-  tomato: storageAsset("allergies/tomato.png"),
-  walnut: storageAsset("allergies/walnut.png")
+  shrimp: localAsset("allergies/shrimp.png"),
+  crab: localAsset("allergies/crab.png"),
+  milk: localAsset("allergies/milk.png"),
+  wheat: localAsset("allergies/wheat.png"),
+  peanut: localAsset("allergies/peanut.png"),
+  egg: localAsset("allergies/egg.png"),
+  mackerel: localAsset("allergies/mackerel.png"),
+  chicken: localAsset("allergies/chicken.png"),
+  soy: localAsset("allergies/soy.png"),
+  pork: localAsset("allergies/pork.png"),
+  buckwheat: localAsset("allergies/buckwheat.png"),
+  peach: localAsset("allergies/peach.png"),
+  sulfites: localAsset("allergies/sulfites.png"),
+  squid: localAsset("allergies/squid.png"),
+  beef: localAsset("allergies/beef.png"),
+  pineNut: localAsset("allergies/pine-nut.png"),
+  shellfish: localAsset("allergies/shellfish.png"),
+  tomato: localAsset("allergies/tomato.png"),
+  walnut: localAsset("allergies/walnut.png")
 };

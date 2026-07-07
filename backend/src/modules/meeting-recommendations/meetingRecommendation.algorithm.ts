@@ -61,7 +61,9 @@ export function createMeetingRecommendationConfig(
   return {
     ...DEFAULT_CONFIG,
     resultLimit: input.resultLimit ?? input.limit ?? DEFAULT_CONFIG.resultLimit,
-    participantUserIds: input.participantUserIds
+    participantUserIds: input.participantUserIds,
+    budgetMin: input.budgetMin,
+    budgetMax: input.budgetMax
   };
 }
 
@@ -117,10 +119,12 @@ export function rankMeetingMenus(
         const categoryPreference = participant.categoryPreferences.get(categoryId) ?? 0;
         const tagPreference = averagePreferences(tagIds, participant.tagPreferences);
         const menuPreference = participant.menuPreferences.get(menuId) ?? participant.ratings.get(menuId) ?? 5;
+        const budgetMin = config.budgetMin !== undefined ? config.budgetMin : participant.budget?.budget_min ?? null;
+        const budgetMax = config.budgetMax !== undefined ? config.budgetMax : participant.budget?.budget_max ?? null;
         const budgetScore = calculateBudgetScore(
           menu.price_level,
-          participant.budget?.budget_min ?? null,
-          participant.budget?.budget_max ?? null
+          budgetMin,
+          budgetMax
         );
 
         const rawScore =

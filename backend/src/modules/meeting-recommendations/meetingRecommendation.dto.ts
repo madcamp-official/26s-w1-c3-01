@@ -2,6 +2,8 @@ export type MeetingRecommendationRequest = {
   resultLimit?: number;
   limit?: number;
   participantUserIds?: number[];
+  budgetMin?: number | null;
+  budgetMax?: number | null;
 };
 
 export type MeetingRecommendationScoreBreakdown = {
@@ -22,4 +24,6 @@ export type MeetingRecommendationResult = {
 export type MeetingRecommendationConfig = {
   resultLimit: number;
   participantUserIds?: number[];
+  budgetMin?: number | null;
+  budgetMax?: number | null;
 };

@@ -147,11 +147,15 @@ export function useMeetingActions({
   );
 
   const handleCreateMeetingRecommendation = useCallback(
-    async (meetingId: number, participantUserIds?: number[]) => {
+    async (meetingId: number, participantUserIds?: number[], budgetLevel?: number | null) => {
       setMeetingActionLoading(true);
       setApiError("");
       try {
-        const response = await meetingsApi.createRecommendation(meetingId, { limit: 6, participantUserIds });
+        const response = await meetingsApi.createRecommendation(meetingId, {
+          limit: 6,
+          participantUserIds,
+          ...(budgetLevel !== undefined ? { budgetMin: budgetLevel, budgetMax: budgetLevel } : {})
+        });
         const nextRecommendations = applyMeetingRecommendationPayload(meetingId, response);
         setApiStatus("ready");
         showToast(nextRecommendations.length ? "모임 추천을 계산했습니다." : "조건에 맞는 추천 메뉴가 없습니다.");

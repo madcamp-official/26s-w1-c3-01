@@ -56,8 +56,8 @@ export function rankPersonalMenus(
         tagPreferenceAverage: averagePreferences(tagIds, tagPreferenceMap),
         menuPreference: menuPreferenceMap.get(menuId) ?? historyStats?.ratingAverage ?? DEFAULT_MENU_PREFERENCE,
         priceLevel: menu.price_level,
-        budgetMin: base.userPreference?.budget_min ?? null,
-        budgetMax: base.userPreference?.budget_max ?? null,
+        budgetMin: input.budgetMin !== undefined ? input.budgetMin : base.userPreference?.budget_min ?? null,
+        budgetMax: input.budgetMax !== undefined ? input.budgetMax : base.userPreference?.budget_max ?? null,
         lastEatenAt: historyStats?.lastEatenAt ?? null,
         recentDuplicateDays
       });

@@ -4,6 +4,8 @@ export type PersonalRecommendationRequest = {
   excludeRecentDays?: number;
   limit?: number;
   includeNewMenu?: boolean;
+  budgetMin?: number | null;
+  budgetMax?: number | null;
 };
 
 export type RecommendationScoreBreakdown = {

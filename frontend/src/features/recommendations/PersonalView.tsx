@@ -10,10 +10,8 @@ type PersonalViewProps = {
   setNewMenuIncluded: (value: boolean) => void;
   recentDuplicateDays: number;
   setRecentDuplicateDays: (value: number) => void;
-  budgetMin: number | null;
-  budgetMax: number | null;
-  setBudgetMin: (value: number | null) => void;
-  setBudgetMax: (value: number | null) => void;
+  budgetLevel: number | null;
+  setBudgetLevel: (value: number | null) => void;
   recommendationsData: DisplayRecommendation[];
   hasResults: boolean;
   isLoading: boolean;
@@ -29,10 +27,8 @@ export function PersonalView({
   setNewMenuIncluded,
   recentDuplicateDays,
   setRecentDuplicateDays,
-  budgetMin,
-  budgetMax,
-  setBudgetMin,
-  setBudgetMax,
+  budgetLevel,
+  setBudgetLevel,
   recommendationsData,
   hasResults,
   isLoading,
@@ -65,25 +61,13 @@ export function PersonalView({
             <span className="toggle-knob" />
           </button>
           <label>
-            <span>예산 최소 단계</span>
-            <select value={budgetMin ?? ""} onChange={(event) => setBudgetMin(readBudgetValue(event.target.value))}>
-              <option value="">설정 안 함</option>
-              <option value="1">1단계</option>
-              <option value="2">2단계</option>
-              <option value="3">3단계</option>
-              <option value="4">4단계</option>
-              <option value="5">5단계</option>
-            </select>
-          </label>
-          <label>
-            <span>예산 최대 단계</span>
-            <select value={budgetMax ?? ""} onChange={(event) => setBudgetMax(readBudgetValue(event.target.value))}>
-              <option value="">설정 안 함</option>
-              <option value="1">1단계</option>
-              <option value="2">2단계</option>
-              <option value="3">3단계</option>
-              <option value="4">4단계</option>
-              <option value="5">5단계</option>
+            <span>가격대</span>
+            <select value={budgetLevel ?? ""} onChange={(event) => setBudgetLevel(readBudgetValue(event.target.value))}>
+              {budgetOptions.map((option) => (
+                <option key={option.value ?? "none"} value={option.value ?? ""}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </label>
           <button
@@ -92,8 +76,7 @@ export function PersonalView({
               onRefresh({
                 recentDuplicateDays,
                 includeNewMenu: newMenuIncluded,
-                budgetMin,
-                budgetMax
+                budgetLevel
               })
             }
             disabled={isLoading}
@@ -138,3 +121,12 @@ export function PersonalView({
 function readBudgetValue(value: string) {
   return value ? Number(value) : null;
 }
+
+const budgetOptions: Array<{ value: number | null; label: string }> = [
+  { value: null, label: "가격대 선택 안 함" },
+  { value: 1, label: "1단계 · 0~5,000원" },
+  { value: 2, label: "2단계 · 5,000~10,000원" },
+  { value: 3, label: "3단계 · 10,000~15,000원" },
+  { value: 4, label: "4단계 · 15,000~20,000원" },
+  { value: 5, label: "5단계 · 20,000원 이상" }
+];

@@ -347,6 +347,11 @@ export function MukpickApp() {
     personalRecommendationLoading ||
     historySaving ||
     meetingActionLoading;
+  const budgetLevel = budgetMin !== null && budgetMin === budgetMax ? budgetMin : null;
+  const setBudgetLevel = (value: number | null) => {
+    setBudgetMin(value);
+    setBudgetMax(value);
+  };
 
   if (flow !== "app") {
     return (
@@ -414,8 +419,7 @@ export function MukpickApp() {
         tagScores={tagScores}
         recentDuplicateDays={recentDuplicateDays}
         newMenuIncluded={newMenuIncluded}
-        budgetMin={budgetMin}
-        budgetMax={budgetMax}
+        budgetLevel={budgetLevel}
         recommendationItems={recommendationItems}
         personalRecommendationReady={personalRecommendationReady}
         selectedPersonalRecommendation={selectedPersonalRecommendation}
@@ -444,8 +448,7 @@ export function MukpickApp() {
         setTagScores={setTagScores}
         setRecentDuplicateDays={setRecentDuplicateDays}
         setNewMenuIncluded={setNewMenuIncluded}
-        setBudgetMin={setBudgetMin}
-        setBudgetMax={setBudgetMax}
+        setBudgetLevel={setBudgetLevel}
         setSelectedPersonalRecommendation={setSelectedPersonalRecommendation}
         setMeetingDialogOpen={setMeetingDialogOpen}
         setSelectedMeeting={setSelectedMeeting}
