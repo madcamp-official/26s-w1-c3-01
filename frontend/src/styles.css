@@ -2837,3 +2837,1283 @@ body.modal-open {
     grid-template-columns: 1fr;
   }
 }
+/* =========================================================
+   Meeting detail wide layout override
+   - JSX 수정 없이 CSS만으로 적용
+   - 기존 CSS 맨 아래에 추가
+   ========================================================= */
+
+/* 전체 앱 프레임을 더 넓게 사용 */
+@media (min-width: 900px) {
+  .app-shell {
+    padding: 24px;
+    align-items: center;
+    background:
+      radial-gradient(circle at 0% 0%, rgba(238, 90, 24, 0.13) 0 120px, transparent 122px),
+      radial-gradient(circle at 100% 14%, rgba(255, 196, 68, 0.18) 0 190px, transparent 192px),
+      linear-gradient(145deg, #fff8ef 0%, #fff1e4 48%, #fffaf4 100%);
+  }
+
+  .phone-frame {
+    width: min(100%, 1220px);
+    height: min(920px, calc(100vh - 48px));
+    min-height: 760px;
+    border-radius: 34px;
+    box-shadow:
+      0 32px 90px rgba(50, 38, 29, 0.2),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.72);
+  }
+
+  .app-header {
+    height: 70px;
+    padding: 14px 28px 10px;
+  }
+
+  .screen {
+    height: calc(100% - 170px);
+    padding: 18px 28px 24px;
+  }
+
+  /* 모임 상세 화면을 2단 페이지형으로 전환 */
+  .meeting-detail-screen {
+    display: grid;
+    grid-template-columns: 330px minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      "title title"
+      "summary result";
+    gap: 18px;
+    overflow: hidden;
+  }
+
+  .meeting-detail-screen .screen-title {
+    grid-area: title;
+    padding: 4px 4px 2px;
+  }
+
+  .meeting-detail-screen .screen-title h2 {
+    font-size: 38px;
+    line-height: 1.1;
+    letter-spacing: -0.04em;
+  }
+
+  .meeting-detail-screen .screen-title p {
+    margin-top: 8px;
+    font-size: 15px;
+  }
+
+  /* 왼쪽: 모임 정보 요약 */
+  .meeting-detail-card {
+    grid-area: summary;
+    height: fit-content;
+    max-height: 100%;
+    overflow-y: auto;
+    padding: 20px;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 16px 42px rgba(50, 38, 29, 0.08);
+  }
+
+  .meeting-detail-card::-webkit-scrollbar {
+    width: 0;
+  }
+
+  .meeting-detail-card .section-heading h3 {
+    font-size: 18px;
+  }
+
+  .meeting-topline {
+    align-items: flex-start;
+  }
+
+  .meeting-topline strong {
+    font-size: 18px;
+    line-height: 1.35;
+  }
+
+  .meeting-topline span {
+    font-size: 12px;
+  }
+
+  .meeting-compact-meta {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .meeting-id-row {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .meeting-detail-toggle,
+  .meeting-edit-button {
+    min-height: 42px;
+    border-radius: 14px;
+  }
+
+  /* 오른쪽: 추천 메뉴 메인 영역 */
+  .group-result {
+    grid-area: result;
+    min-height: 0;
+    padding: 22px;
+    border: 1px solid rgba(231, 220, 210, 0.9);
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 18px 48px rgba(50, 38, 29, 0.1);
+  }
+
+  .group-result .section-heading {
+    margin-bottom: 18px;
+  }
+
+  .group-result .section-heading h3 {
+    font-size: 26px;
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+  }
+
+  .group-result .section-heading button {
+    font-size: 14px;
+  }
+
+  .meeting-recommendation-scroll {
+    padding-right: 4px;
+  }
+
+  .recommendation-list {
+    gap: 14px;
+  }
+
+  /* 추천 메뉴 카드 확대 */
+  .recommendation-card {
+    grid-template-columns: 104px 52px minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: center;
+    padding: 18px;
+    border: 1px solid rgba(231, 220, 210, 0.9);
+    border-radius: 22px;
+    background: #fffdfa;
+    box-shadow: 0 12px 30px rgba(50, 38, 29, 0.06);
+  }
+
+  .recommendation-card.selected {
+    border-color: rgba(238, 90, 24, 0.72);
+    background: #fff5ee;
+    box-shadow: 0 18px 40px rgba(238, 90, 24, 0.16);
+  }
+
+  .recommendation-media {
+    grid-column: 1;
+    grid-row: 1 / span 4;
+    width: 104px;
+    height: 104px;
+    border-radius: 24px;
+  }
+
+  .rank-mark {
+    grid-column: 2;
+    grid-row: 1;
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    font-size: 19px;
+  }
+
+  .recommendation-title {
+    grid-column: 3 / -1;
+    grid-row: 1;
+    align-items: center;
+  }
+
+  .recommendation-title strong {
+    font-size: 25px;
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+  }
+
+  .recommendation-title span {
+    font-size: 18px;
+    color: var(--orange-dark);
+  }
+
+  .recommendation-body p {
+    grid-column: 2 / -1;
+    grid-row: 2;
+    margin: 4px 0 8px;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+
+  .score-breakdown {
+    grid-column: 2 / -1;
+    grid-row: 3;
+    gap: 7px;
+    margin-bottom: 8px;
+  }
+
+  .score-breakdown span {
+    padding: 6px 9px;
+    font-size: 12px;
+  }
+
+  .tag-row {
+    grid-column: 2 / -1;
+    grid-row: 4;
+    gap: 7px;
+  }
+
+  .tag-row span,
+  .tag-row button {
+    padding: 7px 11px;
+    font-size: 12px;
+  }
+
+  /* 최종 선택 바를 추천 영역 하단 액션처럼 */
+  .final-choice-bar {
+    margin-top: 18px;
+    padding: 16px 18px;
+    border-radius: 20px;
+    background: #fff8f2;
+    box-shadow: 0 16px 38px rgba(50, 38, 29, 0.12);
+  }
+
+  .final-choice-bar span {
+    font-size: 12px;
+  }
+
+  .final-choice-bar strong {
+    font-size: 17px;
+  }
+
+  .final-choice-bar .primary-button {
+    min-height: 48px;
+    padding: 0 20px;
+    border-radius: 14px;
+  }
+
+  /* 하단 네비게이션도 넓은 화면에서는 떠 있는 형태 */
+  .bottom-nav {
+    left: 50%;
+    right: auto;
+    bottom: 18px;
+    width: min(560px, calc(100% - 64px));
+    height: 78px;
+    transform: translateX(-50%);
+    padding: 8px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(231, 220, 210, 0.82);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 18px 46px rgba(43, 31, 23, 0.14);
+  }
+
+  .nav-button {
+    border-radius: 999px;
+  }
+
+  .nav-button.active {
+    color: white;
+    background: var(--orange);
+  }
+
+  .nav-button.active::before {
+    display: none;
+  }
+}
+
+/* 중간 화면에서는 너무 빡빡하지 않게 */
+@media (min-width: 900px) and (max-width: 1080px) {
+  .meeting-detail-screen {
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .recommendation-card {
+    grid-template-columns: 92px 44px minmax(0, 1fr);
+  }
+
+  .recommendation-media {
+    width: 92px;
+    height: 92px;
+  }
+
+  .recommendation-title strong {
+    font-size: 22px;
+  }
+}
+
+/* 모바일에서는 기존 세로 구조 유지 */
+@media (max-width: 899px) {
+  .meeting-detail-screen {
+    display: grid;
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+    gap: 12px;
+  }
+}
+/* =========================================================
+   MUK PICK wide-screen override pack
+   - CSS only
+   - 기존 CSS 파일 맨 아래에 추가
+   - JSX 구조 변경 없음
+   ========================================================= */
+
+/* =========================
+   0. Wide app shell baseline
+   ========================= */
+
+@media (min-width: 900px) {
+  :root {
+    --wide-max: 1220px;
+    --wide-radius: 34px;
+  }
+
+  .app-shell {
+    min-height: 100vh;
+    padding: 24px;
+    align-items: center;
+    background:
+      radial-gradient(circle at 0% 0%, rgba(238, 90, 24, 0.13) 0 130px, transparent 132px),
+      radial-gradient(circle at 100% 12%, rgba(255, 196, 68, 0.18) 0 210px, transparent 212px),
+      radial-gradient(circle at 16% 96%, rgba(238, 90, 24, 0.08) 0 90px, transparent 92px),
+      linear-gradient(145deg, #fff8ef 0%, #fff1e4 48%, #fffaf4 100%);
+  }
+
+  .phone-frame {
+    width: min(100%, var(--wide-max));
+    height: min(920px, calc(100vh - 48px));
+    min-height: 760px;
+    border-radius: var(--wide-radius);
+    overflow: hidden;
+    background:
+      linear-gradient(180deg, rgba(255, 250, 244, 0.94), rgba(255, 250, 244, 0.82)),
+      url("/mukpick-home-bg.png") top center / cover no-repeat;
+    box-shadow:
+      0 34px 92px rgba(50, 38, 29, 0.2),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.72);
+  }
+
+  .app-header {
+    height: 72px;
+    padding: 14px 30px 10px;
+    background: rgba(255, 250, 244, 0.9);
+    border-bottom: 1px solid rgba(231, 220, 210, 0.58);
+  }
+
+  .screen {
+    height: calc(100% - 172px);
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 22px 32px 28px;
+  }
+
+  .screen-title {
+    padding: 4px 4px 22px;
+  }
+
+  .screen-title h2 {
+    font-size: 40px;
+    line-height: 1.08;
+    letter-spacing: -0.045em;
+  }
+
+  .screen-title p {
+    max-width: 640px;
+    font-size: 15px;
+  }
+
+  .section-block,
+  .condition-panel,
+  .meeting-card,
+  .history-row,
+  .login-panel,
+  .home-panel {
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 14px 36px rgba(50, 38, 29, 0.07);
+  }
+
+  .section-heading h3,
+  .picker-section h3 {
+    font-size: 20px;
+    letter-spacing: -0.025em;
+  }
+
+  .primary-button,
+  .secondary-button,
+  .sticky-save,
+  .create-meeting {
+    border-radius: 14px;
+  }
+
+  .bottom-nav {
+    left: 50%;
+    right: auto;
+    bottom: 18px;
+    width: min(560px, calc(100% - 64px));
+    height: 78px;
+    transform: translateX(-50%);
+    padding: 8px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(231, 220, 210, 0.82);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 18px 46px rgba(43, 31, 23, 0.14);
+  }
+
+  .nav-button {
+    border-radius: 999px;
+  }
+
+  .nav-button.active {
+    color: white;
+    background: var(--orange);
+  }
+
+  .nav-button.active::before {
+    display: none;
+  }
+}
+
+
+/* =========================
+   1. Start / Auth screens
+   ========================= */
+
+@media (min-width: 900px) {
+  .start-screen,
+  .auth-screen {
+    align-items: center;
+    padding: 32px;
+    background:
+      radial-gradient(circle at 6% 4%, rgba(238, 90, 24, 0.16) 0 120px, transparent 122px),
+      radial-gradient(circle at 94% 18%, rgba(255, 196, 68, 0.2) 0 190px, transparent 192px),
+      linear-gradient(145deg, #fff8ef 0%, #fff1e3 52%, #fffaf4 100%);
+  }
+
+  .start-card {
+    width: min(100%, 980px);
+    min-height: min(760px, calc(100vh - 64px));
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    align-items: center;
+    gap: 56px;
+    padding: 72px;
+    border-radius: 36px;
+    background: rgba(255, 250, 244, 0.78);
+    box-shadow: 0 34px 90px rgba(50, 38, 29, 0.16);
+  }
+
+  .start-logo {
+    width: min(340px, 34vw);
+    justify-self: center;
+  }
+
+  .start-copy {
+    justify-self: center;
+  }
+
+  .start-copy p {
+    font-size: 16px;
+    line-height: 1.7;
+  }
+
+  .social-panel {
+    max-width: none;
+    margin-top: 0;
+    padding: 28px;
+    border-radius: 28px;
+    gap: 14px;
+  }
+
+  .social-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .social-panel p {
+    font-size: 13px;
+  }
+
+  .social-button {
+    min-height: 50px;
+    border-radius: 14px;
+    font-size: 14px;
+  }
+
+  .auth-card {
+    width: min(100%, 980px);
+    min-height: min(760px, calc(100vh - 64px));
+    padding: 52px 64px;
+    border-radius: 36px;
+    background: rgba(255, 250, 244, 0.82);
+    box-shadow: 0 34px 90px rgba(50, 38, 29, 0.16);
+  }
+
+  .account-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 390px;
+    align-items: center;
+    gap: 64px;
+    padding-top: 52px;
+  }
+
+  .account-logo {
+    width: min(320px, 34vw);
+    justify-self: center;
+  }
+
+  .account-form {
+    max-width: none;
+    padding: 28px;
+    border: 1px solid rgba(231, 220, 210, 0.76);
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 18px 42px rgba(50, 38, 29, 0.08);
+  }
+
+  .nickname-card {
+    justify-content: center;
+    gap: 48px;
+  }
+
+  .nickname-logo {
+    width: min(320px, 34vw);
+  }
+
+  .nickname-form {
+    max-width: 460px;
+    grid-template-columns: minmax(0, 1fr) 48px;
+    gap: 12px;
+  }
+
+  .nickname-form .text-field div {
+    height: 50px;
+  }
+
+  .inline-next {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+
+/* =========================
+   2. Home screen
+   ========================= */
+
+@media (min-width: 900px) {
+  .home-app-header {
+    height: 110px;
+    padding: 20px 44px 0;
+  }
+
+  .brand-row {
+    height: 64px;
+    grid-template-columns: 72px minmax(0, 1fr) 72px;
+  }
+
+  .home-app-logo {
+    width: 196px;
+  }
+
+  .bell-action {
+    justify-self: end;
+    width: 46px;
+    height: 46px;
+    border-radius: 16px;
+  }
+
+  .home-screen {
+    height: calc(100% - 210px);
+    max-width: 1060px;
+    margin: 0 auto;
+    padding: 6px 34px 28px;
+  }
+
+  .home-title {
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 4px 0 28px;
+  }
+
+  .home-title h2 {
+    font-size: clamp(36px, 4.7vw, 50px);
+    line-height: 1.06;
+    letter-spacing: -0.05em;
+  }
+
+  .home-title span {
+    margin-top: 12px;
+    font-size: 16px;
+  }
+
+  .home-feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .home-choice-card {
+    min-height: 310px;
+    padding: 30px 28px 0;
+    border-width: 1px;
+    border-radius: 32px;
+    box-shadow:
+      0 22px 52px rgba(50, 38, 29, 0.11),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.68);
+    transition:
+      transform 160ms ease,
+      box-shadow 160ms ease,
+      border-color 160ms ease;
+  }
+
+  .home-choice-card:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      0 30px 68px rgba(50, 38, 29, 0.16),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.78);
+  }
+
+  .choice-icon {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 22px;
+  }
+
+  .home-choice-card strong {
+    font-size: clamp(30px, 3.1vw, 40px);
+    letter-spacing: -0.045em;
+  }
+
+  .home-choice-card small {
+    max-width: 190px;
+    font-size: 15px;
+  }
+
+  .home-choice-card > img {
+    height: 156px;
+    bottom: -8px;
+  }
+
+  .choice-collage {
+    height: 160px;
+    bottom: -6px;
+  }
+
+  .choice-collage img:nth-child(1) {
+    left: 10px;
+    bottom: 36px;
+    width: 94px;
+    height: 94px;
+  }
+
+  .choice-collage img:nth-child(2) {
+    left: 60px;
+    bottom: 0;
+    width: 108px;
+    height: 108px;
+  }
+
+  .choice-collage img:nth-child(3) {
+    right: 0;
+    bottom: 18px;
+    width: 144px;
+    height: 144px;
+  }
+
+  .home-panel {
+    margin-top: 22px;
+    padding: 20px;
+  }
+
+  .recent-meal-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .recent-meal-card {
+    grid-template-columns: 54px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .recent-meal-card img {
+    width: 54px;
+    height: 54px;
+    border-radius: 17px;
+  }
+
+  .saved-preference-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .saved-preference-card {
+    min-height: 96px;
+    border-radius: 20px;
+  }
+}
+
+
+/* =========================
+   3. Meeting list screen
+   ========================= */
+
+@media (min-width: 900px) {
+  .create-meeting {
+    width: auto;
+    min-width: 220px;
+    justify-self: end;
+    padding: 0 24px;
+  }
+
+  .join-meeting-panel {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    align-items: end;
+    gap: 18px;
+    padding: 20px;
+    border-radius: 24px;
+  }
+
+  .join-meeting-panel > div {
+    align-self: center;
+  }
+
+  .join-meeting-panel strong {
+    font-size: 18px;
+  }
+
+  .join-meeting-panel span {
+    font-size: 13px;
+  }
+
+  .meeting-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .meeting-card {
+    padding: 20px;
+  }
+
+  .meeting-card-button:not(.done):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 46px rgba(50, 38, 29, 0.12);
+  }
+
+  .meeting-topline strong {
+    font-size: 19px;
+  }
+
+  .meeting-meta {
+    margin-top: 14px;
+    gap: 12px;
+  }
+
+  .member-row {
+    margin-top: 16px;
+  }
+}
+
+
+/* =========================
+   4. Meeting detail / recommendation screen
+   ========================= */
+
+@media (min-width: 900px) {
+  .meeting-detail-screen {
+    display: grid;
+    grid-template-columns: 330px minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      "title title"
+      "summary result";
+    gap: 18px;
+    overflow: hidden;
+  }
+
+  .meeting-detail-screen .screen-title {
+    grid-area: title;
+    padding-bottom: 2px;
+  }
+
+  .meeting-detail-card {
+    grid-area: summary;
+    height: fit-content;
+    max-height: 100%;
+    overflow-y: auto;
+    padding: 20px;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.94);
+  }
+
+  .meeting-detail-card::-webkit-scrollbar {
+    width: 0;
+  }
+
+  .meeting-compact-meta {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .meeting-id-row {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .meeting-detail-toggle,
+  .meeting-edit-button {
+    min-height: 42px;
+    border-radius: 14px;
+  }
+
+  .group-result {
+    grid-area: result;
+    min-height: 0;
+    padding: 22px;
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    overflow: hidden;
+  }
+
+  .group-result .section-heading {
+    margin-bottom: 18px;
+  }
+
+  .group-result .section-heading h3 {
+    font-size: 27px;
+    line-height: 1.15;
+    letter-spacing: -0.04em;
+  }
+
+  .meeting-recommendation-scroll {
+    padding-right: 4px;
+  }
+
+  .recommendation-list {
+    gap: 14px;
+  }
+
+  .recommendation-card {
+    grid-template-columns: 104px 52px minmax(0, 1fr);
+    gap: 16px;
+    align-items: center;
+    padding: 18px;
+    border: 1px solid rgba(231, 220, 210, 0.9);
+    border-radius: 22px;
+    background: #fffdfa;
+    box-shadow: 0 12px 30px rgba(50, 38, 29, 0.06);
+  }
+
+  .recommendation-media {
+    grid-column: 1;
+    grid-row: 1 / span 4;
+    width: 104px;
+    height: 104px;
+    border-radius: 24px;
+  }
+
+  .rank-mark {
+    grid-column: 2;
+    grid-row: 1;
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    font-size: 19px;
+  }
+
+  .recommendation-title {
+    grid-column: 3 / -1;
+    grid-row: 1;
+    align-items: center;
+  }
+
+  .recommendation-title strong {
+    font-size: 25px;
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+  }
+
+  .recommendation-title span {
+    font-size: 18px;
+  }
+
+  .recommendation-body p {
+    grid-column: 2 / -1;
+    grid-row: 2;
+    margin: 4px 0 8px;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+
+  .score-breakdown {
+    grid-column: 2 / -1;
+    grid-row: 3;
+    gap: 7px;
+    margin-bottom: 8px;
+  }
+
+  .tag-row {
+    grid-column: 2 / -1;
+    grid-row: 4;
+    gap: 7px;
+  }
+
+  .final-choice-bar {
+    margin-top: 18px;
+    padding: 16px 18px;
+    border-radius: 20px;
+    background: #fff8f2;
+  }
+
+  .final-choice-bar strong {
+    font-size: 17px;
+  }
+
+  .final-choice-bar .primary-button {
+    min-height: 48px;
+    padding: 0 20px;
+    border-radius: 14px;
+  }
+}
+
+
+/* =========================
+   5. Preference / onboarding pickers
+   ========================= */
+
+@media (min-width: 900px) {
+  .onboarding-card {
+    width: min(100%, 1120px);
+  }
+
+  .picker-section {
+    margin-bottom: 28px;
+  }
+
+  .asset-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .asset-card {
+    min-height: 208px;
+    padding: 16px;
+    border-radius: 24px;
+    transition:
+      transform 160ms ease,
+      box-shadow 160ms ease,
+      border-color 160ms ease;
+  }
+
+  .asset-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 42px rgba(50, 38, 29, 0.11);
+  }
+
+  .asset-card img {
+    height: 116px;
+    margin-bottom: 12px;
+  }
+
+  .asset-card strong {
+    font-size: 17px;
+  }
+
+  .asset-card small {
+    font-size: 13px;
+  }
+
+  .compact-picker .asset-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .compact-picker .asset-card {
+    min-height: 138px;
+    border-radius: 18px;
+    padding: 12px 8px;
+  }
+
+  .compact-picker .asset-card img {
+    height: 82px;
+  }
+
+  .compact-picker .asset-card strong {
+    font-size: 13px;
+  }
+
+  .compact-picker.danger-picker .asset-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .compact-picker.danger-picker .asset-card {
+    min-height: 112px;
+  }
+
+  .compact-picker.danger-picker .asset-card img {
+    height: 62px;
+  }
+
+  .score-section {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .compact-score-section {
+    max-height: 220px;
+  }
+
+  .step-bottom-actions {
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .sticky-save {
+    width: min(520px, 100%);
+    justify-self: center;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+
+/* =========================
+   6. Personal recommendation condition screen
+   ========================= */
+
+@media (min-width: 900px) {
+  .condition-panel {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+    gap: 16px;
+    padding: 22px;
+  }
+
+  .condition-panel .penalty-options,
+  .condition-panel .penalty-input,
+  .condition-panel .toggle-row,
+  .condition-panel .condition-refresh,
+  .condition-panel .api-feedback,
+  .condition-panel .empty-state {
+    grid-column: 1 / -1;
+  }
+
+  .penalty-options {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    max-width: 560px;
+  }
+
+  .recommendation-list:not(.meeting-recommendation-scroll .recommendation-list) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+/* =========================
+   7. History screen
+   ========================= */
+
+@media (min-width: 900px) {
+  .history-timeline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .history-row {
+    min-height: 104px;
+    grid-template-columns: 68px 58px minmax(0, 1fr) auto;
+    gap: 16px;
+    padding: 18px;
+  }
+
+  .history-thumb {
+    width: 68px;
+    height: 68px;
+    border-radius: 20px;
+  }
+
+  .history-row time {
+    font-size: 15px;
+  }
+
+  .history-row strong {
+    font-size: 18px;
+  }
+
+  .history-feedback-actions {
+    gap: 7px;
+  }
+
+  .history-feedback-actions button {
+    padding: 7px 11px;
+  }
+
+  .history-row.editing {
+    grid-column: span 2;
+  }
+
+  .history-edit-form {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .history-edit-form .text-field.full,
+  .history-edit-actions {
+    grid-column: 1 / -1;
+  }
+}
+
+
+/* =========================
+   8. Profile screen
+   ========================= */
+
+@media (min-width: 900px) {
+  .profile-card {
+    max-width: 720px;
+    margin: 40px auto 0;
+    padding: 42px;
+    border-radius: 32px;
+  }
+
+  .profile-avatar {
+    width: 96px;
+    height: 96px;
+  }
+
+  .profile-card > strong {
+    font-size: 28px;
+  }
+
+  .profile-card p {
+    max-width: 420px;
+    font-size: 15px;
+  }
+
+  .profile-card .primary-button,
+  .profile-card .danger-button {
+    width: min(420px, 100%);
+  }
+}
+
+
+/* =========================
+   9. Dialog / modal
+   ========================= */
+
+@media (min-width: 900px) {
+  .modal-backdrop {
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+  }
+
+  .meeting-dialog {
+    width: min(720px, 100%);
+    max-height: min(760px, calc(100vh - 80px));
+    border-radius: 32px;
+    padding: 26px;
+  }
+
+  .dialog-heading h2 {
+    font-size: 30px;
+    letter-spacing: -0.04em;
+  }
+
+  .dialog-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .dialog-form .text-field,
+  .participant-picker,
+  .dialog-form .primary-button,
+  .dialog-form .secondary-button,
+  .auth-error {
+    grid-column: 1 / -1;
+  }
+
+  .participant-options {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+}
+
+
+/* =========================
+   10. Medium desktop guard
+   ========================= */
+
+@media (min-width: 900px) and (max-width: 1080px) {
+  .phone-frame {
+    width: min(100%, 1040px);
+  }
+
+  .screen {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .meeting-detail-screen {
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .recommendation-card {
+    grid-template-columns: 92px 44px minmax(0, 1fr);
+  }
+
+  .recommendation-media {
+    width: 92px;
+    height: 92px;
+  }
+
+  .recommendation-title strong {
+    font-size: 22px;
+  }
+
+  .asset-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .compact-picker .asset-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .compact-picker.danger-picker .asset-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+
+/* =========================
+   11. Mobile restore
+   ========================= */
+
+@media (max-width: 899px) {
+  .app-shell {
+    padding: 0;
+  }
+
+  .phone-frame {
+    width: 100vw;
+    height: 100vh;
+    min-height: 100vh;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .meeting-detail-screen {
+    display: grid;
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .nav-button.active {
+    color: var(--orange);
+    background: transparent;
+  }
+
+  .nav-button.active::before {
+    display: block;
+  }
+}
