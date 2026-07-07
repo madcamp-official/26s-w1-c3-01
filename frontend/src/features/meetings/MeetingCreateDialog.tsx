@@ -1,8 +1,7 @@
 import { useState, type FormEvent } from "react";
 import Plus from "lucide-react/dist/esm/icons/plus";
-import UserRound from "lucide-react/dist/esm/icons/user-round";
 import X from "lucide-react/dist/esm/icons/x";
-import type { MeetingPurpose, UserOption } from "../../domain/mapper";
+import type { MeetingPurpose } from "../../domain/mapper";
 import { useModalA11y } from "../../hooks/useModalA11y";
 
 export type MeetingFormValue = {
@@ -10,7 +9,6 @@ export type MeetingFormValue = {
   meetingTime: string;
   place: string;
   meetingPurposeId: number;
-  participantUserIds: number[];
 };
 
 type MeetingCreateDialogProps = {
@@ -19,8 +17,6 @@ type MeetingCreateDialogProps = {
   onCreate: (meeting: MeetingFormValue) => Promise<void>;
   isSaving: boolean;
   meetingPurposes: MeetingPurpose[];
-  users: UserOption[];
-  currentUserName: string;
 };
 
 function defaultDateTimeLocal() {
@@ -36,15 +32,12 @@ export function MeetingCreateDialog({
   onClose,
   onCreate,
   isSaving,
-  meetingPurposes,
-  users,
-  currentUserName
+  meetingPurposes
 }: MeetingCreateDialogProps) {
   const [title, setTitle] = useState("새 점심 모임");
   const [meetingTime, setMeetingTime] = useState(defaultDateTimeLocal());
   const [place, setPlace] = useState("대전 유성구");
   const [purposeId, setPurposeId] = useState("");
-  const [participantUserIds, setParticipantUserIds] = useState<number[]>([]);
   const dialogRef = useModalA11y(open, onClose);
 
   if (!open) {
@@ -53,11 +46,6 @@ export function MeetingCreateDialog({
 
   const purposeOptions = meetingPurposes.length ? meetingPurposes : [{ id: 1, name: "식사" }];
   const selectedPurposeId = Number(purposeId || purposeOptions[0]?.id || 1);
-  const toggleParticipant = (userId: number) => {
-    setParticipantUserIds((current) =>
-      current.includes(userId) ? current.filter((id) => id !== userId) : [...current, userId]
-    );
-  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -65,8 +53,7 @@ export function MeetingCreateDialog({
       title: title.trim() || "새 모임",
       meetingTime,
       place: place.trim() || "장소 미정",
-      meetingPurposeId: selectedPurposeId,
-      participantUserIds
+      meetingPurposeId: selectedPurposeId
     });
   };
 
@@ -114,30 +101,6 @@ export function MeetingCreateDialog({
             <span>장소</span>
             <input value={place} onChange={(event) => setPlace(event.target.value)} />
           </label>
-          <section className="participant-picker" aria-label="참여자 선택">
-            <div className="participant-picker-heading">
-              <span>참여자</span>
-              <small>나: {currentUserName}</small>
-            </div>
-            <div className="participant-options">
-              {users.length ? (
-                users.map((user) => (
-                  <button
-                    type="button"
-                    key={user.userId}
-                    className={`participant-option ${participantUserIds.includes(user.userId) ? "selected" : ""}`}
-                    onClick={() => toggleParticipant(user.userId)}
-                    aria-pressed={participantUserIds.includes(user.userId)}
-                  >
-                    <UserRound size={15} />
-                    <span>{user.nickname}</span>
-                  </button>
-                ))
-              ) : (
-                <small className="participant-empty">사용자 목록 API에 표시할 계정이 없습니다.</small>
-              )}
-            </div>
-          </section>
           <button className="primary-button" type="submit" disabled={isSaving}>
             <Plus size={18} />
             {isSaving ? "API 저장 중" : "모임 추가"}

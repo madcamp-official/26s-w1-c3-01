@@ -9,8 +9,7 @@ import type {
   MeetingPurpose,
   PickData,
   PreferenceScoreMap,
-  RemoteMenu,
-  UserOption
+  RemoteMenu
 } from "../../domain/mapper";
 import type { MealHistoryFormValue } from "../../features/mealHistory/MealHistoryDialog";
 import type { MeetingFormValue } from "../../features/meetings/MeetingCreateDialog";
@@ -68,7 +67,6 @@ type AppScreensProps = {
   personalRecommendationLoading: boolean;
   meetingActionLoading: boolean;
   historySaving: boolean;
-  userOptions: UserOption[];
   toastMessage: string;
   setActiveTab: (tab: Tab) => void;
   setSelectedCategories: (value: string[]) => void;
@@ -142,7 +140,6 @@ export function AppScreens({
   personalRecommendationLoading,
   meetingActionLoading,
   historySaving,
-  userOptions,
   toastMessage,
   setActiveTab,
   setSelectedCategories,
@@ -283,8 +280,6 @@ export function AppScreens({
               onCreate={handleCreateMeeting}
               isSaving={meetingSaving}
               meetingPurposes={meetingPurposes}
-              users={userOptions}
-              currentUserName={profileName}
             />
           </Suspense>
         ) : null}

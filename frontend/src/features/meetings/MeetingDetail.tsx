@@ -214,8 +214,7 @@ function MeetingEditPanel({
       title: title.trim() || "새 모임",
       meetingTime,
       place: place.trim() || "장소 미정",
-      meetingPurposeId: Number(purposeId || purposeOptions[0]?.id || 1),
-      participantUserIds: []
+      meetingPurposeId: Number(purposeId || purposeOptions[0]?.id || 1)
     });
   };
 

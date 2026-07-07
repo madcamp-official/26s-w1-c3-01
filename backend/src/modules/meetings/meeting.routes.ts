@@ -17,7 +17,7 @@ export const meetingRouter = Router();
 
 meetingRouter.post("/", authMiddleware, validateBody(createMeetingSchema), createMeeting);
 meetingRouter.get("/", authMiddleware, listMeetings);
-meetingRouter.get("/:meetingId/preview", authMiddleware, previewMeeting);
+meetingRouter.get("/:meetingId/preview", previewMeeting);
 meetingRouter.get("/:meetingId", authMiddleware, getMeeting);
 meetingRouter.patch("/:meetingId", authMiddleware, validateBody(updateMeetingSchema), updateMeeting);
 meetingRouter.post("/:meetingId/join", authMiddleware, validateBody(joinMeetingSchema), joinMeeting);
