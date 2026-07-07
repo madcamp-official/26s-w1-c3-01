@@ -1843,7 +1843,7 @@ body.modal-open {
 
 .recommendation-card {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-columns: 78px 34px minmax(0, 1fr);
   gap: 12px;
   align-items: start;
   position: relative;
@@ -1882,17 +1882,55 @@ body.modal-open {
 }
 
 .rank-mark {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
+  grid-column: 2;
+  grid-row: 1;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
   display: grid;
   place-items: center;
   color: white;
   background: var(--orange);
+  font-size: 15px;
   font-weight: 900;
 }
 
+.recommendation-media {
+  grid-column: 1;
+  grid-row: 1 / span 4;
+  width: 78px;
+  height: 78px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #f9efe6;
+  box-shadow: inset 0 0 0 1px rgba(231, 220, 210, 0.8);
+}
+
+.recommendation-media img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.recommendation-media.empty::after {
+  content: "";
+  width: 36px;
+  height: 36px;
+  display: block;
+  margin: 21px auto;
+  border-radius: 50%;
+  background: rgba(238, 90, 24, 0.12);
+}
+
+.recommendation-body {
+  display: contents;
+}
+
 .recommendation-title {
+  grid-column: 3;
+  grid-row: 1;
   display: flex;
   justify-content: space-between;
   gap: 10px;
@@ -1909,6 +1947,8 @@ body.modal-open {
 }
 
 .recommendation-body p {
+  grid-column: 2 / -1;
+  grid-row: 2;
   margin: 6px 0 10px;
   color: var(--muted);
   line-height: 1.5;
@@ -1916,6 +1956,8 @@ body.modal-open {
 }
 
 .score-breakdown {
+  grid-column: 2 / -1;
+  grid-row: 3;
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
@@ -1932,6 +1974,8 @@ body.modal-open {
 }
 
 .tag-row {
+  grid-column: 2 / -1;
+  grid-row: 4;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -2499,7 +2543,7 @@ body.modal-open {
 .history-row {
   min-height: 74px;
   display: grid;
-  grid-template-columns: 50px minmax(0, 1fr) 24px;
+  grid-template-columns: 54px 48px minmax(0, 1fr) 24px;
   gap: 12px;
   align-items: center;
   padding: 14px;
@@ -2513,6 +2557,35 @@ body.modal-open {
 .history-row time {
   color: var(--orange-dark);
   font-weight: 900;
+}
+
+.history-thumb {
+  width: 54px;
+  height: 54px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #f9efe6;
+  box-shadow: inset 0 0 0 1px rgba(231, 220, 210, 0.8);
+}
+
+.history-thumb img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.history-thumb.empty {
+  display: grid;
+  place-items: center;
+}
+
+.history-thumb.empty::after {
+  content: "";
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(238, 90, 24, 0.12);
 }
 
 .history-row div {

@@ -2,6 +2,7 @@ export {
   buildPreferencePayload,
   fallbackPickData,
   mapCreatedMeeting,
+  mapHistory,
   mapHistories,
   mapMeetingPurposes,
   mapMeetings,

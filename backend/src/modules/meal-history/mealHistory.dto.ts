@@ -11,4 +11,5 @@ export type UpdateMealHistoryRequest = Partial<CreateMealHistoryRequest>;
 export type MealHistoryListQuery = {
   limit?: number;
   offset?: number;
+  includeTotal?: boolean;
 };

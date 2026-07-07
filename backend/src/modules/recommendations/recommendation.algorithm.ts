@@ -41,7 +41,7 @@ export function rankPersonalMenus(
   const menuAllergiesMap = groupIdsByMenu(base.menuAllergies, "allergy_id");
   const userAllergySet = new Set<number>(base.userAllergies.map((row) => Number(row.allergy_id)));
   const ratingStatsMap = getRatingStatsMap(base);
-  const popularityRawMap = getPopularityRawMap(base.allMenuInteractions);
+  const popularityRawMap = getPopularityRawMap(base);
   const maxPopularityRaw = Math.max(0, ...Array.from(popularityRawMap.values()));
   const pickCountMap = getUserPickCountMap(base);
   const recentPickCount7dMap = getRecentPickCount7dMap(base);
@@ -232,51 +232,19 @@ function hasUserAllergy(
 }
 
 function getRatingStatsMap(base: RecommendationBaseData) {
-  const ratings = new Map<number, { total: number; count: number }>();
-
-  // reviews 테이블을 우선 사용하고, 기존 meal_history.rating도 보조 평점으로 함께 반영한다.
-  for (const row of [...base.reviews, ...base.allMealRatings]) {
-    if (row.rating === null || row.rating === undefined) continue;
-
-    const menuId = Number(row.menu_id);
-    const current = ratings.get(menuId) ?? { total: 0, count: 0 };
-
-    ratings.set(menuId, {
-      total: current.total + Number(row.rating),
-      count: current.count + 1
-    });
-  }
-
   return new Map(
-    Array.from(ratings.entries()).map(([menuId, value]) => [
-      menuId,
+    base.ratingStats.map((row) => [
+      Number(row.menu_id),
       {
-        average: value.total / value.count,
-        count: value.count
+        average: Number(row.rating_average),
+        count: Number(row.rating_count)
       }
     ])
   );
 }
 
-function getPopularityRawMap(rows: UserMenuInteractionRow[]) {
-  const weightByType: Record<UserMenuInteractionRow["interaction_type"], number> = {
-    pick: 1,
-    like: 0.7,
-    bookmark: 0.5,
-    view: 0.2,
-    dislike: 0
-  };
-  const map = new Map<number, number>();
-
-  for (const row of rows) {
-    const weight = weightByType[row.interaction_type] ?? 0;
-    if (weight <= 0) continue;
-
-    const menuId = Number(row.menu_id);
-    map.set(menuId, (map.get(menuId) ?? 0) + weight);
-  }
-
-  return map;
+function getPopularityRawMap(base: RecommendationBaseData) {
+  return new Map(base.popularityStats.map((row) => [Number(row.menu_id), Number(row.popularity_raw)]));
 }
 
 function getUserPickCountMap(base: RecommendationBaseData) {

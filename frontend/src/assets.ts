@@ -5,6 +5,10 @@ export function storageAsset(path: string) {
   return `${SUPABASE_URL}/storage/v1/object/public/${ASSET_BUCKET}/${path}`;
 }
 
+export function menuAsset(menuId?: number | null) {
+  return typeof menuId === "number" && menuId > 0 ? storageAsset(`menus/${menuId}.png`) : "";
+}
+
 export const logoAssets = {
   startKo: storageAsset("logos/start-ko.png"),
   appEn: storageAsset("logos/in-app-en.png")

@@ -49,6 +49,11 @@ export const authRepository = {
     return createAuthClient().auth.refreshSession({ refresh_token: refreshToken });
   },
 
+  async deleteAuthUser(authUserId: string) {
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(authUserId);
+    if (error) throw error;
+  },
+
   async upsertProfile(input: {
     authUserId: string;
     email: string;
@@ -90,5 +95,19 @@ export const authRepository = {
 
     if (error) throw error;
     return data;
+  },
+
+  async listExpiredGuestProfiles(cutoffIso: string, limit = 100) {
+    const { data, error } = await supabaseAdmin
+      .from("users")
+      .select("user_id, auth_user_id, email, nickname, user_type, created_at")
+      .eq("user_type", "GUEST")
+      .ilike("email", "%@guest.mukpick.local")
+      .lt("created_at", cutoffIso)
+      .order("created_at", { ascending: true })
+      .limit(limit);
+
+    if (error) throw error;
+    return data ?? [];
   }
 };

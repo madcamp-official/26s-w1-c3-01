@@ -1,6 +1,21 @@
 import { supabaseAdmin } from "../../config/supabase.js";
 import type { AddMeetingParticipantRequest, CreateMeetingRequest, UpdateMeetingRequest } from "./meeting.dto.js";
 
+const meetingSelect = `
+  meeting_id,
+  title,
+  meeting_time,
+  meeting_purpose_id,
+  location,
+  created_by,
+  selected_menu_id,
+  status,
+  created_at,
+  meeting_purposes(meeting_purpose_id, name),
+  users!meetings_created_by_fkey(user_id, nickname),
+  meeting_participants(participant_id, user_id, display_name, attendance_status)
+`;
+
 export const meetingRepository = {
   async create(userId: number, input: CreateMeetingRequest) {
     const { data, error } = await supabaseAdmin
@@ -13,11 +28,10 @@ export const meetingRepository = {
         created_by: userId,
         status: "CREATED"
       })
-      .select("*, meeting_purposes(meeting_purpose_id, name), users!meetings_created_by_fkey(user_id, nickname)")
+      .select("meeting_id")
       .single();
 
     if (error) throw error;
-    await this.addParticipant(data.meeting_id, { userId }, "JOINED");
     return this.findByIdForUser(Number(data.meeting_id), userId);
   },
 
@@ -36,7 +50,7 @@ export const meetingRepository = {
 
     const { data, error } = await supabaseAdmin
       .from("meetings")
-      .select("*, meeting_purposes(meeting_purpose_id, name), users!meetings_created_by_fkey(user_id, nickname), meeting_participants(participant_id, user_id, display_name, attendance_status, joined_at)")
+      .select(meetingSelect)
       .or(filters.join(","))
       .order("meeting_time", { ascending: true });
 
@@ -47,7 +61,7 @@ export const meetingRepository = {
   async findByIdForUser(meetingId: number, userId: number) {
     const { data, error } = await supabaseAdmin
       .from("meetings")
-      .select("*, meeting_purposes(meeting_purpose_id, name), users!meetings_created_by_fkey(user_id, nickname), meeting_participants(participant_id, user_id, display_name, attendance_status, joined_at)")
+      .select(meetingSelect)
       .eq("meeting_id", meetingId)
       .maybeSingle();
 
@@ -93,7 +107,7 @@ export const meetingRepository = {
     // 참여 전에도 모임 ID로 기본 정보와 구성원 표시 이름을 확인할 수 있게 합니다.
     const { data, error } = await supabaseAdmin
       .from("meetings")
-      .select("*, meeting_purposes(meeting_purpose_id, name), users!meetings_created_by_fkey(user_id, nickname), meeting_participants(participant_id, user_id, display_name, attendance_status, joined_at)")
+      .select(meetingSelect)
       .eq("meeting_id", meetingId)
       .maybeSingle();
 
@@ -119,29 +133,7 @@ export const meetingRepository = {
       throw Object.assign(new Error("존재하지 않는 사용자입니다."), { status: 404, code: "NOT_FOUND" });
     }
 
-    const { data: existing, error: existingError } = await supabaseAdmin
-      .from("meeting_participants")
-      .select("participant_id, meeting_id, user_id, display_name, attendance_status, joined_at")
-      .eq("meeting_id", meetingId)
-      .eq("user_id", input.userId)
-      .maybeSingle();
-
-    if (existingError) throw existingError;
-    if (existing) return toParticipant(existing);
-
     const displayName = input.displayName?.trim() || user.nickname;
-    const { data: sameName, error: sameNameError } = await supabaseAdmin
-      .from("meeting_participants")
-      .select("participant_id")
-      .eq("meeting_id", meetingId)
-      .eq("display_name", displayName)
-      .maybeSingle();
-
-    if (sameNameError) throw sameNameError;
-    if (sameName) {
-      throw Object.assign(new Error("이 모임에서 이미 사용 중인 표시 이름입니다."), { status: 409, code: "CONFLICT" });
-    }
-
     const { data, error } = await supabaseAdmin
       .from("meeting_participants")
       .insert({
@@ -150,10 +142,26 @@ export const meetingRepository = {
         display_name: displayName,
         attendance_status: attendanceStatus
       })
-      .select("participant_id, meeting_id, user_id, display_name, attendance_status, joined_at")
+      .select("participant_id, meeting_id, user_id, display_name, attendance_status")
       .single();
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === "23505") {
+        const { data: existing, error: existingError } = await supabaseAdmin
+          .from("meeting_participants")
+          .select("participant_id, meeting_id, user_id, display_name, attendance_status")
+          .eq("meeting_id", meetingId)
+          .eq("user_id", input.userId)
+          .maybeSingle();
+
+        if (existingError) throw existingError;
+        if (existing) return toParticipant(existing);
+
+        throw Object.assign(new Error("이 모임에서 이미 사용 중인 표시 이름입니다."), { status: 409, code: "CONFLICT" });
+      }
+
+      throw error;
+    }
     return toParticipant(data);
   },
 
@@ -173,14 +181,43 @@ export const meetingRepository = {
       throw Object.assign(new Error("이미 메뉴가 확정된 모임입니다."), { status: 409, code: "CONFLICT" });
     }
 
-    const participant = await this.addParticipant(meetingId, { userId, displayName }, "JOINED");
+    const { data: participantRow, error: participantError } = await supabaseAdmin
+      .from("meeting_participants")
+      .insert({
+        meeting_id: meetingId,
+        user_id: userId,
+        display_name: displayName.trim(),
+        attendance_status: "JOINED"
+      })
+      .select("participant_id, meeting_id, user_id, display_name, attendance_status")
+      .single();
+
+    if (participantError) {
+      if (participantError.code === "23505") {
+        const { data: existing, error: existingError } = await supabaseAdmin
+          .from("meeting_participants")
+          .select("participant_id, meeting_id, user_id, display_name, attendance_status")
+          .eq("meeting_id", meetingId)
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (existingError) throw existingError;
+        if (existing) return { meeting: await this.findByIdForUser(meetingId, userId), participant: toParticipant(existing) };
+
+        throw Object.assign(new Error("이 모임에서 이미 사용 중인 표시 이름입니다."), { status: 409, code: "CONFLICT" });
+      }
+
+      throw participantError;
+    }
+
+    const participant = toParticipant(participantRow);
     return { meeting: await this.findByIdForUser(meetingId, userId), participant };
   },
 
   async listParticipants(meetingId: number) {
     const { data, error } = await supabaseAdmin
       .from("meeting_participants")
-      .select("participant_id, meeting_id, user_id, display_name, attendance_status, joined_at")
+      .select("participant_id, meeting_id, user_id, display_name, attendance_status")
       .eq("meeting_id", meetingId)
       .order("participant_id");
 
@@ -190,6 +227,10 @@ export const meetingRepository = {
 };
 
 function toMeeting(row: any) {
+  const participants = row.meeting_participants ?? [];
+  const creatorUserId = Number(row.created_by);
+  const hasCreatorParticipant = participants.some((participant: any) => Number(participant.user_id) === creatorUserId);
+
   return {
     meetingId: Number(row.meeting_id),
     title: row.title,
@@ -202,7 +243,18 @@ function toMeeting(row: any) {
     selectedMenuId: row.selected_menu_id == null ? null : Number(row.selected_menu_id),
     status: row.status,
     createdAt: row.created_at,
-    participants: (row.meeting_participants ?? []).map(toParticipant)
+    participants: [
+      ...(hasCreatorParticipant
+        ? []
+        : [{
+            participantId: 0,
+            meetingId: Number(row.meeting_id),
+            userId: creatorUserId,
+            displayName: row.users?.nickname ?? "모임장",
+            attendanceStatus: "JOINED"
+          }]),
+      ...participants.map(toParticipant)
+    ]
   };
 }
 
@@ -212,7 +264,6 @@ function toParticipant(row: any) {
     meetingId: row.meeting_id == null ? undefined : Number(row.meeting_id),
     userId: row.user_id == null ? null : Number(row.user_id),
     displayName: row.display_name,
-    attendanceStatus: row.attendance_status,
-    joinedAt: row.joined_at
+    attendanceStatus: row.attendance_status
   };
 }

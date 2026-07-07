@@ -2,6 +2,7 @@ import type { ApiResponse } from "../types/api";
 import { authSessionStorage, tokenStorage } from "../utils/storage";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
+let refreshPromise: Promise<void> | null = null;
 
 type RequestOptions = RequestInit & {
   auth?: boolean;
@@ -13,7 +14,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}) 
 
   if (options.auth !== false) {
     if (authSessionStorage.shouldRefresh()) {
-      await refreshStoredSession();
+      await refreshStoredSessionOnce();
     }
 
     const token = tokenStorage.get();
@@ -26,7 +27,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}) 
   });
 
   if (response.status === 401 && options.auth !== false && authSessionStorage.get()?.refreshToken) {
-    await refreshStoredSession();
+    await refreshStoredSessionOnce();
     const retryHeaders = new Headers(headers);
     const retryToken = tokenStorage.get();
     if (retryToken) retryHeaders.set("Authorization", `Bearer ${retryToken}`);
@@ -88,4 +89,11 @@ async function refreshStoredSession() {
     refreshToken: payload.data.refreshToken ?? session.refreshToken,
     expiresAt: payload.data.expiresAt
   });
+}
+
+async function refreshStoredSessionOnce() {
+  refreshPromise ??= refreshStoredSession().finally(() => {
+    refreshPromise = null;
+  });
+  return refreshPromise;
 }

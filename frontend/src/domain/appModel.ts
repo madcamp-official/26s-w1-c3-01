@@ -4,6 +4,7 @@ import {
   tags as fallbackTags,
   type PickItem
 } from "../data";
+import { menuAsset } from "../assets";
 
 export type ApiPickItem = PickItem & { apiId?: number };
 
@@ -17,6 +18,7 @@ export type RemoteMenu = {
   menuId: number;
   name: string;
   categoryName?: string;
+  image?: string;
 };
 
 export type DisplayRecommendation = {
@@ -26,6 +28,7 @@ export type DisplayRecommendation = {
   score: number;
   category: string;
   reason: string;
+  image?: string;
   scores?: RecommendationScoreBreakdown;
 };
 
@@ -171,11 +174,15 @@ const pickItemAliases: Partial<Record<keyof PickData, Record<string, string>>> =
 export function mapMenus(rows: unknown): RemoteMenu[] {
   const items = Array.isArray(rows) ? rows : Array.isArray((rows as any)?.items) ? (rows as any).items : [];
   return items
-    .map((row: any) => ({
-      menuId: readNumber(row, ["menuId", "menu_id", "id"]) ?? 0,
-      name: readString(row, ["name", "menuName", "menu_name"]) ?? "메뉴",
-      categoryName: row?.menu_categories?.name ?? row?.category?.name
-    }))
+    .map((row: any) => {
+      const menuId = readNumber(row, ["menuId", "menu_id", "id"]) ?? 0;
+      return {
+        menuId,
+        name: readString(row, ["name", "menuName", "menu_name"]) ?? "메뉴",
+        categoryName: row?.menu_categories?.name ?? row?.category?.name,
+        image: readString(row, ["imageUrl", "image_url", "image"]) ?? menuAsset(menuId)
+      };
+    })
     .filter((menu: RemoteMenu) => menu.menuId > 0);
 }
 
@@ -202,15 +209,19 @@ export function mapUsers(payload: unknown): UserOption[] {
 
 export function mapRecommendations(payload: unknown): DisplayRecommendation[] {
   const rows = Array.isArray((payload as any)?.results) ? (payload as any).results : [];
-  return rows.map((row: any, index: number) => ({
-    rank: readNumber(row, ["rankNo", "rank_no", "rank"]) ?? index + 1,
-    menuId: readNumber(row, ["menuId", "menu_id"]),
-    menu: readString(row, ["menuName", "menu_name", "name"]) ?? "추천 메뉴",
-    score: Math.round((readNumber(row, ["totalScore", "total_score", "score"]) ?? 0) * 10) / 10,
-    category: readString(row, ["category", "categoryName", "category_name"]) ?? "API",
-    reason: readString(row, ["reason", "description"]) ?? "백엔드 추천 API가 반환한 결과입니다.",
-    scores: mapRecommendationScores(row?.scores)
-  }));
+  return rows.map((row: any, index: number) => {
+    const menuId = readNumber(row, ["menuId", "menu_id"]);
+    return {
+      rank: readNumber(row, ["rankNo", "rank_no", "rank"]) ?? index + 1,
+      menuId,
+      menu: readString(row, ["menuName", "menu_name", "name"]) ?? "추천 메뉴",
+      score: Math.round((readNumber(row, ["totalScore", "total_score", "score"]) ?? 0) * 10) / 10,
+      category: readString(row, ["category", "categoryName", "category_name"]) ?? "API",
+      reason: readString(row, ["reason", "description"]) ?? "백엔드 추천 API가 반환한 결과입니다.",
+      image: readString(row, ["imageUrl", "image_url", "image"]) ?? menuAsset(menuId),
+      scores: mapRecommendationScores(row?.scores)
+    };
+  });
 }
 
 function mapRecommendationScores(scores: any): RecommendationScoreBreakdown | undefined {
@@ -287,9 +298,10 @@ function mapParticipantMember(participant: any): DisplayMember {
 
 export function mapHistories(payload: unknown, menus: RemoteMenu[]): DisplayHistory[] {
   const rows = Array.isArray((payload as any)?.items) ? (payload as any).items : Array.isArray(payload) ? payload : [];
+  const menuById = new Map(menus.map((menu) => [menu.menuId, menu]));
   return rows.map((row: any) => {
     const menuId = readNumber(row, ["menuId", "menu_id"]);
-    const menu = menus.find((item) => item.menuId === menuId);
+    const menu = typeof menuId === "number" ? menuById.get(menuId) : undefined;
     const rating = readNumber(row, ["rating"]);
     return {
       id: readNumber(row, ["historyId", "history_id", "id"]),
@@ -299,9 +311,13 @@ export function mapHistories(payload: unknown, menus: RemoteMenu[]): DisplayHist
       date: formatShortDate(readString(row, ["eatenAt", "eaten_at", "date"]) ?? ""),
       menu: menu?.name ?? readString(row, ["menuName", "menu_name"]) ?? "식사 기록",
       memo: readString(row, ["memo"]) ?? `만족도 ${readNumber(row, ["rating"]) ?? "-"}`,
-      image: imageForMenu(menu?.name)
+      image: menu?.image || menuAsset(menuId) || imageForMenu(menu?.name)
     };
   });
+}
+
+export function mapHistory(row: unknown, menus: RemoteMenu[]): DisplayHistory | null {
+  return mapHistories([row], menus)[0] ?? null;
 }
 
 function imageForMenu(menuName?: string) {
@@ -325,8 +341,9 @@ function formatShortDate(value: string) {
 }
 
 function selectedApiIds(selected: string[], items: ApiPickItem[]) {
+  const apiIdById = new Map(items.map((item) => [item.id, item.apiId]));
   return selected
-    .map((id) => items.find((item) => item.id === id)?.apiId)
+    .map((id) => apiIdById.get(id))
     .filter((id): id is number => typeof id === "number");
 }
 
@@ -383,14 +400,17 @@ export function buildPreferencePayload({
   categoryScores: PreferenceScoreMap;
   tagScores: PreferenceScoreMap;
 }): PreferencePayload {
+  const categoryIdByApiId = new Map(pickData.categories.map((item) => [item.apiId, item.id]));
+  const tagIdByApiId = new Map(pickData.tags.map((item) => [item.apiId, item.id]));
+
   return {
     categoryPreferences: selectedApiIds(selectedCategories, pickData.categories).map((categoryId) => ({
       categoryId,
-      preferenceScore: categoryScores[pickData.categories.find((item) => item.apiId === categoryId)?.id ?? ""] ?? 5
+      preferenceScore: categoryScores[categoryIdByApiId.get(categoryId) ?? ""] ?? 5
     })),
     tagPreferences: selectedApiIds(selectedTags, pickData.tags).map((tagId) => ({
       tagId,
-      preferenceScore: tagScores[pickData.tags.find((item) => item.apiId === tagId)?.id ?? ""] ?? 5
+      preferenceScore: tagScores[tagIdByApiId.get(tagId) ?? ""] ?? 5
     })),
     allergyIds: selectedApiIds(selectedAllergies, pickData.allergies)
   };

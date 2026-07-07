@@ -40,10 +40,7 @@ export type MenuRow = {
   menu_id: number;
   category_id: number;
   name: string;
-  description: string | null;
-  spicy_level: number;
   price_level: number | null;
-  calorie: number | null;
   menu_categories?:
     | {
         category_id: number;
@@ -60,21 +57,8 @@ export type PreferenceRow = {
   preference_score: number;
 };
 
-export type UserMenuPreferenceRow = PreferenceRow & {
-  menu_id: number;
-};
-
 export type UserCategoryPreferenceRow = PreferenceRow & {
   category_id: number;
-};
-
-export type UserTagPreferenceRow = PreferenceRow & {
-  tag_id: number;
-};
-
-export type MenuTagRow = {
-  menu_id: number;
-  tag_id: number;
 };
 
 export type MenuAllergyRow = {
@@ -86,21 +70,25 @@ export type UserAllergyRow = {
   allergy_id: number;
 };
 
-export type PurposeSuitabilityRow = {
-  menu_id: number;
-  meeting_purpose_id: number;
-  suitability_score: number;
-};
-
 export type MealHistoryRow = {
   menu_id: number;
-  rating: number | null;
   eaten_at: string;
 };
 
 export type ReviewRow = {
   menu_id: number;
   rating: number;
+};
+
+export type RatingStatsRow = {
+  menu_id: number;
+  rating_average: number;
+  rating_count: number;
+};
+
+export type PopularityStatsRow = {
+  menu_id: number;
+  popularity_raw: number;
 };
 
 export type UserPreferenceRow = {
@@ -111,7 +99,6 @@ export type UserPreferenceRow = {
 export type UserMenuInteractionType = "view" | "like" | "pick" | "dislike" | "bookmark";
 
 export type UserMenuInteractionRow = {
-  user_id: number;
   menu_id: number;
   interaction_type: UserMenuInteractionType;
   created_at: string;
@@ -119,17 +106,12 @@ export type UserMenuInteractionRow = {
 
 export type RecommendationBaseData = {
   menus: MenuRow[];
-  menuTags: MenuTagRow[];
   menuAllergies: MenuAllergyRow[];
-  purposeSuitability: PurposeSuitabilityRow[];
-  userMenuPreferences: UserMenuPreferenceRow[];
   userCategoryPreferences: UserCategoryPreferenceRow[];
-  userTagPreferences: UserTagPreferenceRow[];
   userAllergies: UserAllergyRow[];
   mealHistory: MealHistoryRow[];
-  allMealRatings: MealHistoryRow[];
-  reviews: ReviewRow[];
+  ratingStats: RatingStatsRow[];
   userPreference: UserPreferenceRow | null;
   userMenuInteractions: UserMenuInteractionRow[];
-  allMenuInteractions: UserMenuInteractionRow[];
+  popularityStats: PopularityStatsRow[];
 };
