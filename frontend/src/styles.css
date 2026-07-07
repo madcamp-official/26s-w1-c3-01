@@ -5134,12 +5134,14 @@ body.modal-open {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
   gap: 18px;
-  align-items: start;
+  align-items: stretch;
+  min-height: 0;
 }
 
 .history-calendar-panel,
 .history-detail-panel {
   min-width: 0;
+  min-height: 0;
   border: 1px solid rgba(231, 220, 210, 0.9);
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.94);
@@ -5147,10 +5149,16 @@ body.modal-open {
 }
 
 .history-calendar-panel {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 18px;
 }
 
 .calendar-toolbar {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -5192,6 +5200,8 @@ body.modal-open {
 }
 
 .history-calendar-grid {
+  flex: 1 1 auto;
+  min-height: 0;
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   overflow: hidden;
@@ -5246,9 +5256,19 @@ body.modal-open {
 
 .calendar-event-list {
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   display: grid;
   align-content: start;
   gap: 5px;
+}
+
+.calendar-event-list::-webkit-scrollbar,
+.history-calendar-panel::-webkit-scrollbar,
+.history-detail-panel::-webkit-scrollbar {
+  width: 0;
 }
 
 .calendar-event-list button {
@@ -5275,10 +5295,12 @@ body.modal-open {
   position: sticky;
   top: 0;
   display: grid;
-  gap: 16px;
   align-content: start;
+  gap: 16px;
   max-height: 100%;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 18px;
 }
 
@@ -5445,10 +5467,16 @@ body.modal-open {
 
   .history-calendar-layout {
     grid-template-columns: 1fr;
+    overflow: visible;
+  }
+
+  .history-calendar-panel {
+    overflow: visible;
   }
 
   .history-detail-panel {
     position: static;
+    overflow: visible;
   }
 
   .calendar-day {
@@ -5807,7 +5835,8 @@ body.modal-open {
   width: 0;
 }
 
-.personal-result-main .final-choice-bar {
+.personal-result-main .final-choice-bar,
+.group-result .final-choice-bar {
   flex: 0 0 auto;
   position: static;
   margin-top: 10px;
@@ -5815,6 +5844,7 @@ body.modal-open {
 
 .meeting-recommendation-scroll {
   flex: 1 1 auto;
+  min-height: 0;
 }
 
 @media (min-width: 1024px) {
@@ -5918,7 +5948,29 @@ body.modal-open {
   }
 
   .meeting-recommendation-scroll {
-    min-height: 520px;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .group-result .final-choice-bar {
+    flex: 0 0 auto;
+    position: static;
+    margin-top: 10px;
+  }
+
+  .history-screen {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .history-screen > .screen-title {
+    flex: 0 0 auto;
+  }
+
+  .history-screen > .history-calendar-layout {
+    flex: 1 1 auto;
+    overflow: hidden;
   }
 }
 

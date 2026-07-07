@@ -70,7 +70,7 @@ export function HistoryView({
   };
 
   return (
-    <Page title="식사 기록" description="선택한 메뉴는 이후 추천에서 반복을 줄이는 데 사용됩니다.">
+    <Page className="history-screen" title="식사 기록" description="선택한 메뉴는 이후 추천에서 반복을 줄이는 데 사용됩니다.">
       {historiesData.length ? (
         <PageGrid className="history-calendar-layout">
           <section className="history-calendar-panel" aria-label="식사 기록 캘린더">
