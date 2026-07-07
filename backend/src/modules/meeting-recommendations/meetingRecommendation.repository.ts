@@ -59,27 +59,18 @@ export const meetingRecommendationRepository = {
 
     const [
       menus,
-      menuTags,
-      menuAllergies,
       purposeSuitability,
       userMenuPreferences,
       userCategoryPreferences,
       userTagPreferences,
       userAllergies,
-      mealHistory
+      mealHistory,
+      userPreferences
     ] = await Promise.all([
       supabaseAdmin
-        .from("menus")
-        .select("menu_id, category_id, name")
+        .from("menu_recommendation_features")
+        .select("menu_id, category_id, name, price_level, tag_ids, allergy_ids")
         .order("menu_id"),
-
-      supabaseAdmin
-        .from("menu_tags")
-        .select("menu_id, tag_id"),
-
-      supabaseAdmin
-        .from("menu_allergies")
-        .select("menu_id, allergy_id"),
 
       supabaseAdmin
         .from("menu_purpose_suitability")
@@ -109,19 +100,23 @@ export const meetingRecommendationRepository = {
       supabaseAdmin
         .from("meal_history")
         .select("user_id, menu_id, rating, eaten_at")
+        .in("user_id", safeInValues(participantUserIds)),
+
+      supabaseAdmin
+        .from("user_preferences")
+        .select("user_id, budget_min, budget_max")
         .in("user_id", safeInValues(participantUserIds))
     ]);
 
     for (const result of [
       menus,
-      menuTags,
-      menuAllergies,
       purposeSuitability,
       userMenuPreferences,
       userCategoryPreferences,
       userTagPreferences,
       userAllergies,
-      mealHistory
+      mealHistory,
+      userPreferences
     ]) {
       if (result.error) throw result.error;
     }
@@ -130,14 +125,13 @@ export const meetingRecommendationRepository = {
       meeting,
       participants: participantsWithCreator,
       menus: menus.data ?? [],
-      menuTags: menuTags.data ?? [],
-      menuAllergies: menuAllergies.data ?? [],
       purposeSuitability: purposeSuitability.data ?? [],
       userMenuPreferences: userMenuPreferences.data ?? [],
       userCategoryPreferences: userCategoryPreferences.data ?? [],
       userTagPreferences: userTagPreferences.data ?? [],
       userAllergies: userAllergies.data ?? [],
-      mealHistory: mealHistory.data ?? []
+      mealHistory: mealHistory.data ?? [],
+      userPreferences: userPreferences.data ?? []
     };
   },
 
@@ -146,7 +140,7 @@ export const meetingRecommendationRepository = {
       .from("recommendation_runs")
       .insert({
         meeting_id: meetingId,
-        algorithm_version: "meeting-v1",
+        algorithm_version: "meeting-group-v2",
         config_json: config
       })
       .select("run_id, meeting_id, algorithm_version, config_json, generated_at")
@@ -206,7 +200,12 @@ export const meetingRecommendationRepository = {
       menuId: row.menu_id,
       menuName: firstOrSelf(row.menus)?.name ?? "",
       totalScore: Number(row.total_score),
-      reason: row.reason ?? ""
+      reason: row.reason ?? "",
+      scores: {
+        group_preference_score: 0,
+        minimum_participant_score: 0,
+        purpose_score: 0
+      }
     }));
   },
 

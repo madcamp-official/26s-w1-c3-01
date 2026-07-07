@@ -1,20 +1,16 @@
 import { supabaseAdmin } from "../../config/supabase.js";
 import type {
+  MenuRecommendationFeatureRow,
   PersonalRecommendationRequest,
   RecommendationBaseData,
   RecommendationResult
 } from "./recommendation.dto.js";
 
-type GlobalRecommendationData = Pick<
-  RecommendationBaseData,
-  "menus" | "menuAllergies" | "ratingStats" | "popularityStats"
->;
-
 const GLOBAL_RECOMMENDATION_DATA_TTL_MS = 5 * 60 * 1000;
-let globalRecommendationDataCache: {
+let menuFeatureCache: {
   expiresAt: number;
-  data: GlobalRecommendationData | null;
-  promise: Promise<GlobalRecommendationData> | null;
+  data: MenuRecommendationFeatureRow[] | null;
+  promise: Promise<MenuRecommendationFeatureRow[]> | null;
 } = {
   expiresAt: 0,
   data: null,
@@ -23,16 +19,21 @@ let globalRecommendationDataCache: {
 
 export const recommendationRepository = {
   async loadRecommendationBase(userId: number): Promise<RecommendationBaseData> {
-    const globalDataPromise = getGlobalRecommendationData();
     const [
-      globalData,
+      menus,
+      userMenuPreferences,
       userCategoryPreferences,
+      userTagPreferences,
       userAllergies,
       mealHistory,
-      userPreference,
-      userMenuInteractions
+      userPreference
     ] = await Promise.all([
-      globalDataPromise,
+      getMenuFeatures(),
+
+      supabaseAdmin
+        .from("user_menu_preferences")
+        .select("menu_id, preference_score")
+        .eq("user_id", userId),
 
       supabaseAdmin
         .from("user_category_preferences")
@@ -40,50 +41,47 @@ export const recommendationRepository = {
         .eq("user_id", userId),
 
       supabaseAdmin
+        .from("user_tag_preferences")
+        .select("tag_id, preference_score")
+        .eq("user_id", userId),
+
+      supabaseAdmin
         .from("user_allergies")
         .select("allergy_id")
         .eq("user_id", userId),
 
-      // 최근 식사 제외와 과거 평점 반영을 위해 식사 기록을 함께 읽습니다.
       supabaseAdmin
         .from("meal_history")
-        .select("menu_id, eaten_at")
+        .select("menu_id, eaten_at, rating")
         .eq("user_id", userId)
         .order("eaten_at", { ascending: false }),
 
-      optionalSingle(
-        supabaseAdmin
-          .from("user_preferences")
-          .select("budget_min, budget_max")
-          .eq("user_id", userId)
-          .maybeSingle()
-      ),
-
-      optionalRows(
-        supabaseAdmin
-          .from("user_menu_interactions")
-          .select("menu_id, interaction_type, created_at")
-          .eq("user_id", userId)
-      )
+      supabaseAdmin
+        .from("user_preferences")
+        .select("budget_min, budget_max")
+        .eq("user_id", userId)
+        .maybeSingle()
     ]);
 
     for (const result of [
+      userMenuPreferences,
       userCategoryPreferences,
+      userTagPreferences,
       userAllergies,
       mealHistory,
-      userPreference,
-      userMenuInteractions
+      userPreference
     ]) {
-      if ("error" in result && result.error) throw result.error;
+      if (result.error) throw result.error;
     }
 
     return {
-      ...globalData,
-      userCategoryPreferences: (userCategoryPreferences.data ?? []) as RecommendationBaseData["userCategoryPreferences"],
-      userAllergies: (userAllergies.data ?? []) as RecommendationBaseData["userAllergies"],
-      mealHistory: (mealHistory.data ?? []) as RecommendationBaseData["mealHistory"],
-      userPreference: (userPreference.data ?? null) as RecommendationBaseData["userPreference"],
-      userMenuInteractions: (userMenuInteractions.data ?? []) as RecommendationBaseData["userMenuInteractions"]
+      menus,
+      userMenuPreferences: userMenuPreferences.data ?? [],
+      userCategoryPreferences: userCategoryPreferences.data ?? [],
+      userTagPreferences: userTagPreferences.data ?? [],
+      userAllergyIds: (userAllergies.data ?? []).map((row) => Number(row.allergy_id)),
+      mealHistory: mealHistory.data ?? [],
+      userPreference: userPreference.data ?? null
     };
   },
 
@@ -92,15 +90,12 @@ export const recommendationRepository = {
       .from("personal_recommendation_runs")
       .insert({
         user_id: userId,
-        algorithm_version: "personal-weighted-v1",
+        algorithm_version: "personal-simple-v2",
         config_json: input
       })
       .select("run_id")
       .single();
 
-    if (isMissingRelationError(runError)) {
-      return { runId: 0 };
-    }
     if (runError) throw runError;
 
     if (results.length > 0) {
@@ -114,13 +109,10 @@ export const recommendationRepository = {
             total_score: item.totalScore,
             scores_json: item.scores,
             reason: item.reason,
-            is_new_suggestion: item.isNewSuggestion ?? false
+            is_new_suggestion: item.isNewSuggestion
           }))
         );
 
-      if (isMissingRelationError(error)) {
-        return { runId: Number(run.run_id) };
-      }
       if (error) throw error;
     }
 
@@ -128,108 +120,37 @@ export const recommendationRepository = {
   }
 };
 
-async function getGlobalRecommendationData(): Promise<GlobalRecommendationData> {
+async function getMenuFeatures(): Promise<MenuRecommendationFeatureRow[]> {
   const now = Date.now();
-  if (globalRecommendationDataCache.data && globalRecommendationDataCache.expiresAt > now) {
-    return globalRecommendationDataCache.data;
+  if (menuFeatureCache.data && menuFeatureCache.expiresAt > now) {
+    return menuFeatureCache.data;
   }
 
-  if (globalRecommendationDataCache.promise) {
-    return globalRecommendationDataCache.promise;
+  if (menuFeatureCache.promise) {
+    return menuFeatureCache.promise;
   }
 
-  globalRecommendationDataCache.promise = loadGlobalRecommendationData().then((data) => {
-    globalRecommendationDataCache = {
+  menuFeatureCache.promise = loadMenuFeatures().then((data) => {
+    menuFeatureCache = {
       data,
       expiresAt: Date.now() + GLOBAL_RECOMMENDATION_DATA_TTL_MS,
       promise: null
     };
     return data;
   }).catch((error) => {
-    globalRecommendationDataCache.promise = null;
+    menuFeatureCache.promise = null;
     throw error;
   });
 
-  return globalRecommendationDataCache.promise;
+  return menuFeatureCache.promise;
 }
 
-async function loadGlobalRecommendationData(): Promise<GlobalRecommendationData> {
-  const [
-    menus,
-    menuAllergies,
-    ratingStats,
-    popularityStats
-  ] = await Promise.all([
-    supabaseAdmin
-      .from("menus")
-      .select("menu_id, category_id, name, price_level, menu_categories(category_id, name)")
-      .order("menu_id"),
+async function loadMenuFeatures(): Promise<MenuRecommendationFeatureRow[]> {
+  const { data, error } = await supabaseAdmin
+    .from("menu_recommendation_features")
+    .select("menu_id, category_id, category_name, name, price_level, tag_ids, allergy_ids")
+    .order("menu_id");
 
-    supabaseAdmin
-      .from("menu_allergies")
-      .select("menu_id, allergy_id"),
-
-    optionalRows(
-      supabaseAdmin
-        .from("menu_rating_stats")
-        .select("menu_id, rating_average, rating_count")
-    ),
-
-    optionalRows(
-      supabaseAdmin
-        .from("menu_popularity_stats")
-        .select("menu_id, popularity_raw")
-    )
-  ]);
-
-  for (const result of [menus, menuAllergies, ratingStats, popularityStats]) {
-    if ("error" in result && result.error) throw result.error;
-  }
-
-  return {
-    menus: (menus.data ?? []) as RecommendationBaseData["menus"],
-    menuAllergies: (menuAllergies.data ?? []) as RecommendationBaseData["menuAllergies"],
-    ratingStats: (ratingStats.data ?? []) as RecommendationBaseData["ratingStats"],
-    popularityStats: (popularityStats.data ?? []) as RecommendationBaseData["popularityStats"]
-  };
-}
-
-async function optionalRows<T extends { data: unknown[] | null; error: unknown }>(
-  query: PromiseLike<T>
-): Promise<{ data: unknown[]; error: null }> {
-  const result = await query;
-  if (isMissingRelationError(result.error)) {
-    return { data: [], error: null };
-  }
-
-  return {
-    data: result.data ?? [],
-    error: result.error as null
-  };
-}
-
-async function optionalSingle<T extends { data: unknown | null; error: unknown }>(
-  query: PromiseLike<T>
-): Promise<{ data: unknown | null; error: null }> {
-  const result = await query;
-  if (isMissingRelationError(result.error)) {
-    return { data: null, error: null };
-  }
-
-  return {
-    data: result.data ?? null,
-    error: result.error as null
-  };
-}
-
-function isMissingRelationError(error: unknown) {
-  if (!error || typeof error !== "object") return false;
-
-  const value = error as { code?: string; message?: string };
-  return (
-    value.code === "42P01" ||
-    value.code === "PGRST205" ||
-    value.message?.includes("Could not find the table") === true ||
-    value.message?.includes("does not exist") === true
-  );
+  if (error) throw error;
+  return data ?? [];
 }

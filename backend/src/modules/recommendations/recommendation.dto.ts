@@ -1,5 +1,6 @@
 export type PersonalRecommendationRequest = {
   meetingPurposeId?: number;
+  recentDuplicateDays?: number;
   excludeRecentDays?: number;
   limit?: number;
   includeNewMenu?: boolean;
@@ -7,13 +8,11 @@ export type PersonalRecommendationRequest = {
 
 export type RecommendationScoreBreakdown = {
   category_score: number;
-  rating_score: number;
-  review_confidence_score: number;
-  price_score: number;
-  popularity_score: number;
-  novelty_score: number;
-  repeat_score: number;
-  negative_feedback_score: number;
+  tag_score: number;
+  menu_preference_score: number;
+  budget_score: number;
+  new_menu_score: number;
+  history_penalty: number;
 };
 
 export type RecommendationResult = {
@@ -32,63 +31,39 @@ export type RecommendationResult = {
 export type PersonalRecommendationResponse = {
   userId: number;
   runId: number;
-  algorithmVersion: "personal-weighted-v1";
+  algorithmVersion: "personal-simple-v2";
   results: RecommendationResult[];
 };
 
-export type MenuRow = {
+export type MenuRecommendationFeatureRow = {
   menu_id: number;
   category_id: number;
+  category_name: string | null;
   name: string;
   price_level: number | null;
-  menu_categories?:
-    | {
-        category_id: number;
-        name: string;
-      }
-    | Array<{
-        category_id: number;
-        name: string;
-      }>
-    | null;
+  tag_ids: number[] | string | null;
+  allergy_ids: number[] | string | null;
 };
 
-export type PreferenceRow = {
+export type UserMenuPreferenceRow = {
+  menu_id: number;
   preference_score: number;
 };
 
-export type UserCategoryPreferenceRow = PreferenceRow & {
+export type UserCategoryPreferenceRow = {
   category_id: number;
+  preference_score: number;
 };
 
-export type MenuAllergyRow = {
-  menu_id: number;
-  allergy_id: number;
-};
-
-export type UserAllergyRow = {
-  allergy_id: number;
+export type UserTagPreferenceRow = {
+  tag_id: number;
+  preference_score: number;
 };
 
 export type MealHistoryRow = {
   menu_id: number;
   eaten_at: string;
-};
-
-export type ReviewRow = {
-  menu_id: number;
-  rating: number;
-};
-
-export type RatingStatsRow = {
-  menu_id: number;
-  rating_average: number;
-  rating_count: number;
-};
-
-export type PopularityStatsRow = {
-  menu_id: number;
-  popularity_raw: number;
+  rating: number | null;
 };
 
 export type UserPreferenceRow = {
@@ -96,22 +71,12 @@ export type UserPreferenceRow = {
   budget_max: number | null;
 };
 
-export type UserMenuInteractionType = "view" | "like" | "pick" | "dislike" | "bookmark";
-
-export type UserMenuInteractionRow = {
-  menu_id: number;
-  interaction_type: UserMenuInteractionType;
-  created_at: string;
-};
-
 export type RecommendationBaseData = {
-  menus: MenuRow[];
-  menuAllergies: MenuAllergyRow[];
+  menus: MenuRecommendationFeatureRow[];
+  userMenuPreferences: UserMenuPreferenceRow[];
   userCategoryPreferences: UserCategoryPreferenceRow[];
-  userAllergies: UserAllergyRow[];
+  userTagPreferences: UserTagPreferenceRow[];
+  userAllergyIds: number[];
   mealHistory: MealHistoryRow[];
-  ratingStats: RatingStatsRow[];
   userPreference: UserPreferenceRow | null;
-  userMenuInteractions: UserMenuInteractionRow[];
-  popularityStats: PopularityStatsRow[];
 };

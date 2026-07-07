@@ -10,9 +10,10 @@ type MeetingRecommendationBase = {
     menu_id: number;
     category_id: number;
     name: string;
+    price_level: number | null;
+    tag_ids: number[] | string | null;
+    allergy_ids: number[] | string | null;
   }>;
-  menuTags: Array<{ menu_id: number; tag_id: number }>;
-  menuAllergies: Array<{ menu_id: number; allergy_id: number }>;
   purposeSuitability: Array<{
     menu_id: number;
     meeting_purpose_id: number;
@@ -43,17 +44,14 @@ type MeetingRecommendationBase = {
     rating: number | null;
     eaten_at: string;
   }>;
+  userPreferences: Array<{
+    user_id: number;
+    budget_min: number | null;
+    budget_max: number | null;
+  }>;
 };
 
 const DEFAULT_CONFIG: MeetingRecommendationConfig = {
-  menuPreference: 0.5,
-  categoryPreference: 0.3,
-  tagPreference: 0.2,
-  averageScore: 0.7,
-  minimumScore: 0.3,
-  strongDislikePenalty: 20,
-  strongDislikeScore: -3,
-  recentDuplicateDays: 3,
   resultLimit: 3
 };
 
@@ -62,15 +60,7 @@ export function createMeetingRecommendationConfig(
 ): MeetingRecommendationConfig {
   return {
     ...DEFAULT_CONFIG,
-    // 새 필드가 우선이고, 기존 personal recommendation 호환 필드도 허용합니다.
-    recentDuplicateDays:
-      input.recentDuplicateDays ??
-      input.excludeRecentDays ??
-      DEFAULT_CONFIG.recentDuplicateDays,
-    resultLimit:
-      input.resultLimit ??
-      input.limit ??
-      DEFAULT_CONFIG.resultLimit,
+    resultLimit: input.resultLimit ?? input.limit ?? DEFAULT_CONFIG.resultLimit,
     participantUserIds: input.participantUserIds
   };
 }
@@ -83,122 +73,86 @@ export function rankMeetingMenus(
     .map((participant) => participant.user_id)
     .filter((userId): userId is number => userId !== null);
 
-  const participantCount = Math.max(participantUserIds.length, 1);
-
-  const menuTagsMap = groupByMenu(base.menuTags, "tag_id");
-  const menuAllergiesMap = groupByMenu(base.menuAllergies, "allergy_id");
-
-  const allergySet: Set<number> = new Set(
-    base.userAllergies.map((row) => Number(row.allergy_id))
-  );
-
-  const recentMenuSet = getRecentMenuSet(base.mealHistory, config.recentDuplicateDays);
-
-  const purposeScoreMap: Map<number, number> = new Map(
+  const purposeScoreMap = new Map(
     base.purposeSuitability.map((row) => [
       Number(row.menu_id),
       Number(row.suitability_score)
     ])
   );
 
-  const menuPreferenceMap = groupPreference(base.userMenuPreferences, "menu_id");
-  const categoryPreferenceMap = groupPreference(base.userCategoryPreferences, "category_id");
-  const tagPreferenceMap = groupPreference(base.userTagPreferences, "tag_id");
-  const ratingMap = groupRatings(base.mealHistory);
+  const participantProfiles = participantUserIds.map((userId) => ({
+    userId,
+    allergyIds: new Set(
+      base.userAllergies
+        .filter((row) => Number(row.user_id) === userId)
+        .map((row) => Number(row.allergy_id))
+    ),
+    menuPreferences: preferenceMapForUser(base.userMenuPreferences, userId, "menu_id"),
+    categoryPreferences: preferenceMapForUser(base.userCategoryPreferences, userId, "category_id"),
+    tagPreferences: preferenceMapForUser(base.userTagPreferences, userId, "tag_id"),
+    ratings: ratingMapForUser(base.mealHistory, userId),
+    budget: base.userPreferences.find((row) => Number(row.user_id) === userId) ?? null
+  }));
 
   return base.menus
-    .filter((menu) => !hasAllergy(menu.menu_id, menuAllergiesMap, allergySet))
-    .filter((menu) => !recentMenuSet.has(Number(menu.menu_id)))
     .map((menu): MeetingRecommendationResult | null => {
       const menuId = Number(menu.menu_id);
       const categoryId = Number(menu.category_id);
-      const tagIds = menuTagsMap.get(menuId) ?? [];
-      const purposeScore = purposeScoreMap.get(menuId) ?? 0;
-      const reasons: string[] = [];
+      const tagIds = normalizeIdArray(menu.tag_ids);
+      const allergyIds = normalizeIdArray(menu.allergy_ids);
 
-      // 목적 적합도가 0인 메뉴는 문서 기준에 따라 추천 후보에서 제외합니다.
-      if (purposeScore <= 0) {
+      if (participantProfiles.some((participant) => allergyIds.some((allergyId) => participant.allergyIds.has(allergyId)))) {
         return null;
       }
 
-      let totalScore = purposeScore * 20;
-      reasons.push("모임 목적에 적합");
+      if (participantProfiles.some((participant) => participant.categoryPreferences.get(categoryId) === 0)) {
+        return null;
+      }
 
-      const menuPreferenceScore = average(
-        menuPreferenceMap.get(menuId) ?? [],
-        participantCount
-      );
+      if (participantProfiles.some((participant) => participant.menuPreferences.get(menuId) === 0)) {
+        return null;
+      }
 
-      if (menuPreferenceScore !== 0) {
-        totalScore += menuPreferenceScore * 20 * config.menuPreference;
-        reasons.push(
-          menuPreferenceScore > 0
-            ? "참여자 선호 메뉴"
-            : "참여자 비선호 메뉴 반영"
+      const participantScores = participantProfiles.map((participant) => {
+        const categoryPreference = participant.categoryPreferences.get(categoryId) ?? 0;
+        const tagPreference = averagePreferences(tagIds, participant.tagPreferences);
+        const menuPreference = participant.menuPreferences.get(menuId) ?? participant.ratings.get(menuId) ?? 5;
+        const budgetScore = calculateBudgetScore(
+          menu.price_level,
+          participant.budget?.budget_min ?? null,
+          participant.budget?.budget_max ?? null
         );
-      }
 
-      const categoryPreferenceScore = average(
-        categoryPreferenceMap.get(categoryId) ?? [],
-        participantCount
-      );
+        const rawScore =
+          calculateCategoryScore(categoryPreference) +
+          calculateTagScore(tagPreference) +
+          calculateMenuPreferenceScore(menuPreference) +
+          budgetScore;
 
-      if (categoryPreferenceScore !== 0) {
-        totalScore += categoryPreferenceScore * 20 * config.categoryPreference;
-        reasons.push(
-          categoryPreferenceScore > 0
-            ? "참여자 선호 카테고리"
-            : "참여자 비선호 카테고리 반영"
-        );
-      }
+        return roundScore(rawScore / 85 * 80);
+      });
 
-      const tagPreferenceScore = tagIds.reduce(
-        (sum, tagId) =>
-          sum + average(tagPreferenceMap.get(tagId) ?? [], participantCount),
-        0
-      );
-
-      if (tagPreferenceScore !== 0) {
-        totalScore += tagPreferenceScore * 20 * config.tagPreference;
-        reasons.push(
-          tagPreferenceScore > 0
-            ? "참여자 선호 태그 포함"
-            : "참여자 비선호 태그 반영"
-        );
-      }
-
-      const ratingAverage = ratingMap.get(menuId);
-      if (ratingAverage !== undefined) {
-        totalScore += (ratingAverage - 3) * 10 * config.averageScore;
-        reasons.push("참여자 과거 평점 반영");
-      }
-
-      const strongDislikeCount = countStrongDislikes(
-        menuId,
-        menuPreferenceMap,
-        config.strongDislikeScore
-      );
-
-      if (strongDislikeCount > 0) {
-        totalScore -= strongDislikeCount * config.strongDislikePenalty;
-        reasons.push("강한 비선호 패널티");
-      }
+      const groupPreferenceScore = average(participantScores);
+      const minimumParticipantScore = participantScores.length > 0 ? Math.min(...participantScores) : 0;
+      const purposeScore = calculatePurposeScore(purposeScoreMap.get(menuId) ?? 0);
+      const totalScore = roundScore(clamp(groupPreferenceScore + purposeScore, 0, 100));
+      const reasons = getReasonTags(groupPreferenceScore, minimumParticipantScore, purposeScore);
 
       return {
         rankNo: 0,
         menuId,
         menuName: menu.name,
-        totalScore: roundScore(totalScore),
-        reason: reasons.join(", ")
+        totalScore,
+        reason: reasons.length ? reasons.join(", ") : "참여자 선호도와 모임 목적을 기준으로 추천한 메뉴",
+        scores: {
+          group_preference_score: groupPreferenceScore,
+          minimum_participant_score: minimumParticipantScore,
+          purpose_score: purposeScore
+        }
       };
     })
-    .filter((result): result is MeetingRecommendationResult => {
-      return result !== null && result.totalScore >= config.minimumScore;
-    })
-    .sort((a, b) => {
-      if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
-      return a.menuId - b.menuId;
-    })
+    .filter((result): result is MeetingRecommendationResult => result !== null)
+    .sort(compareMeetingResults)
     .slice(0, config.resultLimit)
     .map((result, index) => ({
       ...result,
@@ -206,57 +160,26 @@ export function rankMeetingMenus(
     }));
 }
 
-function groupByMenu<T extends { menu_id: number }>(
+function preferenceMapForUser<T extends { user_id: number; preference_score: number }>(
   rows: T[],
-  valueKey: keyof T
-): Map<number, number[]> {
-  const map = new Map<number, number[]>();
-
-  for (const row of rows) {
-    const menuId = Number(row.menu_id);
-    const value = Number(row[valueKey]);
-
-    if (!map.has(menuId)) {
-      map.set(menuId, []);
-    }
-
-    map.get(menuId)!.push(value);
-  }
-
-  return map;
-}
-
-function groupPreference<T extends { preference_score: number }>(
-  rows: T[],
+  userId: number,
   targetKey: keyof T
-): Map<number, number[]> {
-  const map = new Map<number, number[]>();
-
-  for (const row of rows) {
-    const targetId = Number(row[targetKey]);
-    const score = Number(row.preference_score);
-
-    if (!map.has(targetId)) {
-      map.set(targetId, []);
-    }
-
-    map.get(targetId)!.push(score);
-  }
-
-  return map;
+) {
+  return new Map<number, number>(
+    rows
+      .filter((row) => Number(row.user_id) === userId)
+      .map((row) => [Number(row[targetKey]), Number(row.preference_score)])
+  );
 }
 
-function groupRatings(
-  rows: MeetingRecommendationBase["mealHistory"]
-): Map<number, number> {
+function ratingMapForUser(rows: MeetingRecommendationBase["mealHistory"], userId: number) {
   const map = new Map<number, { total: number; count: number }>();
 
   for (const row of rows) {
-    if (row.rating === null || row.rating === undefined) continue;
+    if (Number(row.user_id) !== userId || row.rating === null || row.rating === undefined) continue;
 
     const menuId = Number(row.menu_id);
     const current = map.get(menuId) ?? { total: 0, count: 0 };
-
     map.set(menuId, {
       total: current.total + Number(row.rating),
       count: current.count + 1
@@ -271,44 +194,81 @@ function groupRatings(
   );
 }
 
-function hasAllergy(
-  menuId: number,
-  menuAllergiesMap: Map<number, number[]>,
-  allergySet: Set<number>
-) {
-  return (menuAllergiesMap.get(Number(menuId)) ?? []).some((allergyId) =>
-    allergySet.has(allergyId)
-  );
+function normalizeIdArray(value: number[] | string | null | undefined) {
+  if (Array.isArray(value)) return value.map(Number);
+  if (!value) return [];
+
+  return value
+    .replace(/[{}]/g, "")
+    .split(",")
+    .map((item) => Number(item.trim()))
+    .filter((item) => Number.isFinite(item));
 }
 
-function getRecentMenuSet(
-  rows: MeetingRecommendationBase["mealHistory"],
-  days: number
-): Set<number> {
-  if (days <= 0) return new Set<number>();
+function averagePreferences(ids: number[], preferenceMap: Map<number, number>) {
+  const values = ids
+    .map((id) => preferenceMap.get(id))
+    .filter((value): value is number => value !== undefined);
 
-  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-
-  return new Set(
-    rows
-      .filter((row) => new Date(row.eaten_at).getTime() >= cutoff)
-      .map((row) => Number(row.menu_id))
-  );
-}
-
-function average(values: number[], participantCount: number) {
   if (values.length === 0) return 0;
-  return values.reduce((sum, value) => sum + value, 0) / participantCount;
+  return average(values);
 }
 
-function countStrongDislikes(
-  menuId: number,
-  menuPreferenceMap: Map<number, number[]>,
-  strongDislikeScore: number
+function calculateCategoryScore(preferenceScore: number) {
+  return roundScore(clamp(preferenceScore, 0, 5) / 5 * 30);
+}
+
+function calculateTagScore(tagAverage: number) {
+  return roundScore(clamp(tagAverage, 0, 5) / 5 * 20);
+}
+
+function calculateMenuPreferenceScore(menuPreference: number) {
+  return roundScore(clamp(menuPreference, 0, 5) / 5 * 25);
+}
+
+function calculateBudgetScore(
+  priceLevel: number | null,
+  budgetMin: number | null,
+  budgetMax: number | null
 ) {
-  return (menuPreferenceMap.get(menuId) ?? []).filter(
-    (score) => score <= strongDislikeScore
-  ).length;
+  if (priceLevel === null || budgetMax === null) return 10;
+  if (priceLevel > budgetMax) return 5;
+  if (budgetMin !== null && priceLevel < budgetMin) return 8;
+  return 10;
+}
+
+function calculatePurposeScore(purposeSuitability: number) {
+  return roundScore(clamp(purposeSuitability, 0, 5) / 5 * 20);
+}
+
+function average(values: number[]) {
+  if (values.length === 0) return 0;
+  return roundScore(values.reduce((sum, value) => sum + value, 0) / values.length);
+}
+
+function compareMeetingResults(a: MeetingRecommendationResult, b: MeetingRecommendationResult) {
+  return (
+    b.totalScore - a.totalScore ||
+    b.scores.minimum_participant_score - a.scores.minimum_participant_score ||
+    b.scores.purpose_score - a.scores.purpose_score ||
+    b.scores.group_preference_score - a.scores.group_preference_score ||
+    a.menuName.localeCompare(b.menuName, "ko") ||
+    a.menuId - b.menuId
+  );
+}
+
+function getReasonTags(groupPreferenceScore: number, minimumParticipantScore: number, purposeScore: number) {
+  const reasons: string[] = [];
+
+  if (purposeScore >= 16) reasons.push("모임 목적에 잘 맞는 메뉴");
+  if (groupPreferenceScore >= 60) reasons.push("참여자 평균 선호도가 높은 메뉴");
+  if (minimumParticipantScore >= 50) reasons.push("참여자 간 선호도 차이가 적은 메뉴");
+
+  return reasons;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
 }
 
 function roundScore(score: number) {

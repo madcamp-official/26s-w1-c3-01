@@ -1,89 +1,84 @@
 import type {
-  MenuRow,
+  MenuRecommendationFeatureRow,
   PersonalRecommendationRequest,
   RecommendationBaseData,
   RecommendationResult,
-  RecommendationScoreBreakdown,
-  UserMenuInteractionRow
+  RecommendationScoreBreakdown
 } from "./recommendation.dto.js";
 
 type MenuScoringStats = {
-  categoryPreferenceScore?: number;
-  ratingAverage?: number;
-  reviewCount: number;
+  categoryPreference: number;
+  tagPreferenceAverage: number;
+  menuPreference: number;
   priceLevel: number | null;
   budgetMin: number | null;
   budgetMax: number | null;
-  popularityRaw: number;
-  maxPopularityRaw: number;
-  userPickCount: number;
-  recentPickCount7d: number;
-  hasRecentDislike30d: boolean;
+  isNewMenu: boolean;
+  lastEatenAt: string | null;
+  recentDuplicateDays: number;
 };
 
 type CalculatedScore = {
   total_score: number;
   scores: RecommendationScoreBreakdown;
   reason_tags: string[];
-  is_new_suggestion: boolean;
 };
 
 const DEFAULT_RECOMMENDATION_LIMIT = 5;
-const DEFAULT_RATING_AVERAGE = 3.8;
-const ALGORITHM_VERSION = "personal-weighted-v1" as const;
+const DEFAULT_MENU_PREFERENCE = 5;
+const ALGORITHM_VERSION = "personal-simple-v2" as const;
 
 export function rankPersonalMenus(
   input: PersonalRecommendationRequest,
   base: RecommendationBaseData
 ): RecommendationResult[] {
   const limit = input.limit ?? DEFAULT_RECOMMENDATION_LIMIT;
+  const recentDuplicateDays = input.recentDuplicateDays ?? input.excludeRecentDays ?? 0;
   const categoryPreferenceMap = toPreferenceMap(base.userCategoryPreferences, "category_id");
-  const menuAllergiesMap = groupIdsByMenu(base.menuAllergies, "allergy_id");
-  const userAllergySet = new Set<number>(base.userAllergies.map((row) => Number(row.allergy_id)));
-  const ratingStatsMap = getRatingStatsMap(base);
-  const popularityRawMap = getPopularityRawMap(base);
-  const maxPopularityRaw = Math.max(0, ...Array.from(popularityRawMap.values()));
-  const pickCountMap = getUserPickCountMap(base);
-  const recentPickCount7dMap = getRecentPickCount7dMap(base);
-  const recentDislike30dSet = getRecentDislike30dSet(base.userMenuInteractions);
+  const tagPreferenceMap = toPreferenceMap(base.userTagPreferences, "tag_id");
+  const menuPreferenceMap = toPreferenceMap(base.userMenuPreferences, "menu_id");
+  const userAllergySet = new Set(base.userAllergyIds.map(Number));
+  const historyStatsMap = getHistoryStatsMap(base.mealHistory);
 
   const scoredMenus = base.menus
-    // 알러지/제한 조건에 걸리는 메뉴는 점수 계산 전에 완전히 제외한다.
-    .filter((menu) => !hasUserAllergy(menu.menu_id, menuAllergiesMap, userAllergySet))
+    .filter((menu) => !hasAllergyConflict(menu, userAllergySet))
     .map((menu) => {
       const menuId = Number(menu.menu_id);
-      const ratingStats = ratingStatsMap.get(menuId);
-      const calculated = calculatePersonalRecommendationScore(menu, {
-        categoryPreferenceScore: categoryPreferenceMap.get(Number(menu.category_id)),
-        ratingAverage: ratingStats?.average,
-        reviewCount: ratingStats?.count ?? 0,
+      const historyStats = historyStatsMap.get(menuId);
+      const isNewMenu = !historyStats;
+
+      if (input.includeNewMenu === false && isNewMenu) {
+        return null;
+      }
+
+      const tagIds = normalizeIdArray(menu.tag_ids);
+      const calculated = calculatePersonalRecommendationScore({
+        categoryPreference: categoryPreferenceMap.get(Number(menu.category_id)) ?? 0,
+        tagPreferenceAverage: averagePreferences(tagIds, tagPreferenceMap),
+        menuPreference: menuPreferenceMap.get(menuId) ?? historyStats?.ratingAverage ?? DEFAULT_MENU_PREFERENCE,
         priceLevel: menu.price_level,
         budgetMin: base.userPreference?.budget_min ?? null,
         budgetMax: base.userPreference?.budget_max ?? null,
-        popularityRaw: popularityRawMap.get(menuId) ?? 0,
-        maxPopularityRaw,
-        userPickCount: pickCountMap.get(menuId) ?? 0,
-        recentPickCount7d: recentPickCount7dMap.get(menuId) ?? 0,
-        hasRecentDislike30d: recentDislike30dSet.has(menuId)
+        isNewMenu,
+        lastEatenAt: historyStats?.lastEatenAt ?? null,
+        recentDuplicateDays
       });
 
       return {
         rankNo: 0,
         menuId,
         menuName: menu.name,
-        categoryName: getCategoryName(menu),
+        categoryName: menu.category_name,
         priceLevel: menu.price_level,
         totalScore: calculated.total_score,
         reason: buildReason(calculated.reason_tags),
         reasonTags: calculated.reason_tags,
-        isNewSuggestion: calculated.is_new_suggestion,
+        isNewSuggestion: isNewMenu,
         scores: calculated.scores
       };
     })
-    .sort((a, b) => {
-      if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
-      return a.menuId - b.menuId;
-    })
+    .filter((item): item is RecommendationResult => item !== null)
+    .sort(compareRecommendationResults)
     .slice(0, limit);
 
   return scoredMenus.map((item, index) => ({
@@ -92,104 +87,65 @@ export function rankPersonalMenus(
   }));
 }
 
-export function calculatePersonalRecommendationScore(
-  _menu: MenuRow,
-  stats: MenuScoringStats
-): CalculatedScore {
-  const category_score = calculateCategoryScore(stats.categoryPreferenceScore);
-  const rating_score = calculateRatingScore(stats.ratingAverage ?? DEFAULT_RATING_AVERAGE);
-  const review_confidence_score = calculateReviewConfidenceScore(stats.reviewCount);
-  const price_score = calculatePriceScore(stats.priceLevel, stats.budgetMin, stats.budgetMax);
-  const popularity_score = calculatePopularityScore(stats.popularityRaw, stats.maxPopularityRaw);
-  const novelty_score = calculateNoveltyScore(stats.userPickCount);
-  const repeat_score = calculateRepeatScore(stats.recentPickCount7d);
-  const negative_feedback_score = stats.hasRecentDislike30d ? 0 : 5;
+export function calculatePersonalRecommendationScore(stats: MenuScoringStats): CalculatedScore {
+  const category_score = calculateCategoryScore(stats.categoryPreference);
+  const tag_score = calculateTagScore(stats.tagPreferenceAverage);
+  const menu_preference_score = calculateMenuPreferenceScore(stats.menuPreference);
+  const budget_score = calculateBudgetScore(stats.priceLevel, stats.budgetMin, stats.budgetMax);
+  const new_menu_score = stats.isNewMenu ? 15 : 0;
+  const history_penalty = calculateHistoryPenalty(stats.lastEatenAt, stats.recentDuplicateDays);
 
   const scores: RecommendationScoreBreakdown = {
     category_score,
-    rating_score,
-    review_confidence_score,
-    price_score,
-    popularity_score,
-    novelty_score,
-    repeat_score,
-    negative_feedback_score
+    tag_score,
+    menu_preference_score,
+    budget_score,
+    new_menu_score,
+    history_penalty
   };
 
-  const total_score = roundScore(
-    clamp(
-      Object.values(scores).reduce((sum, score) => sum + score, 0),
-      0,
-      100
-    )
-  );
+  const rawScore = category_score + tag_score + menu_preference_score + budget_score + new_menu_score - history_penalty;
 
   return {
-    total_score,
+    total_score: roundScore(clamp(rawScore, 0, 100)),
     scores,
-    reason_tags: getReasonTags(scores, stats),
-    is_new_suggestion: stats.userPickCount === 0
+    reason_tags: getReasonTags(scores)
   };
 }
 
-export function calculateCategoryScore(preferenceScore?: number) {
-  return roundScore(clamp(10 + 2 * (preferenceScore ?? 0), 0, 20));
+export function calculateCategoryScore(preferenceScore: number) {
+  return roundScore(clamp(preferenceScore, 0, 5) / 5 * 30);
 }
 
-export function calculateRatingScore(ratingAverage: number) {
-  const normalizedRating = clamp((ratingAverage - 1) / 4, 0, 1);
-  return roundScore(clamp(20 * Math.pow(normalizedRating, 1.5), 0, 20));
+export function calculateTagScore(tagAverage: number) {
+  return roundScore(clamp(tagAverage, 0, 5) / 5 * 20);
 }
 
-export function calculateReviewConfidenceScore(reviewCount: number) {
-  return roundScore(clamp(10 * (1 - Math.exp(-Math.max(0, reviewCount) / 20)), 0, 10));
+export function calculateMenuPreferenceScore(menuPreference: number) {
+  return roundScore(clamp(menuPreference, 0, 5) / 5 * 25);
 }
 
-export function calculatePriceScore(
+export function calculateBudgetScore(
   priceLevel: number | null,
   budgetMin: number | null,
   budgetMax: number | null
 ) {
-  // 현재 DB에는 실제 가격이 없고 price_level(1~5)만 있어 예산도 같은 단계값으로 해석한다.
-  const price = priceLevel ?? null;
-  const min = budgetMin ?? null;
-  const max = budgetMax ?? null;
-
-  if (price === null || max === null || max <= 0) {
-    return 10;
-  }
-
-  if (min !== null && min > 0 && price < min) {
-    return roundScore(clamp(12 + 3 * (price / min), 0, 15));
-  }
-
-  if ((min === null || price >= min) && price <= max) {
-    return 15;
-  }
-
-  return roundScore(clamp(15 * Math.exp(-(price - max) / max), 0, 15));
+  if (priceLevel === null || budgetMax === null) return 10;
+  if (priceLevel > budgetMax) return 5;
+  if (budgetMin !== null && priceLevel < budgetMin) return 8;
+  return 10;
 }
 
-export function calculatePopularityScore(popularityRaw: number, maxPopularityRaw: number) {
-  if (maxPopularityRaw <= 0) {
-    return 7.5;
-  }
+export function calculateHistoryPenalty(lastEatenAt: string | null, recentDuplicateDays: number) {
+  if (recentDuplicateDays <= 0 || !lastEatenAt) return 0;
 
-  return roundScore(
-    clamp(
-      15 * (Math.log(1 + Math.max(0, popularityRaw)) / Math.log(1 + maxPopularityRaw)),
-      0,
-      15
-    )
+  const daysSinceLastEaten = Math.max(
+    0,
+    (Date.now() - new Date(lastEatenAt).getTime()) / (24 * 60 * 60 * 1000)
   );
-}
 
-export function calculateNoveltyScore(userPickCount: number) {
-  return roundScore(clamp(10 * Math.exp(-Math.max(0, userPickCount) / 3), 0, 10));
-}
-
-export function calculateRepeatScore(recentPickCount7d: number) {
-  return roundScore(clamp(5 * Math.exp(-Math.max(0, recentPickCount7d) / 2), 0, 5));
+  if (daysSinceLastEaten >= recentDuplicateDays) return 0;
+  return roundScore(20 * (1 - daysSinceLastEaten / recentDuplicateDays));
 }
 
 export function getAlgorithmVersion() {
@@ -205,130 +161,90 @@ function toPreferenceMap<T extends Record<string, unknown>>(rows: T[], idKey: ke
   );
 }
 
-function groupIdsByMenu<T extends Record<string, unknown>>(rows: T[], idKey: keyof T) {
-  const map = new Map<number, number[]>();
+function normalizeIdArray(value: number[] | string | null | undefined) {
+  if (Array.isArray(value)) return value.map(Number);
+  if (!value) return [];
+
+  return value
+    .replace(/[{}]/g, "")
+    .split(",")
+    .map((item) => Number(item.trim()))
+    .filter((item) => Number.isFinite(item));
+}
+
+function averagePreferences(ids: number[], preferenceMap: Map<number, number>) {
+  const values = ids
+    .map((id) => preferenceMap.get(Number(id)))
+    .filter((value): value is number => value !== undefined);
+
+  if (values.length === 0) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function hasAllergyConflict(menu: MenuRecommendationFeatureRow, userAllergySet: Set<number>) {
+  return normalizeIdArray(menu.allergy_ids).some((allergyId) => userAllergySet.has(allergyId));
+}
+
+function getHistoryStatsMap(rows: RecommendationBaseData["mealHistory"]) {
+  const map = new Map<number, { lastEatenAt: string; ratingTotal: number; ratingCount: number; ratingAverage?: number }>();
 
   for (const row of rows) {
     const menuId = Number(row.menu_id);
-    const value = Number(row[idKey]);
+    const current = map.get(menuId) ?? {
+      lastEatenAt: row.eaten_at,
+      ratingTotal: 0,
+      ratingCount: 0
+    };
 
-    if (!map.has(menuId)) {
-      map.set(menuId, []);
+    if (new Date(row.eaten_at).getTime() > new Date(current.lastEatenAt).getTime()) {
+      current.lastEatenAt = row.eaten_at;
     }
 
-    map.get(menuId)!.push(value);
+    if (row.rating !== null && row.rating !== undefined) {
+      current.ratingTotal += Number(row.rating);
+      current.ratingCount += 1;
+      current.ratingAverage = current.ratingTotal / current.ratingCount;
+    }
+
+    map.set(menuId, current);
   }
 
   return map;
 }
 
-function hasUserAllergy(
-  menuId: number,
-  menuAllergiesMap: Map<number, number[]>,
-  userAllergySet: Set<number>
-) {
-  const allergyIds = menuAllergiesMap.get(Number(menuId)) ?? [];
-  return allergyIds.some((allergyId) => userAllergySet.has(allergyId));
-}
-
-function getRatingStatsMap(base: RecommendationBaseData) {
-  return new Map(
-    base.ratingStats.map((row) => [
-      Number(row.menu_id),
-      {
-        average: Number(row.rating_average),
-        count: Number(row.rating_count)
-      }
-    ])
+function compareRecommendationResults(a: RecommendationResult, b: RecommendationResult) {
+  return (
+    b.totalScore - a.totalScore ||
+    a.scores.history_penalty - b.scores.history_penalty ||
+    b.scores.new_menu_score - a.scores.new_menu_score ||
+    b.scores.menu_preference_score - a.scores.menu_preference_score ||
+    b.scores.category_score - a.scores.category_score ||
+    b.scores.tag_score - a.scores.tag_score ||
+    b.scores.budget_score - a.scores.budget_score ||
+    a.menuName.localeCompare(b.menuName, "ko") ||
+    a.menuId - b.menuId
   );
 }
 
-function getPopularityRawMap(base: RecommendationBaseData) {
-  return new Map(base.popularityStats.map((row) => [Number(row.menu_id), Number(row.popularity_raw)]));
-}
-
-function getUserPickCountMap(base: RecommendationBaseData) {
-  const map = new Map<number, number>();
-
-  for (const row of base.userMenuInteractions) {
-    if (row.interaction_type !== "pick") continue;
-    const menuId = Number(row.menu_id);
-    map.set(menuId, (map.get(menuId) ?? 0) + 1);
-  }
-
-  for (const row of base.mealHistory) {
-    const menuId = Number(row.menu_id);
-    map.set(menuId, (map.get(menuId) ?? 0) + 1);
-  }
-
-  return map;
-}
-
-function getRecentPickCount7dMap(base: RecommendationBaseData) {
-  const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const map = new Map<number, number>();
-
-  for (const row of base.userMenuInteractions) {
-    if (row.interaction_type !== "pick") continue;
-    if (new Date(row.created_at).getTime() < cutoff) continue;
-
-    const menuId = Number(row.menu_id);
-    map.set(menuId, (map.get(menuId) ?? 0) + 1);
-  }
-
-  for (const row of base.mealHistory) {
-    if (new Date(row.eaten_at).getTime() < cutoff) continue;
-
-    const menuId = Number(row.menu_id);
-    map.set(menuId, (map.get(menuId) ?? 0) + 1);
-  }
-
-  return map;
-}
-
-function getRecentDislike30dSet(rows: UserMenuInteractionRow[]) {
-  const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
-  const set = new Set<number>();
-
-  for (const row of rows) {
-    if (row.interaction_type !== "dislike") continue;
-    if (new Date(row.created_at).getTime() < cutoff) continue;
-
-    set.add(Number(row.menu_id));
-  }
-
-  return set;
-}
-
-function getReasonTags(scores: RecommendationScoreBreakdown, stats: MenuScoringStats) {
+function getReasonTags(scores: RecommendationScoreBreakdown) {
   const tags: string[] = [];
 
-  if (scores.category_score >= 16) tags.push("선호도가 높은 카테고리의 메뉴입니다.");
-  if (scores.rating_score >= 15) tags.push("평점이 높은 메뉴입니다.");
-  if (scores.review_confidence_score >= 6) tags.push("리뷰 수가 충분해 신뢰도가 높은 메뉴입니다.");
-  if (scores.price_score >= 14) tags.push("사용자의 예산 범위에 잘 맞는 메뉴입니다.");
-  if (scores.popularity_score >= 11) tags.push("많은 사용자가 선택한 인기 메뉴입니다.");
-  if (scores.novelty_score >= 8) tags.push("아직 자주 선택하지 않은 새로운 메뉴입니다.");
-  if (scores.repeat_score >= 4) tags.push("최근 반복 선택이 적어 추천하기 적합합니다.");
-  if (stats.hasRecentDislike30d) tags.push("최근 부정 피드백이 있어 점수가 낮게 반영되었습니다.");
+  if (scores.category_score >= 24) tags.push("선호도가 높은 카테고리의 메뉴입니다.");
+  if (scores.tag_score >= 16) tags.push("선호 태그와 잘 맞는 메뉴입니다.");
+  if (scores.menu_preference_score >= 20) tags.push("이전 평가 내역 또는 메뉴 선호도가 높은 메뉴입니다.");
+  if (scores.budget_score === 10) tags.push("예산 범위에 잘 맞는 메뉴입니다.");
+  if (scores.new_menu_score > 0) tags.push("아직 먹어보지 않은 새로운 메뉴입니다.");
+  if (scores.history_penalty > 0) tags.push("최근 식사 기록이 있어 일부 감점되었습니다.");
 
   return tags.slice(0, 2);
 }
 
 function buildReason(reasonTags: string[]) {
   if (reasonTags.length === 0) {
-    return "전체 선호도와 이용 기록을 기준으로 추천한 메뉴입니다.";
+    return "선호도와 식사 기록을 기준으로 추천한 메뉴입니다.";
   }
 
   return reasonTags.join(" ");
-}
-
-function getCategoryName(menu: MenuRow) {
-  const category = Array.isArray(menu.menu_categories)
-    ? menu.menu_categories[0]
-    : menu.menu_categories;
-
-  return category?.name ?? null;
 }
 
 function clamp(value: number, min: number, max: number) {

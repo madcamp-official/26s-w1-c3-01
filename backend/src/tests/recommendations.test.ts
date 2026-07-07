@@ -1,115 +1,89 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
+  calculateBudgetScore,
   calculateCategoryScore,
-  calculateNoveltyScore,
+  calculateHistoryPenalty,
+  calculateMenuPreferenceScore,
   calculatePersonalRecommendationScore,
-  calculatePopularityScore,
-  calculatePriceScore,
-  calculateRatingScore,
-  calculateRepeatScore,
-  calculateReviewConfidenceScore
+  calculateTagScore
 } from "../modules/recommendations/recommendation.algorithm.js";
-import type { MenuRow } from "../modules/recommendations/recommendation.dto.js";
-
-const sampleMenu: MenuRow = {
-  menu_id: 1,
-  category_id: 1,
-  name: "김치찌개",
-  price_level: 3
-};
 
 describe("personal recommendation scoring", () => {
-  it("calculates category score from current -5 to 5 DB preference range", () => {
-    expect(calculateCategoryScore(-5)).toBe(0);
-    expect(calculateCategoryScore(0)).toBe(10);
-    expect(calculateCategoryScore(5)).toBe(20);
+  it("maps category preference 0 to 5 into 0 to 30 points", () => {
+    expect(calculateCategoryScore(0)).toBe(0);
+    expect(calculateCategoryScore(5)).toBe(30);
   });
 
-  it("calculates nonlinear rating score", () => {
-    expect(calculateRatingScore(1)).toBe(0);
-    expect(calculateRatingScore(5)).toBe(20);
+  it("maps tag preference average 4 into 16 points", () => {
+    expect(calculateTagScore(4)).toBe(16);
   });
 
-  it("increases review confidence with review count without exceeding 10", () => {
-    const low = calculateReviewConfidenceScore(1);
-    const high = calculateReviewConfidenceScore(100);
-
-    expect(high).toBeGreaterThan(low);
-    expect(high).toBeLessThanOrEqual(10);
+  it("maps menu preference 5 into 25 points", () => {
+    expect(calculateMenuPreferenceScore(5)).toBe(25);
   });
 
-  it("gives max price score inside budget range", () => {
-    expect(calculatePriceScore(3, 2, 4)).toBe(15);
+  it("scores budget fit with fixed buckets", () => {
+    expect(calculateBudgetScore(3, 2, 4)).toBe(10);
+    expect(calculateBudgetScore(1, 2, 4)).toBe(8);
+    expect(calculateBudgetScore(5, 2, 4)).toBe(5);
+    expect(calculateBudgetScore(3, null, null)).toBe(10);
   });
 
-  it("penalizes price level above budget max", () => {
-    expect(calculatePriceScore(5, 1, 3)).toBeLessThan(15);
+  it("calculates linear history penalty inside recent duplicate days", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-07T00:00:00.000Z"));
+
+    expect(calculateHistoryPenalty("2026-07-07T00:00:00.000Z", 7)).toBe(20);
+    expect(calculateHistoryPenalty("2026-07-04T00:00:00.000Z", 7)).toBe(11.43);
+    expect(calculateHistoryPenalty("2026-06-30T00:00:00.000Z", 7)).toBe(0);
+    expect(calculateHistoryPenalty("2026-07-07T00:00:00.000Z", 0)).toBe(0);
+
+    vi.useRealTimers();
   });
 
-  it("gives max popularity score for the most popular menu", () => {
-    expect(calculatePopularityScore(10, 10)).toBe(15);
-  });
-
-  it("gives full novelty score for never-picked menus", () => {
-    expect(calculateNoveltyScore(0)).toBe(10);
-  });
-
-  it("lowers repeat score as recent picks increase", () => {
-    expect(calculateRepeatScore(3)).toBeLessThan(calculateRepeatScore(0));
-  });
-
-  it("drops negative feedback score to zero for recent dislikes", () => {
-    const result = calculatePersonalRecommendationScore(sampleMenu, {
-      categoryPreferenceScore: 0,
-      ratingAverage: 3.8,
-      reviewCount: 0,
-      priceLevel: 3,
-      budgetMin: null,
-      budgetMax: null,
-      popularityRaw: 0,
-      maxPopularityRaw: 0,
-      userPickCount: 0,
-      recentPickCount7d: 0,
-      hasRecentDislike30d: true
-    });
-
-    expect(result.scores.negative_feedback_score).toBe(0);
-  });
-
-  it("clamps total score to the 0 to 100 range", () => {
-    const result = calculatePersonalRecommendationScore(sampleMenu, {
-      categoryPreferenceScore: 5,
-      ratingAverage: 5,
-      reviewCount: 999,
+  it("combines simple recommendation scores and clamps to 100", () => {
+    const result = calculatePersonalRecommendationScore({
+      categoryPreference: 5,
+      tagPreferenceAverage: 5,
+      menuPreference: 5,
       priceLevel: 2,
       budgetMin: 1,
       budgetMax: 3,
-      popularityRaw: 999,
-      maxPopularityRaw: 999,
-      userPickCount: 0,
-      recentPickCount7d: 0,
-      hasRecentDislike30d: false
+      isNewMenu: true,
+      lastEatenAt: null,
+      recentDuplicateDays: 7
     });
 
-    expect(result.total_score).toBeGreaterThanOrEqual(0);
-    expect(result.total_score).toBeLessThanOrEqual(100);
+    expect(result.total_score).toBe(100);
+    expect(result.scores).toEqual({
+      category_score: 30,
+      tag_score: 20,
+      menu_preference_score: 25,
+      budget_score: 10,
+      new_menu_score: 15,
+      history_penalty: 0
+    });
   });
 
-  it("marks a menu as new when the user has never picked it", () => {
-    const result = calculatePersonalRecommendationScore(sampleMenu, {
-      categoryPreferenceScore: 0,
-      ratingAverage: 3.8,
-      reviewCount: 0,
-      priceLevel: 3,
-      budgetMin: null,
-      budgetMax: null,
-      popularityRaw: 0,
-      maxPopularityRaw: 0,
-      userPickCount: 0,
-      recentPickCount7d: 0,
-      hasRecentDislike30d: false
+  it("subtracts history penalty from final score", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-07T00:00:00.000Z"));
+
+    const result = calculatePersonalRecommendationScore({
+      categoryPreference: 0,
+      tagPreferenceAverage: 0,
+      menuPreference: 5,
+      priceLevel: 2,
+      budgetMin: 1,
+      budgetMax: 3,
+      isNewMenu: false,
+      lastEatenAt: "2026-07-07T00:00:00.000Z",
+      recentDuplicateDays: 7
     });
 
-    expect(result.is_new_suggestion).toBe(true);
+    expect(result.total_score).toBe(15);
+    expect(result.scores.history_penalty).toBe(20);
+
+    vi.useRealTimers();
   });
 });

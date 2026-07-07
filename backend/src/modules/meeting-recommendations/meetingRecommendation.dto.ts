@@ -1,9 +1,13 @@
 export type MeetingRecommendationRequest = {
   resultLimit?: number;
   limit?: number;
-  recentDuplicateDays?: number;
-  excludeRecentDays?: number;
   participantUserIds?: number[];
+};
+
+export type MeetingRecommendationScoreBreakdown = {
+  group_preference_score: number;
+  minimum_participant_score: number;
+  purpose_score: number;
 };
 
 export type MeetingRecommendationResult = {
@@ -12,17 +16,10 @@ export type MeetingRecommendationResult = {
   menuName: string;
   totalScore: number;
   reason: string;
+  scores: MeetingRecommendationScoreBreakdown;
 };
 
 export type MeetingRecommendationConfig = {
-  menuPreference: number;
-  categoryPreference: number;
-  tagPreference: number;
-  averageScore: number;
-  minimumScore: number;
-  strongDislikePenalty: number;
-  strongDislikeScore: number;
-  recentDuplicateDays: number;
   resultLimit: number;
   participantUserIds?: number[];
 };
