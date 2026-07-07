@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ApiStatus, Tab } from "./app.types";
+import { LoadingOverlay, preloadLoadingGif } from "../components/feedback/LoadingOverlay";
 import { AuthFlow } from "../features/auth/AuthFlow";
 import { useAuthActions } from "../features/auth/useAuthActions";
 import { useAuthFlowState } from "../features/auth/useAuthFlowState";
@@ -333,117 +334,138 @@ export function MukpickApp() {
     syncSelectedMeeting
   });
 
+  useEffect(() => {
+    preloadLoadingGif();
+  }, []);
+
+  const globalLoading =
+    authBusy ||
+    apiStatus === "loading" ||
+    apiStatus === "authenticating" ||
+    meetingSaving ||
+    preferenceSaving ||
+    personalRecommendationLoading ||
+    historySaving ||
+    meetingActionLoading;
+
   if (flow !== "app") {
     return (
-      <AuthFlow
-        flow={flow}
-        nickname={nickname}
-        signupCredentials={signupCredentials}
-        loginCredentials={loginCredentials}
-        selectedCategories={selectedCategories}
-        selectedTags={selectedTags}
-        selectedAllergies={selectedAllergies}
-        categoryScores={categoryScores}
-        tagScores={tagScores}
-        recentDuplicateDays={recentDuplicateDays}
-        onFlowChange={setFlow}
-        onNicknameChange={setNickname}
-        onSignupCredentialsChange={setSignupCredentials}
-        onLoginCredentialsChange={setLoginCredentials}
-        onSelectedCategoriesChange={setSelectedCategories}
-        onSelectedTagsChange={setSelectedTags}
-        onSelectedAllergiesChange={setSelectedAllergies}
-        onCategoryScoresChange={setCategoryScores}
-        onTagScoresChange={setTagScores}
-        onRecentDuplicateDaysChange={setRecentDuplicateDays}
-        guestDisplayName={guestDisplayName}
-        guestMeetingId={guestMeetingId}
-        guestPreviewMeeting={guestPreviewMeeting}
-        onGuestDisplayNameChange={setGuestDisplayName}
-        onGuestMeetingIdChange={setGuestMeetingId}
-        pickData={pickData}
-        authBusy={authBusy || apiStatus === "loading"}
-        authError={authError}
-        isOAuthOnboarding={isOAuthOnboarding}
-        onOAuthStart={handleOAuthStart}
-        onLogin={handleLogin}
-        onCheckNickname={handleCheckNickname}
-        onCreateEmailSignup={handleCreateEmailSignup}
-        onCompleteOAuthNickname={handleOAuthNicknameComplete}
-        onCompleteSignup={handleSignupComplete}
-        onCompleteGuestPreferences={handleGuestPreferenceComplete}
-        onPreviewGuestMeeting={handlePreviewGuestMeeting}
-        onJoinGuestMeeting={() => handleJoinMeetingById(guestMeetingId, guestDisplayName)}
-      />
+      <>
+        <AuthFlow
+          flow={flow}
+          nickname={nickname}
+          signupCredentials={signupCredentials}
+          loginCredentials={loginCredentials}
+          selectedCategories={selectedCategories}
+          selectedTags={selectedTags}
+          selectedAllergies={selectedAllergies}
+          categoryScores={categoryScores}
+          tagScores={tagScores}
+          recentDuplicateDays={recentDuplicateDays}
+          onFlowChange={setFlow}
+          onNicknameChange={setNickname}
+          onSignupCredentialsChange={setSignupCredentials}
+          onLoginCredentialsChange={setLoginCredentials}
+          onSelectedCategoriesChange={setSelectedCategories}
+          onSelectedTagsChange={setSelectedTags}
+          onSelectedAllergiesChange={setSelectedAllergies}
+          onCategoryScoresChange={setCategoryScores}
+          onTagScoresChange={setTagScores}
+          onRecentDuplicateDaysChange={setRecentDuplicateDays}
+          guestDisplayName={guestDisplayName}
+          guestMeetingId={guestMeetingId}
+          guestPreviewMeeting={guestPreviewMeeting}
+          onGuestDisplayNameChange={setGuestDisplayName}
+          onGuestMeetingIdChange={setGuestMeetingId}
+          pickData={pickData}
+          authBusy={authBusy || apiStatus === "loading"}
+          authError={authError}
+          isOAuthOnboarding={isOAuthOnboarding}
+          onOAuthStart={handleOAuthStart}
+          onLogin={handleLogin}
+          onCheckNickname={handleCheckNickname}
+          onCreateEmailSignup={handleCreateEmailSignup}
+          onCompleteOAuthNickname={handleOAuthNicknameComplete}
+          onCompleteSignup={handleSignupComplete}
+          onCompleteGuestPreferences={handleGuestPreferenceComplete}
+          onPreviewGuestMeeting={handlePreviewGuestMeeting}
+          onJoinGuestMeeting={() => handleJoinMeetingById(guestMeetingId, guestDisplayName)}
+        />
+        <LoadingOverlay active={globalLoading} />
+      </>
     );
   }
 
   const visibleTab = isGuestSession ? "meeting" : activeTab;
 
   return (
-    <AppScreens
-      visibleTab={visibleTab}
-      isGuestSession={isGuestSession}
-      apiStatus={apiStatus}
-      apiError={apiError}
-      pickData={pickData}
-      historyItems={historyItems}
-      selectedCategories={selectedCategories}
-      selectedTags={selectedTags}
-      selectedAllergies={selectedAllergies}
-      categoryScores={categoryScores}
-      tagScores={tagScores}
-      recentDuplicateDays={recentDuplicateDays}
-      newMenuIncluded={newMenuIncluded}
-      budgetMin={budgetMin}
-      budgetMax={budgetMax}
-      recommendationItems={recommendationItems}
-      personalRecommendationReady={personalRecommendationReady}
-      selectedPersonalRecommendation={selectedPersonalRecommendation}
-      meetingItems={meetingItems}
-      selectedMeeting={selectedMeeting}
-      meetingRecommendations={meetingRecommendations}
-      selectedMeetingRecommendation={selectedMeetingRecommendation}
-      excludedMeetingUserIds={excludedMeetingUserIds}
-      profileName={profileName}
-      profileUserId={profileUserId}
-      meetingPurposes={meetingPurposes}
-      menuOptions={menuOptions}
-      meetingDialogOpen={meetingDialogOpen}
-      meetingSaving={meetingSaving}
-      preferenceSaving={preferenceSaving}
-      personalRecommendationLoading={personalRecommendationLoading}
-      meetingActionLoading={meetingActionLoading || meetingSaving}
-      historySaving={historySaving}
-      toastMessage={toastMessage}
-      setActiveTab={setActiveTab}
-      setSelectedCategories={setSelectedCategories}
-      setSelectedTags={setSelectedTags}
-      setSelectedAllergies={setSelectedAllergies}
-      setCategoryScores={setCategoryScores}
-      setTagScores={setTagScores}
-      setRecentDuplicateDays={setRecentDuplicateDays}
-      setNewMenuIncluded={setNewMenuIncluded}
-      setBudgetMin={setBudgetMin}
-      setBudgetMax={setBudgetMax}
-      setSelectedPersonalRecommendation={setSelectedPersonalRecommendation}
-      setMeetingDialogOpen={setMeetingDialogOpen}
-      setSelectedMeeting={setSelectedMeeting}
-      setSelectedMeetingRecommendation={setSelectedMeetingRecommendation}
-      setExcludedMeetingUserIds={setExcludedMeetingUserIds}
-      handlePreferenceSave={handlePreferenceSave}
-      handleRecommendationRefresh={handleRecommendationRefresh}
-      handleHistoryInteractionToggle={handleHistoryInteractionToggle}
-      handleConfirmPersonalRecommendation={handleConfirmPersonalRecommendation}
-      handleOpenMeeting={handleOpenMeeting}
-      handleCreateMeetingRecommendation={handleCreateMeetingRecommendation}
-      handleDecideMeetingMenu={handleDecideMeetingMenu}
-      handleJoinMeetingById={handleJoinMeetingById}
-      handleLogout={handleLogout}
-      handleUpdateMeeting={handleUpdateMeeting}
-      handleUpdateHistory={handleUpdateHistory}
-      handleDeleteHistory={handleDeleteHistory}
-      handleCreateMeeting={handleCreateMeeting}
-    />
+    <>
+      <AppScreens
+        visibleTab={visibleTab}
+        isGuestSession={isGuestSession}
+        apiStatus={apiStatus}
+        apiError={apiError}
+        pickData={pickData}
+        historyItems={historyItems}
+        selectedCategories={selectedCategories}
+        selectedTags={selectedTags}
+        selectedAllergies={selectedAllergies}
+        categoryScores={categoryScores}
+        tagScores={tagScores}
+        recentDuplicateDays={recentDuplicateDays}
+        newMenuIncluded={newMenuIncluded}
+        budgetMin={budgetMin}
+        budgetMax={budgetMax}
+        recommendationItems={recommendationItems}
+        personalRecommendationReady={personalRecommendationReady}
+        selectedPersonalRecommendation={selectedPersonalRecommendation}
+        meetingItems={meetingItems}
+        selectedMeeting={selectedMeeting}
+        meetingRecommendations={meetingRecommendations}
+        selectedMeetingRecommendation={selectedMeetingRecommendation}
+        excludedMeetingUserIds={excludedMeetingUserIds}
+        profileName={profileName}
+        profileUserId={profileUserId}
+        meetingPurposes={meetingPurposes}
+        menuOptions={menuOptions}
+        meetingDialogOpen={meetingDialogOpen}
+        meetingSaving={meetingSaving}
+        preferenceSaving={preferenceSaving}
+        personalRecommendationLoading={personalRecommendationLoading}
+        personalSelectionSaving={historySaving}
+        meetingActionLoading={meetingActionLoading || meetingSaving}
+        historySaving={historySaving}
+        toastMessage={toastMessage}
+        setActiveTab={setActiveTab}
+        setSelectedCategories={setSelectedCategories}
+        setSelectedTags={setSelectedTags}
+        setSelectedAllergies={setSelectedAllergies}
+        setCategoryScores={setCategoryScores}
+        setTagScores={setTagScores}
+        setRecentDuplicateDays={setRecentDuplicateDays}
+        setNewMenuIncluded={setNewMenuIncluded}
+        setBudgetMin={setBudgetMin}
+        setBudgetMax={setBudgetMax}
+        setSelectedPersonalRecommendation={setSelectedPersonalRecommendation}
+        setMeetingDialogOpen={setMeetingDialogOpen}
+        setSelectedMeeting={setSelectedMeeting}
+        setSelectedMeetingRecommendation={setSelectedMeetingRecommendation}
+        setExcludedMeetingUserIds={setExcludedMeetingUserIds}
+        handlePreferenceSave={handlePreferenceSave}
+        handleRecommendationRefresh={handleRecommendationRefresh}
+        handleHistoryInteractionToggle={handleHistoryInteractionToggle}
+        handleConfirmPersonalRecommendation={handleConfirmPersonalRecommendation}
+        handleOpenMeeting={handleOpenMeeting}
+        handleCreateMeetingRecommendation={handleCreateMeetingRecommendation}
+        handleDecideMeetingMenu={handleDecideMeetingMenu}
+        handleJoinMeetingById={handleJoinMeetingById}
+        handleLogout={handleLogout}
+        handleUpdateMeeting={handleUpdateMeeting}
+        handleUpdateHistory={handleUpdateHistory}
+        handleDeleteHistory={handleDeleteHistory}
+        handleCreateMeeting={handleCreateMeeting}
+      />
+      <LoadingOverlay active={globalLoading} />
+    </>
   );
 }

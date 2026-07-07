@@ -70,22 +70,22 @@ export function PreferenceScoreControls({
   if (!selectedItems.length) return null;
 
   const updateScore = (id: string, value: number) => {
-    onChange({ ...scores, [id]: Math.max(-5, Math.min(5, value)) });
+    onChange({ ...scores, [id]: Math.max(1, Math.min(5, value)) });
   };
 
   return (
     <section className={`score-section ${compact ? "compact-score-section" : ""}`} aria-label="선호 점수 조정">
       {selectedItems.map((item) => {
-        const score = scores[item.id] ?? 5;
+        const score = Math.max(1, Math.min(5, scores[item.id] ?? 5));
         return (
           <div className="score-row" key={item.id}>
             <div>
               <strong>{item.label}</strong>
-              <span>{score > 0 ? `+${score}` : score}점</span>
+              <span>{score}점</span>
             </div>
             <input
               type="range"
-              min="-5"
+              min="1"
               max="5"
               step="1"
               value={score}

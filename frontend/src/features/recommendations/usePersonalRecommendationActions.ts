@@ -1,4 +1,4 @@
-import { useCallback, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useRef, type Dispatch, type SetStateAction } from "react";
 import { menuInteractionsApi, type MenuInteractionType } from "../../api/menuInteractions.api";
 import { recommendationsApi } from "../../api/recommendations.api";
 import { userPreferencesApi } from "../../api/userPreferences.api";
@@ -28,6 +28,7 @@ export function usePersonalRecommendationActions({
   showToast,
   createHistory
 }: UsePersonalRecommendationActionsValue) {
+  const confirmInFlightRef = useRef(false);
   const handleRecommendationRefresh = useCallback(
     async ({ recentDuplicateDays, includeNewMenu, budgetMin, budgetMax }: RecommendationRefreshValue) => {
       setPersonalRecommendationLoading(true);
@@ -45,7 +46,7 @@ export function usePersonalRecommendationActions({
         const response = await recommendationsApi.createPersonal({
           recentDuplicateDays,
           includeNewMenu,
-          limit: 3
+          limit: 6
         });
         const nextRecommendations = applyPersonalRecommendations(response);
         void Promise.allSettled(
@@ -92,13 +93,20 @@ export function usePersonalRecommendationActions({
 
   const handleConfirmPersonalRecommendation = useCallback(async () => {
     if (!selectedPersonalRecommendation?.menuId) return;
-    void recordMenuInteraction(selectedPersonalRecommendation, "pick");
-    await createHistory({
-      menuId: selectedPersonalRecommendation.menuId,
-      rating: 5,
-      memo: `${selectedPersonalRecommendation.menu} 추천 최종 선택`
-    });
-    setActiveTab("history");
+    if (confirmInFlightRef.current) return;
+
+    confirmInFlightRef.current = true;
+    try {
+      void recordMenuInteraction(selectedPersonalRecommendation, "pick");
+      await createHistory({
+        menuId: selectedPersonalRecommendation.menuId,
+        rating: 5,
+        memo: `${selectedPersonalRecommendation.menu} 추천 최종 선택`
+      });
+      setActiveTab("history");
+    } finally {
+      confirmInFlightRef.current = false;
+    }
   }, [createHistory, recordMenuInteraction, selectedPersonalRecommendation, setActiveTab]);
 
   return {

@@ -5,7 +5,8 @@ import Clock from "lucide-react/dist/esm/icons/clock";
 import MapPin from "lucide-react/dist/esm/icons/map-pin";
 import Pencil from "lucide-react/dist/esm/icons/pencil";
 import X from "lucide-react/dist/esm/icons/x";
-import { ScreenTitle } from "../../components/navigation/ScreenTitle";
+import { Page } from "../../components/layout/Page";
+import { PageHeader } from "../../components/layout/PageHeader";
 import type { DisplayMeeting, DisplayMember, DisplayRecommendation, MeetingPurpose } from "../../domain/mapper";
 import { RecommendationList } from "../recommendations/RecommendationList";
 import type { MeetingFormValue } from "./MeetingCreateDialog";
@@ -66,7 +67,7 @@ export function MeetingDetail({
   };
 
   return (
-    <section className={`screen meeting-detail-screen ${isGuestSession ? "guest-meeting-detail" : ""}`}>
+    <Page className={`meeting-detail-screen ${isGuestSession ? "guest-meeting-detail" : ""}`}>
       {!isGuestSession ? (
         <button className="back-row-button" onClick={onCloseMeeting}>
           <ArrowLeft size={17} />
@@ -78,7 +79,7 @@ export function MeetingDetail({
           나가기
         </button>
       )}
-      <ScreenTitle title={selectedMeeting.title} description="참여자 정보와 이 모임의 추천 결과를 확인합니다." />
+      <PageHeader title={selectedMeeting.title} description="참여자 정보와 이 모임의 추천 결과를 확인합니다." />
       <section className="section-block meeting-detail-card">
         <div className="meeting-topline">
           <strong>{statusLabel(selectedMeeting.status)}</strong>
@@ -159,7 +160,7 @@ export function MeetingDetail({
         </div>
         <div className="meeting-recommendation-scroll">
           <RecommendationList
-            compact
+            variant="wide"
             items={meetingRecommendations}
             emptyMessage="아직 이 모임의 추천 결과가 없습니다."
             selectedMenuId={selectedRecommendation?.menuId}
@@ -185,7 +186,7 @@ export function MeetingDetail({
           <div className="guest-confirm-note">현재 권한은 {roleLabel}입니다. 메뉴 확정은 모임장이 진행합니다.</div>
         ) : null}
       </section>
-    </section>
+    </Page>
   );
 }
 

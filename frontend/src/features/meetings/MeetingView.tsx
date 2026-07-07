@@ -78,6 +78,7 @@ export function MeetingView({
       onJoinMeeting={onJoinMeeting}
       isLoading={isLoading}
       currentUserName={currentUserName}
+      currentUserId={currentUserId}
       isGuestSession={isGuestSession}
     />
   );

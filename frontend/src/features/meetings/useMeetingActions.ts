@@ -151,7 +151,7 @@ export function useMeetingActions({
       setMeetingActionLoading(true);
       setApiError("");
       try {
-        const response = await meetingsApi.createRecommendation(meetingId, { limit: 3, participantUserIds });
+        const response = await meetingsApi.createRecommendation(meetingId, { limit: 6, participantUserIds });
         const nextRecommendations = applyMeetingRecommendationPayload(meetingId, response);
         setApiStatus("ready");
         showToast(nextRecommendations.length ? "모임 추천을 계산했습니다." : "조건에 맞는 추천 메뉴가 없습니다.");

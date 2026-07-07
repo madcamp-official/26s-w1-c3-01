@@ -1,7 +1,6 @@
 import { lazy, Suspense } from "react";
-import { ApiFeedback } from "../../components/feedback/ApiFeedback";
-import { AppHeader } from "../../components/navigation/AppHeader";
-import { BottomNav } from "../../components/navigation/BottomNav";
+import { LoadingOverlay } from "../../components/feedback/LoadingOverlay";
+import { AppLayout } from "../../components/layout/AppLayout";
 import type {
   DisplayHistory,
   DisplayMeeting,
@@ -65,6 +64,7 @@ type AppScreensProps = {
   meetingSaving: boolean;
   preferenceSaving: boolean;
   personalRecommendationLoading: boolean;
+  personalSelectionSaving: boolean;
   meetingActionLoading: boolean;
   historySaving: boolean;
   toastMessage: string;
@@ -138,6 +138,7 @@ export function AppScreens({
   meetingSaving,
   preferenceSaving,
   personalRecommendationLoading,
+  personalSelectionSaving,
   meetingActionLoading,
   historySaving,
   toastMessage,
@@ -171,109 +172,17 @@ export function AppScreens({
   handleCreateMeeting
 }: AppScreensProps) {
   return (
-    <div className="app-shell min-h-dvh">
-      <main className="phone-frame bg-white">
-        {!isGuestSession ? <AppHeader activeTab={visibleTab} onGoPreferences={() => setActiveTab("preferences")} /> : null}
-        {visibleTab !== "home" ? <ApiFeedback status={apiStatus} error={apiError} compact /> : null}
-
-        <Suspense fallback={<div className="api-feedback compact" role="status">화면을 불러오고 있습니다.</div>}>
-          {visibleTab === "home" ? (
-            <HomeView
-              pickData={pickData}
-              historiesData={historyItems}
-              apiStatus={apiStatus}
-              apiError={apiError}
-              onGoPersonal={() => setActiveTab("personal")}
-              onGoMeeting={() => setActiveTab("meeting")}
-              onGoHistory={() => setActiveTab("history")}
-            />
-          ) : null}
-
-          {visibleTab === "preferences" ? (
-            <PreferencesView
-              selectedCategories={selectedCategories}
-              selectedTags={selectedTags}
-              selectedAllergies={selectedAllergies}
-              categoryScores={categoryScores}
-              tagScores={tagScores}
-              recentDuplicateDays={recentDuplicateDays}
-              pickData={pickData}
-              isSaving={preferenceSaving}
-              setSelectedCategories={setSelectedCategories}
-              setSelectedTags={setSelectedTags}
-              setSelectedAllergies={setSelectedAllergies}
-              setCategoryScores={setCategoryScores}
-              setTagScores={setTagScores}
-              setRecentDuplicateDays={setRecentDuplicateDays}
-              onSave={handlePreferenceSave}
-            />
-          ) : null}
-
-          {visibleTab === "personal" ? (
-            <PersonalView
-              newMenuIncluded={newMenuIncluded}
-              setNewMenuIncluded={setNewMenuIncluded}
-              recentDuplicateDays={recentDuplicateDays}
-              setRecentDuplicateDays={setRecentDuplicateDays}
-              budgetMin={budgetMin}
-              budgetMax={budgetMax}
-              setBudgetMin={setBudgetMin}
-              setBudgetMax={setBudgetMax}
-              recommendationsData={recommendationItems}
-              hasResults={personalRecommendationReady}
-              isLoading={personalRecommendationLoading}
-              onRefresh={handleRecommendationRefresh}
-              selectedItem={selectedPersonalRecommendation}
-              onSelectItem={setSelectedPersonalRecommendation}
-              onConfirmSelection={handleConfirmPersonalRecommendation}
-            />
-          ) : null}
-
-          {visibleTab === "meeting" ? (
-            <MeetingView
-              meetingsData={meetingItems}
-              selectedMeeting={selectedMeeting}
-              meetingRecommendations={meetingRecommendations}
-              selectedRecommendation={selectedMeetingRecommendation}
-              excludedUserIds={excludedMeetingUserIds}
-              onCreateMeeting={() => setMeetingDialogOpen(true)}
-              onOpenMeeting={handleOpenMeeting}
-              onCloseMeeting={() => setSelectedMeeting(null)}
-              onCreateRecommendation={handleCreateMeetingRecommendation}
-              onDecideMenu={handleDecideMeetingMenu}
-              onSelectRecommendation={setSelectedMeetingRecommendation}
-              onExcludedUserIdsChange={setExcludedMeetingUserIds}
-              onJoinMeeting={handleJoinMeetingById}
-              onLogout={handleLogout}
-              onUpdateMeeting={handleUpdateMeeting}
-              isLoading={meetingActionLoading}
-              currentUserName={profileName}
-              currentUserId={profileUserId}
-              meetingPurposes={meetingPurposes}
-              isGuestSession={isGuestSession}
-            />
-          ) : null}
-
-          {visibleTab === "history" ? (
-            <HistoryView
-              historiesData={historyItems}
-              menus={menuOptions}
-              isSaving={historySaving}
-              onUpdateHistory={handleUpdateHistory}
-              onDeleteHistory={handleDeleteHistory}
-              onToggleInteraction={handleHistoryInteractionToggle}
-            />
-          ) : null}
-
-          {visibleTab === "profile" ? (
-            <ProfileView profileName={profileName} onGoPreferences={() => setActiveTab("preferences")} onLogout={handleLogout} />
-          ) : null}
-        </Suspense>
-
-        {!isGuestSession ? <BottomNav visibleTab={visibleTab} onTabChange={setActiveTab} /> : null}
-
-        {meetingDialogOpen ? (
-          <Suspense fallback={null}>
+    <AppLayout
+      visibleTab={visibleTab}
+      isGuestSession={isGuestSession}
+      apiStatus={apiStatus}
+      apiError={apiError}
+      toastMessage={toastMessage}
+      onGoPreferences={() => setActiveTab("preferences")}
+      onTabChange={setActiveTab}
+      overlay={
+        meetingDialogOpen ? (
+          <Suspense fallback={<LoadingOverlay active label="화면을 불러오고 있습니다" />}>
             <MeetingCreateDialog
               open={meetingDialogOpen}
               onClose={() => setMeetingDialogOpen(false)}
@@ -282,10 +191,112 @@ export function AppScreens({
               meetingPurposes={meetingPurposes}
             />
           </Suspense>
+        ) : null
+      }
+    >
+      <Suspense fallback={<LoadingOverlay active label="화면을 불러오고 있습니다" />}>
+        {visibleTab === "home" ? (
+          <HomeView
+            pickData={pickData}
+            historiesData={historyItems}
+            apiStatus={apiStatus}
+            apiError={apiError}
+            onGoPersonal={() => setActiveTab("personal")}
+            onGoMeeting={() => setActiveTab("meeting")}
+            onGoHistory={() => setActiveTab("history")}
+            selectedCategoryIds={selectedCategories}
+            selectedTagIds={selectedTags}
+            meetingCount={meetingItems.length}
+          />
         ) : null}
 
-        {toastMessage ? <div className="toast" role="status">{toastMessage}</div> : null}
-      </main>
-    </div>
+        {visibleTab === "preferences" ? (
+          <PreferencesView
+            selectedCategories={selectedCategories}
+            selectedTags={selectedTags}
+            selectedAllergies={selectedAllergies}
+            categoryScores={categoryScores}
+            tagScores={tagScores}
+            recentDuplicateDays={recentDuplicateDays}
+            pickData={pickData}
+            isSaving={preferenceSaving}
+            setSelectedCategories={setSelectedCategories}
+            setSelectedTags={setSelectedTags}
+            setSelectedAllergies={setSelectedAllergies}
+            setCategoryScores={setCategoryScores}
+            setTagScores={setTagScores}
+            setRecentDuplicateDays={setRecentDuplicateDays}
+            onSave={handlePreferenceSave}
+          />
+        ) : null}
+
+        {visibleTab === "personal" ? (
+          <PersonalView
+            newMenuIncluded={newMenuIncluded}
+            setNewMenuIncluded={setNewMenuIncluded}
+            recentDuplicateDays={recentDuplicateDays}
+            setRecentDuplicateDays={setRecentDuplicateDays}
+            budgetMin={budgetMin}
+            budgetMax={budgetMax}
+            setBudgetMin={setBudgetMin}
+            setBudgetMax={setBudgetMax}
+            recommendationsData={recommendationItems}
+            hasResults={personalRecommendationReady}
+            isLoading={personalRecommendationLoading}
+            isConfirmingSelection={personalSelectionSaving}
+            onRefresh={handleRecommendationRefresh}
+            selectedItem={selectedPersonalRecommendation}
+            onSelectItem={setSelectedPersonalRecommendation}
+            onConfirmSelection={handleConfirmPersonalRecommendation}
+          />
+        ) : null}
+
+        {visibleTab === "meeting" ? (
+          <MeetingView
+            meetingsData={meetingItems}
+            selectedMeeting={selectedMeeting}
+            meetingRecommendations={meetingRecommendations}
+            selectedRecommendation={selectedMeetingRecommendation}
+            excludedUserIds={excludedMeetingUserIds}
+            onCreateMeeting={() => setMeetingDialogOpen(true)}
+            onOpenMeeting={handleOpenMeeting}
+            onCloseMeeting={() => setSelectedMeeting(null)}
+            onCreateRecommendation={handleCreateMeetingRecommendation}
+            onDecideMenu={handleDecideMeetingMenu}
+            onSelectRecommendation={setSelectedMeetingRecommendation}
+            onExcludedUserIdsChange={setExcludedMeetingUserIds}
+            onJoinMeeting={handleJoinMeetingById}
+            onLogout={handleLogout}
+            onUpdateMeeting={handleUpdateMeeting}
+            isLoading={meetingActionLoading}
+            currentUserName={profileName}
+            currentUserId={profileUserId}
+            meetingPurposes={meetingPurposes}
+            isGuestSession={isGuestSession}
+          />
+        ) : null}
+
+        {visibleTab === "history" ? (
+          <HistoryView
+            historiesData={historyItems}
+            menus={menuOptions}
+            isSaving={historySaving}
+            onUpdateHistory={handleUpdateHistory}
+            onDeleteHistory={handleDeleteHistory}
+            onToggleInteraction={handleHistoryInteractionToggle}
+          />
+        ) : null}
+
+        {visibleTab === "profile" ? (
+          <ProfileView
+            profileName={profileName}
+            preferenceCount={selectedCategories.length + selectedTags.length + selectedAllergies.length}
+            historyCount={historyItems.length}
+            onGoPreferences={() => setActiveTab("preferences")}
+            onLogout={handleLogout}
+          />
+        ) : null}
+      </Suspense>
+    </AppLayout>
   );
 }

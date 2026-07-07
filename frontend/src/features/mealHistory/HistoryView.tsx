@@ -1,10 +1,14 @@
 import { useState, type FormEvent } from "react";
 import Check from "lucide-react/dist/esm/icons/check";
+import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left";
+import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
 import Pencil from "lucide-react/dist/esm/icons/pencil";
+import Star from "lucide-react/dist/esm/icons/star";
 import Trash2 from "lucide-react/dist/esm/icons/trash-2";
 import X from "lucide-react/dist/esm/icons/x";
 import { EmptyState } from "../../components/feedback/EmptyState";
-import { ScreenTitle } from "../../components/navigation/ScreenTitle";
+import { Page } from "../../components/layout/Page";
+import { PageGrid } from "../../components/layout/PageGrid";
 import type { DisplayHistory, RemoteMenu } from "../../domain/mapper";
 import type { MealHistoryFormValue } from "./MealHistoryDialog";
 
@@ -33,10 +37,16 @@ export function HistoryView({
   onToggleInteraction
 }: HistoryViewProps) {
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
+  const [selectedHistoryId, setSelectedHistoryId] = useState<number | null>(() => historiesData[0]?.id ?? null);
   const [draft, setDraft] = useState<HistoryDraft>({ menuId: "", rating: "5", memo: "", eatenAt: "" });
+  const selectedHistory = historiesData.find((history) => history.id === selectedHistoryId) ?? historiesData[0] ?? null;
+  const calendarDays = buildCalendarDays(visibleMonth);
+  const historiesByDate = groupHistoriesByDate(historiesData);
 
   const startEdit = (history: DisplayHistory) => {
     if (!history.id) return;
+    setSelectedHistoryId(history.id);
     setEditingId(history.id);
     setDraft({
       menuId: String(history.menuId ?? menus[0]?.menuId ?? ""),
@@ -58,64 +68,88 @@ export function HistoryView({
   };
 
   return (
-    <section className="screen">
-      <ScreenTitle title="식사 기록" description="선택한 메뉴는 이후 추천에서 반복을 줄이는 데 사용됩니다." />
+    <Page title="식사 기록" description="선택한 메뉴는 이후 추천에서 반복을 줄이는 데 사용됩니다.">
       {historiesData.length ? (
-        <div className="history-timeline">
-          {historiesData.map((history, index) => {
-            const historyKey = String(history.id ?? `${history.date}-${history.menu}-${index}`);
-            const isEditing = Boolean(history.id && history.id === editingId);
-            return (
-              <article className={`history-row ${isEditing ? "editing" : ""}`} key={historyKey}>
-                {!isEditing ? (
-                  <>
-                    <HistoryImage image={history.image} />
-                    <time>{history.date}</time>
-                    <div>
-                      <strong>{history.menu}</strong>
-                      <span>{history.memo}</span>
-                      <div className="history-feedback-actions" aria-label={`${history.menu} 피드백`}>
+        <PageGrid className="history-calendar-layout">
+          <section className="history-calendar-panel" aria-label="식사 기록 캘린더">
+            <div className="calendar-toolbar">
+              <div>
+                <h3>{formatMonthTitle(visibleMonth)}</h3>
+                <span>{historiesData.length}개 기록</span>
+              </div>
+              <div className="calendar-actions">
+                <button type="button" aria-label="이전 달" onClick={() => setVisibleMonth(addMonths(visibleMonth, -1))}>
+                  <ChevronLeft size={18} />
+                </button>
+                <button type="button" onClick={() => setVisibleMonth(startOfMonth(new Date()))}>오늘</button>
+                <button type="button" aria-label="다음 달" onClick={() => setVisibleMonth(addMonths(visibleMonth, 1))}>
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+            </div>
+            <div className="history-calendar-grid">
+              {["월", "화", "수", "목", "금", "토", "일"].map((day) => (
+                <strong className="calendar-weekday" key={day}>{day}</strong>
+              ))}
+              {calendarDays.map((day) => {
+                const key = dateKey(day);
+                const dayHistories = historiesByDate.get(key) ?? [];
+                const isCurrentMonth = day.getMonth() === visibleMonth.getMonth();
+                const isToday = key === dateKey(new Date());
+                return (
+                  <div className={`calendar-day ${isCurrentMonth ? "" : "muted"} ${isToday ? "today" : ""}`} key={key}>
+                    <time dateTime={key}>{day.getDate()}</time>
+                    <div className="calendar-event-list">
+                      {dayHistories.map((history) => (
                         <button
                           type="button"
-                          className={history.preference === "like" ? "selected" : ""}
-                          onClick={() => onToggleInteraction(history, "like")}
-                          disabled={!history.menuId || isSaving}
+                          className={history.id === selectedHistory?.id ? "selected" : ""}
+                          key={history.id ?? `${key}-${history.menu}`}
+                          onClick={() => {
+                            setSelectedHistoryId(history.id ?? null);
+                            setEditingId(null);
+                          }}
                         >
-                          좋아요
+                          {history.menu}
                         </button>
-                        <button
-                          type="button"
-                          className={history.preference === "dislike" ? "selected danger" : ""}
-                          onClick={() => onToggleInteraction(history, "dislike")}
-                          disabled={!history.menuId || isSaving}
-                        >
-                          싫어요
-                        </button>
-                        <button
-                          type="button"
-                          className={history.bookmarked ? "selected" : ""}
-                          onClick={() => onToggleInteraction(history, "bookmark")}
-                          disabled={!history.menuId || isSaving}
-                        >
-                          저장
-                        </button>
-                      </div>
+                      ))}
                     </div>
-                    <div className="history-actions">
-                      <button type="button" aria-label="식사 기록 수정" onClick={() => startEdit(history)} disabled={!history.id || isSaving}>
-                        <Pencil size={15} />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="식사 기록 삭제"
-                        onClick={() => history.id && onDeleteHistory(history.id)}
-                        disabled={!history.id || isSaving}
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  </>
-                ) : (
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          <aside className="history-detail-panel">
+            {selectedHistory ? (
+              <>
+                <div className="history-detail-head">
+                  <HistoryImage image={selectedHistory.image} />
+                  <div>
+                    <span>{formatDetailDate(selectedHistory.eatenAt)}</span>
+                    <h3>{selectedHistory.menu}</h3>
+                    <p>{selectedHistory.memo}</p>
+                  </div>
+                </div>
+                <div className="history-detail-rating" aria-label={`${selectedHistory.menu} 만족도`}>
+                  <StarRating value={selectedHistory.rating ?? 0} readOnly />
+                  <strong>{selectedHistory.rating ?? "-"} / 5</strong>
+                </div>
+                <div className="history-actions detail-actions">
+                  <button type="button" aria-label="식사 기록 수정" onClick={() => startEdit(selectedHistory)} disabled={!selectedHistory.id || isSaving}>
+                    <Pencil size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="식사 기록 삭제"
+                    onClick={() => selectedHistory.id && onDeleteHistory(selectedHistory.id)}
+                    disabled={!selectedHistory.id || isSaving}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+
+                {editingId === selectedHistory.id ? (
                   <form className="history-edit-form" onSubmit={handleSubmit}>
                     <label className="text-field">
                       <span>메뉴</span>
@@ -135,16 +169,10 @@ export function HistoryView({
                         onChange={(event) => setDraft({ ...draft, eatenAt: event.target.value })}
                       />
                     </label>
-                    <label className="text-field">
+                    <div className="text-field rating-field">
                       <span>만족도</span>
-                      <select value={draft.rating} onChange={(event) => setDraft({ ...draft, rating: event.target.value })}>
-                        <option value="5">5점</option>
-                        <option value="4">4점</option>
-                        <option value="3">3점</option>
-                        <option value="2">2점</option>
-                        <option value="1">1점</option>
-                      </select>
-                    </label>
+                      <StarRating value={Number(draft.rating) || 0} onChange={(rating) => setDraft({ ...draft, rating: String(rating) })} />
+                    </div>
                     <label className="text-field full">
                       <span>메모</span>
                       <input value={draft.memo} onChange={(event) => setDraft({ ...draft, memo: event.target.value })} />
@@ -156,19 +184,39 @@ export function HistoryView({
                       </button>
                       <button className="primary-button" type="submit" disabled={isSaving || !draft.menuId}>
                         <Check size={15} />
-                        저장
+                        수정 완료
                       </button>
                     </div>
                   </form>
-                )}
-              </article>
-            );
-          })}
-        </div>
+                ) : null}
+              </>
+            ) : null}
+          </aside>
+        </PageGrid>
       ) : (
         <EmptyState title="식사 기록이 없습니다" description="식사 기록 API가 아직 빈 목록을 반환했습니다." />
       )}
-    </section>
+    </Page>
+  );
+}
+
+function StarRating({ value, onChange, readOnly = false }: { value: number; onChange?: (value: number) => void; readOnly?: boolean }) {
+  return (
+    <div className="star-rating" role={readOnly ? "img" : "radiogroup"} aria-label={`만족도 ${value || 0}점`}>
+      {[1, 2, 3, 4, 5].map((rating) => (
+        <button
+          key={rating}
+          type="button"
+          className={rating <= value ? "active" : ""}
+          aria-label={`${rating}점`}
+          aria-pressed={!readOnly && rating === value ? true : undefined}
+          disabled={readOnly}
+          onClick={() => onChange?.(rating)}
+        >
+          <Star size={22} />
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -192,4 +240,58 @@ function toDateTimeLocal(value?: string) {
   if (Number.isNaN(date.getTime())) return "";
   const offsetMs = date.getTimezoneOffset() * 60 * 1000;
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
+function startOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function addMonths(date: Date, amount: number) {
+  return new Date(date.getFullYear(), date.getMonth() + amount, 1);
+}
+
+function buildCalendarDays(month: Date) {
+  const firstDay = startOfMonth(month);
+  const offset = (firstDay.getDay() + 6) % 7;
+  const firstCell = new Date(firstDay);
+  firstCell.setDate(firstDay.getDate() - offset);
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(firstCell);
+    date.setDate(firstCell.getDate() + index);
+    return date;
+  });
+}
+
+function groupHistoriesByDate(histories: DisplayHistory[]) {
+  const grouped = new Map<string, DisplayHistory[]>();
+  for (const history of histories) {
+    const key = history.eatenAt ? dateKey(new Date(history.eatenAt)) : history.date;
+    grouped.set(key, [...(grouped.get(key) ?? []), history]);
+  }
+  return grouped;
+}
+
+function dateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatMonthTitle(date: Date) {
+  return new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long" }).format(date);
+}
+
+function formatDetailDate(value?: string) {
+  if (!value) return "시간 미정";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "시간 미정";
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
 }

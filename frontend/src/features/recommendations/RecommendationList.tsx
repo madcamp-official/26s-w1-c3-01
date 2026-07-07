@@ -4,6 +4,7 @@ import type { DisplayRecommendation } from "../../domain/mapper";
 
 type RecommendationListProps = {
   compact?: boolean;
+  variant?: "compact" | "wide" | "grid";
   items: DisplayRecommendation[];
   emptyMessage: string;
   actionLabel?: string;
@@ -14,6 +15,7 @@ type RecommendationListProps = {
 
 export function RecommendationList({
   compact = false,
+  variant,
   items,
   emptyMessage,
   actionLabel,
@@ -21,13 +23,15 @@ export function RecommendationList({
   selectedMenuId,
   onSelect
 }: RecommendationListProps) {
+  const listVariant = variant ?? (compact ? "compact" : "wide");
+
   if (!items.length) {
-    return <EmptyState title="추천 결과가 없습니다" description={emptyMessage} compact={compact} />;
+    return <EmptyState title="추천 결과가 없습니다" description={emptyMessage} compact={listVariant === "compact"} />;
   }
 
   return (
-    <div className={`recommendation-list ${compact ? "compact" : ""}`}>
-      {items.map((item) => {
+    <div className={`recommendation-list recommendation-list--${listVariant} ${listVariant === "compact" ? "compact" : ""}`}>
+      {items.slice(0, 6).map((item) => {
         const isSelected = typeof item.menuId === "number" && item.menuId === selectedMenuId;
         return (
           <article

@@ -414,7 +414,7 @@ function LoginScreen({
 
   return (
     <main className="auth-screen">
-      <section className="auth-card complete-card account-card">
+      <section className="auth-card complete-card account-card login-account-card">
         <button className="ghost-icon-button back-floating" aria-label="이전 화면" onClick={onBack}>
           <ArrowLeft size={20} />
         </button>
