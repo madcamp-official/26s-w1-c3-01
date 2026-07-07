@@ -151,10 +151,12 @@ export function useMeetingActions({
       setMeetingActionLoading(true);
       setApiError("");
       try {
+        const budgetPayload =
+          typeof budgetLevel === "number" ? { budgetMin: budgetLevel, budgetMax: budgetLevel } : {};
         const response = await meetingsApi.createRecommendation(meetingId, {
           limit: 6,
           participantUserIds,
-          ...(budgetLevel !== undefined ? { budgetMin: budgetLevel, budgetMax: budgetLevel } : {})
+          ...budgetPayload
         });
         const nextRecommendations = applyMeetingRecommendationPayload(meetingId, response);
         setApiStatus("ready");

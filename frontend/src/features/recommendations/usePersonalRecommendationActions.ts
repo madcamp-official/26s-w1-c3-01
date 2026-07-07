@@ -33,6 +33,8 @@ export function usePersonalRecommendationActions({
     async ({ recentDuplicateDays, includeNewMenu, budgetLevel }: RecommendationRefreshValue) => {
       const budgetMin = budgetLevel;
       const budgetMax = budgetLevel;
+      const budgetPayload =
+        typeof budgetLevel === "number" ? { budgetMin: budgetLevel, budgetMax: budgetLevel } : {};
       setPersonalRecommendationLoading(true);
       setApiError("");
       try {
@@ -48,8 +50,7 @@ export function usePersonalRecommendationActions({
         const response = await recommendationsApi.createPersonal({
           recentDuplicateDays,
           includeNewMenu,
-          budgetMin,
-          budgetMax,
+          ...budgetPayload,
           limit: 6
         });
         const nextRecommendations = applyPersonalRecommendations(response);

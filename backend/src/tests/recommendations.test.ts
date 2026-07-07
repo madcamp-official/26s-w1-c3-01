@@ -210,7 +210,7 @@ describe("meeting recommendation scoring", () => {
     );
 
     expect(results.map((item) => item.menuId)).toEqual([2, 1, 3]);
-    expect(results[0].scores.minimum_participant_score).toBeGreaterThan(results[1].scores.minimum_participant_score);
+    expect(results[0].scores.minimum_participant_score ?? 0).toBeGreaterThan(results[1].scores.minimum_participant_score ?? 0);
     expect(results[2].scores.purpose_score).toBe(20);
   });
 });
