@@ -94,13 +94,11 @@ export type RecommendationRefreshValue = {
 
 export type RecommendationScoreBreakdown = {
   categoryScore?: number;
-  ratingScore?: number;
-  reviewConfidenceScore?: number;
-  priceScore?: number;
-  popularityScore?: number;
-  noveltyScore?: number;
-  repeatScore?: number;
-  negativeFeedbackScore?: number;
+  tagScore?: number;
+  menuPreferenceScore?: number;
+  budgetScore?: number;
+  newMenuScore?: number;
+  historyPenalty?: number;
 };
 
 export const fallbackPickData: PickData = {
@@ -229,13 +227,11 @@ function mapRecommendationScores(scores: any): RecommendationScoreBreakdown | un
 
   return {
     categoryScore: readNumber(scores, ["categoryScore", "category_score"]),
-    ratingScore: readNumber(scores, ["ratingScore", "rating_score"]),
-    reviewConfidenceScore: readNumber(scores, ["reviewConfidenceScore", "review_confidence_score"]),
-    priceScore: readNumber(scores, ["priceScore", "price_score"]),
-    popularityScore: readNumber(scores, ["popularityScore", "popularity_score"]),
-    noveltyScore: readNumber(scores, ["noveltyScore", "novelty_score"]),
-    repeatScore: readNumber(scores, ["repeatScore", "repeat_score"]),
-    negativeFeedbackScore: readNumber(scores, ["negativeFeedbackScore", "negative_feedback_score"])
+    tagScore: readNumber(scores, ["tagScore", "tag_score"]),
+    menuPreferenceScore: readNumber(scores, ["menuPreferenceScore", "menu_preference_score"]),
+    budgetScore: readNumber(scores, ["budgetScore", "budget_score"]),
+    newMenuScore: readNumber(scores, ["newMenuScore", "new_menu_score"]),
+    historyPenalty: readNumber(scores, ["historyPenalty", "history_penalty"])
   };
 }
 

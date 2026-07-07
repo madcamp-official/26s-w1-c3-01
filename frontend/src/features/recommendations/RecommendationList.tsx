@@ -46,11 +46,11 @@ export function RecommendationList({
               {item.scores ? (
                 <div className="score-breakdown" aria-label={`${item.menu} 추천 점수 상세`}>
                   <span>카테고리 {formatScore(item.scores.categoryScore)}</span>
-                  <span>평점 {formatScore(item.scores.ratingScore)}</span>
-                  <span>가격 {formatScore(item.scores.priceScore)}</span>
-                  <span>인기 {formatScore(item.scores.popularityScore)}</span>
-                  <span>새로움 {formatScore(item.scores.noveltyScore)}</span>
-                  <span>반복 {formatScore(item.scores.repeatScore)}</span>
+                  <span>태그 {formatScore(item.scores.tagScore)}</span>
+                  <span>메뉴 선호 {formatScore(item.scores.menuPreferenceScore)}</span>
+                  <span>예산 {formatScore(item.scores.budgetScore)}</span>
+                  <span>새 메뉴 {formatScore(item.scores.newMenuScore)}</span>
+                  <span>최근 패널티 {formatScore(item.scores.historyPenalty)}</span>
                 </div>
               ) : null}
               <div className="tag-row">
