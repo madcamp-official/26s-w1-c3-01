@@ -114,5 +114,5 @@ function getScoreBreakdown(item: DisplayRecommendation) {
     { label: "반복", value: scores.repeatScore }
   ];
 
-  return entries.filter((entry) => typeof entry.value === "number");
+  return entries.filter((entry) => typeof entry.value === "number" && entry.value !== 0);
 }

@@ -50,6 +50,7 @@ export function MeetingDetail({
   isGuestSession
 }: MeetingDetailProps) {
   const [editing, setEditing] = useState(false);
+  const [participantsExpanded, setParticipantsExpanded] = useState(false);
   const [budgetLevel, setBudgetLevel] = useState<number | null>(null);
   const isDecided = selectedMeeting.status === "DECIDED" || selectedMeeting.status === "CLOSED";
   const isCreator = typeof selectedMeeting.createdBy === "number" && selectedMeeting.createdBy === currentUserId;
@@ -81,35 +82,46 @@ export function MeetingDetail({
         </button>
       )}
       <PageHeader title={selectedMeeting.title} description="참여자 정보와 이 모임의 추천 결과를 확인합니다." />
-      <div className="meeting-participants-panel">
+      <div className={`meeting-participants-panel ${participantsExpanded ? "expanded" : "collapsed"}`}>
         <div className="meeting-participants-heading">
           <strong>참여자</strong>
-          <span>{includedUserIds.length}/{selectedMeeting.members.length}명 포함</span>
+          <button
+            type="button"
+            className="meeting-participants-toggle"
+            onClick={() => setParticipantsExpanded((value) => !value)}
+            aria-expanded={participantsExpanded}
+          >
+            {includedUserIds.length}/{selectedMeeting.members.length}명 포함 · {participantsExpanded ? "접기" : "보기"}
+          </button>
         </div>
-        <div className="member-row selectable-members" aria-label="추천 계산에 포함할 구성원">
-          {selectedMeeting.members.map((member) => (
-            <button
-              type="button"
-              key={`${member.userId ?? "member"}-${member.name}`}
-              className={[
-                typeof member.userId === "number" && excludedUserIds.includes(member.userId) ? "excluded" : "",
-                typeof member.userId === "number" && member.userId === selectedMeeting.createdBy ? "creator" : "",
-                typeof member.userId === "number" && member.userId === currentUserId ? "self" : ""
-              ].filter(Boolean).join(" ")}
-              onClick={() => toggleMember(member)}
-              disabled={!canManage || isDecided || typeof member.userId !== "number"}
-              aria-pressed={typeof member.userId === "number" && !excludedUserIds.includes(member.userId)}
-            >
-              <span>{member.name}</span>
-              {typeof member.userId === "number" && member.userId === selectedMeeting.createdBy ? <small>모임장</small> : null}
-              {typeof member.userId === "number" && member.userId === currentUserId ? <small>나</small> : null}
-            </button>
-          ))}
-        </div>
-        {!canManage ? (
-          <p className="meeting-permission-note">참여자는 추천 결과를 확인할 수 있고, 추천 계산과 메뉴 확정은 모임장이 진행합니다.</p>
+        {participantsExpanded ? (
+          <>
+            <div className="member-row selectable-members" aria-label="추천 계산에 포함할 구성원">
+              {selectedMeeting.members.map((member) => (
+                <button
+                  type="button"
+                  key={`${member.userId ?? "member"}-${member.name}`}
+                  className={[
+                    typeof member.userId === "number" && excludedUserIds.includes(member.userId) ? "excluded" : "",
+                    typeof member.userId === "number" && member.userId === selectedMeeting.createdBy ? "creator" : "",
+                    typeof member.userId === "number" && member.userId === currentUserId ? "self" : ""
+                  ].filter(Boolean).join(" ")}
+                  onClick={() => toggleMember(member)}
+                  disabled={!canManage || isDecided || typeof member.userId !== "number"}
+                  aria-pressed={typeof member.userId === "number" && !excludedUserIds.includes(member.userId)}
+                >
+                  <span>{member.name}</span>
+                  {typeof member.userId === "number" && member.userId === selectedMeeting.createdBy ? <small>모임장</small> : null}
+                  {typeof member.userId === "number" && member.userId === currentUserId ? <small>나</small> : null}
+                </button>
+              ))}
+            </div>
+            {!canManage ? (
+              <p className="meeting-permission-note">참여자는 추천 결과를 확인할 수 있고, 추천 계산과 메뉴 확정은 모임장이 진행합니다.</p>
+            ) : null}
+            {!isDecided ? <p className="meeting-live-note">참여자 정보는 주기적으로 자동 갱신됩니다.</p> : null}
+          </>
         ) : null}
-        {!isDecided ? <p className="meeting-live-note">참여자 정보는 주기적으로 자동 갱신됩니다.</p> : null}
       </div>
       <section className="section-block meeting-detail-card">
         <div className="meeting-topline">
