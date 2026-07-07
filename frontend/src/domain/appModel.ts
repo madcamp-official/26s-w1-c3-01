@@ -217,23 +217,24 @@ export function mapRecommendations(payload: unknown): DisplayRecommendation[] {
   const rows = Array.isArray((payload as any)?.results) ? (payload as any).results : [];
   return rows.map((row: any, index: number) => {
     const menuId = readNumber(row, ["menuId", "menu_id"]);
+    const score = Math.round((readNumber(row, ["totalScore", "total_score", "score"]) ?? 0) * 10) / 10;
     return {
       rank: readNumber(row, ["rankNo", "rank_no", "rank"]) ?? index + 1,
       menuId,
       menu: readString(row, ["menuName", "menu_name", "name"]) ?? "추천 메뉴",
-      score: Math.round((readNumber(row, ["totalScore", "total_score", "score"]) ?? 0) * 10) / 10,
+      score,
       category: readString(row, ["category", "categoryName", "category_name"]) ?? "API",
       reason: readString(row, ["reason", "description"]) ?? "백엔드 추천 API가 반환한 결과입니다.",
       image: readString(row, ["imageUrl", "image_url", "image"]) ?? menuAsset(menuId),
-      scores: mapRecommendationScores(row?.scores)
+      scores: mapRecommendationScores(row?.scores, score)
     };
   });
 }
 
-function mapRecommendationScores(scores: any): RecommendationScoreBreakdown | undefined {
+function mapRecommendationScores(scores: any, totalScore?: number): RecommendationScoreBreakdown | undefined {
   if (!scores || typeof scores !== "object") return undefined;
 
-  return {
+  const mapped = {
     categoryScore: readNumber(scores, ["categoryScore", "category_score"]),
     tagScore: readNumber(scores, ["tagScore", "tag_score"]),
     menuPreferenceScore: readNumber(scores, ["menuPreferenceScore", "menu_preference_score"]),
@@ -250,6 +251,18 @@ function mapRecommendationScores(scores: any): RecommendationScoreBreakdown | un
     repeatScore: readNumber(scores, ["repeatScore", "repeat_score"]),
     negativeFeedbackScore: readNumber(scores, ["negativeFeedbackScore", "negative_feedback_score"])
   };
+
+  const groupScores = [mapped.groupPreferenceScore, mapped.minimumParticipantScore, mapped.purposeScore];
+  const hasOnlyZeroGroupScores = groupScores.some((value) => typeof value === "number") && groupScores.every((value) => !value);
+  if (hasOnlyZeroGroupScores && typeof totalScore === "number" && totalScore > 0) {
+    return {
+      ...mapped,
+      groupPreferenceScore: totalScore,
+      minimumParticipantScore: totalScore
+    };
+  }
+
+  return mapped;
 }
 
 // 완료된 모임은 목록 끝으로 보내서 진행 중인 모임을 먼저 보이게 합니다.

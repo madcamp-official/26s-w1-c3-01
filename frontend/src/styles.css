@@ -2178,6 +2178,11 @@ body.modal-open {
   background: #fffaf4;
 }
 
+.meeting-participants-panel.collapsed {
+  gap: 0;
+  padding-block: 12px;
+}
+
 .meeting-participants-heading {
   display: flex;
   align-items: center;
@@ -2191,11 +2196,18 @@ body.modal-open {
   font-weight: 900;
 }
 
-.meeting-participants-heading span,
+.meeting-participants-toggle,
 .meeting-budget-summary {
+  border: 0;
+  padding: 0;
   color: var(--muted);
+  background: transparent;
   font-size: 13px;
   font-weight: 900;
+}
+
+.meeting-participants-toggle {
+  white-space: nowrap;
 }
 
 .meeting-recommendation-controls {
@@ -5151,9 +5163,7 @@ body.modal-open {
 .history-calendar-panel {
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
+  overflow: hidden;
   padding: 18px;
 }
 
@@ -5204,7 +5214,9 @@ body.modal-open {
   min-height: 0;
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  overflow: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   border: 1px solid rgba(231, 220, 210, 0.82);
   border-radius: 18px;
   background: #fffaf4;
@@ -5266,7 +5278,8 @@ body.modal-open {
 }
 
 .calendar-event-list::-webkit-scrollbar,
-.history-calendar-panel::-webkit-scrollbar,
+.history-calendar-grid::-webkit-scrollbar,
+.history-day-list::-webkit-scrollbar,
 .history-detail-panel::-webkit-scrollbar {
   width: 0;
 }
@@ -5294,17 +5307,16 @@ body.modal-open {
 .history-detail-panel {
   position: sticky;
   top: 0;
-  display: grid;
-  align-content: start;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
   max-height: 100%;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
+  overflow: hidden;
   padding: 18px;
 }
 
 .history-day-summary {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -5320,7 +5332,13 @@ body.modal-open {
 }
 
 .history-day-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   display: grid;
+  align-content: start;
   gap: 12px;
 }
 
@@ -5471,6 +5489,11 @@ body.modal-open {
   }
 
   .history-calendar-panel {
+    overflow: visible;
+  }
+
+  .history-calendar-grid,
+  .history-day-list {
     overflow: visible;
   }
 
