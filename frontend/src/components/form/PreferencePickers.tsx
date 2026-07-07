@@ -70,7 +70,7 @@ export function PreferenceScoreControls({
   if (!selectedItems.length) return null;
 
   const updateScore = (id: string, value: number) => {
-    onChange({ ...scores, [id]: Math.max(-5, Math.min(5, value)) });
+    onChange({ ...scores, [id]: Math.max(0, Math.min(5, Math.round(value))) });
   };
 
   return (
@@ -81,11 +81,11 @@ export function PreferenceScoreControls({
           <div className="score-row" key={item.id}>
             <div>
               <strong>{item.label}</strong>
-              <span>{score > 0 ? `+${score}` : score}점</span>
+              <span>{score}점</span>
             </div>
             <input
               type="range"
-              min="-5"
+              min="0"
               max="5"
               step="1"
               value={score}

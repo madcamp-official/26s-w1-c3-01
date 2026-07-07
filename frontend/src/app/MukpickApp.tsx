@@ -989,11 +989,6 @@ export function MukpickApp() {
       setRecommendationItems(nextRecommendations);
       setSelectedPersonalRecommendation(null);
       setPersonalRecommendationReady(true);
-      void Promise.allSettled(
-        nextRecommendations
-          .filter((item) => item.menuId)
-          .map((item) => menuInteractionsApi.create(item.menuId!, "view"))
-      );
       setApiStatus("ready");
       showToast("추천 API를 다시 호출했습니다.");
     } catch (error) {
