@@ -2167,6 +2167,47 @@ body.modal-open {
   flex: 0 0 auto;
 }
 
+.meeting-result-heading {
+  align-items: flex-start;
+}
+
+.meeting-result-heading > h3 {
+  padding-top: 10px;
+}
+
+.meeting-result-heading-actions {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-left: auto;
+  min-width: 370px;
+  min-height: 52px;
+}
+
+.meeting-result-heading-actions .meeting-participants-panel {
+  position: absolute;
+  top: 0;
+  right: 120px;
+  width: 240px;
+  max-width: min(42vw, 360px);
+  z-index: 20;
+}
+
+.meeting-result-heading-actions .meeting-participants-panel.collapsed {
+  width: 220px;
+  max-height: 52px;
+  overflow: hidden;
+}
+
+.meeting-result-heading-actions .meeting-participants-panel.expanded {
+  width: min(430px, 46vw);
+  max-height: min(300px, 42vh);
+  overflow-y: auto;
+}
+
 .meeting-recommendation-refresh {
   flex: 0 0 auto;
   width: auto;
@@ -2186,11 +2227,26 @@ body.modal-open {
   border-radius: 16px;
   padding: 14px;
   background: #fffaf4;
+  transition:
+    width 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    max-height 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    background-color 220ms ease;
 }
 
 .meeting-participants-panel.collapsed {
   gap: 0;
-  padding-block: 12px;
+  width: 240px;
+  padding-block: 8px;
+  padding-inline: 12px;
+}
+
+.meeting-participants-panel.expanded {
+  width: min(520px, 48%);
+  border-color: rgba(238, 90, 24, 0.22);
+  box-shadow: 0 14px 32px rgba(50, 38, 29, 0.1);
 }
 
 .meeting-participants-heading {
@@ -2218,6 +2274,28 @@ body.modal-open {
 
 .meeting-participants-toggle {
   white-space: nowrap;
+}
+
+.meeting-participants-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    grid-template-rows 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease,
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.meeting-participants-body > * {
+  min-height: 0;
+}
+
+.meeting-participants-panel.expanded .meeting-participants-body {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .meeting-recommendation-controls {
@@ -3011,10 +3089,11 @@ body.modal-open {
     grid-template-rows: auto auto minmax(0, 1fr);
     grid-template-areas:
       "back back"
-      "title participants"
+      "title title"
       "summary result";
     gap: 18px;
     overflow: hidden;
+    position: relative;
   }
 
   .meeting-detail-screen .back-row-button {
@@ -3029,11 +3108,23 @@ body.modal-open {
   }
 
   .meeting-detail-screen > .meeting-participants-panel {
-    grid-area: participants;
-    align-self: end;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 240px;
     min-width: 0;
-    max-height: 150px;
+    max-height: min(260px, 40vh);
     overflow-y: auto;
+    z-index: 12;
+  }
+
+  .meeting-detail-screen > .meeting-participants-panel.collapsed {
+    width: 220px;
+    max-height: 44px;
+  }
+
+  .meeting-detail-screen > .meeting-participants-panel.expanded {
+    width: min(500px, 46vw);
   }
 
   .meeting-detail-screen .screen-title h2 {
@@ -4978,7 +5069,7 @@ body.modal-open {
     grid-template-rows: auto auto minmax(0, 1fr);
     grid-template-areas:
       "back back"
-      "title participants"
+      "title title"
       "summary result";
   }
 
@@ -4993,11 +5084,23 @@ body.modal-open {
   }
 
   .meeting-detail-screen > .meeting-participants-panel {
-    grid-area: participants;
-    align-self: end;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 240px;
     min-width: 0;
-    max-height: 156px;
+    max-height: min(260px, 40vh);
     overflow-y: auto;
+    z-index: 12;
+  }
+
+  .meeting-detail-screen > .meeting-participants-panel.collapsed {
+    width: 220px;
+    max-height: 44px;
+  }
+
+  .meeting-detail-screen > .meeting-participants-panel.expanded {
+    width: min(500px, 46vw);
   }
 
   .meeting-detail-screen > .meeting-participants-panel::-webkit-scrollbar {
@@ -7868,30 +7971,31 @@ button, [role="button"], a.button, .toggle-row { min-height: 40px; }
 
 @media (min-width: 1024px) {
   .personal-result-main > .recommendation-list {
-    gap: 10px !important;
+    gap: 14px !important;
     padding-right: 6px !important;
   }
 
   .personal-result-main .recommendation-card {
-    min-height: 124px !important;
-    grid-template-columns: 76px 42px minmax(0, 1fr) !important;
+    min-height: 152px !important;
+    grid-template-columns: 122px 52px minmax(0, 1fr) !important;
     align-items: center !important;
-    gap: 12px !important;
-    padding: 16px 14px !important;
+    gap: 16px !important;
+    padding: 20px 18px !important;
     border-radius: 18px !important;
   }
 
   .personal-result-main .recommendation-media {
-    width: 76px !important;
-    height: 76px !important;
+    justify-self: center !important;
+    width: 108px !important;
+    height: 108px !important;
     border-radius: 18px !important;
   }
 
   .personal-result-main .rank-mark {
-    width: 42px !important;
-    height: 42px !important;
+    width: 52px !important;
+    height: 52px !important;
     border-radius: 14px !important;
-    font-size: 18px !important;
+    font-size: 20px !important;
   }
 
   .personal-result-main .recommendation-title {

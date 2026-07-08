@@ -83,7 +83,7 @@ export function PersonalView({
             disabled={isLoading}
           >
             <Sparkles size={17} />
-            {isLoading ? "추천 계산 중..." : hasResults ? "다시 추천 받기" : "추천 받기"}
+            {isLoading ? "추천 계산 중…" : hasResults ? "다시 추천 받기" : "추천 받기"}
           </button>
         </aside>
 
@@ -109,7 +109,7 @@ export function PersonalView({
             </>
           ) : (
             <EmptyState
-              title="추천 조건을 확인해 주세요"
+              title="추천을 시작해 보세요"
               description="왼쪽 조건을 확인하고 [추천 받기]를 누르면 랭킹을 만들어 드립니다."
             />
           )}
