@@ -5045,6 +5045,36 @@ body.modal-open {
   word-break: keep-all;
 }
 
+/* Full-viewport desktop app shell */
+@media (min-width: 900px) {
+  .app-shell {
+    width: 100%;
+    min-height: 100dvh;
+    display: block;
+    padding: 0;
+    overflow: hidden;
+    background: #fffaf4;
+  }
+
+  .phone-frame,
+  .phone-frame.app-frame {
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    min-height: 100dvh;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+    transform: none;
+    transform-origin: initial;
+  }
+
+  .phone-frame.app-frame {
+    grid-template-columns: var(--dashboard-sidebar, 238px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
+
 .recommendation-list {
   gap: 14px;
 }
