@@ -5884,3 +5884,175 @@ body.modal-open {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* =========================================================
+   Responsive viewport override
+   - 기기 화면 높이/비율에 따른 잘림 방지
+   - 기존 styles.css 맨 아래에 추가
+   ========================================================= */
+
+/* 1. 앱 전체 높이를 실제 보이는 화면 기준으로 맞춤 */
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+  overflow: hidden;
+}
+
+.app-shell {
+  width: 100%;
+  min-height: 100dvh !important;
+  height: 100dvh !important;
+  display: flex !important;
+  justify-content: center;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+/* 2. phone-frame의 고정 최소 높이 제거 */
+.phone-frame {
+  height: 100dvh !important;
+  min-height: 0 !important;
+  max-height: 100dvh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+/* 3. 헤더는 줄어들지 않게 고정 */
+.app-header,
+.home-app-header {
+  flex: 0 0 auto !important;
+}
+
+/* 4. 화면 본문은 남은 공간을 차지하고 내부 스크롤 */
+.screen {
+  flex: 1 1 auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom)) !important;
+}
+
+/* 5. 홈 화면도 고정 height 제거 */
+.home-screen {
+  flex: 1 1 auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow-y: auto !important;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom)) !important;
+}
+
+/* 6. API feedback가 있을 때 고정 height 계산 제거 */
+.api-feedback + .screen,
+.api-feedback + .guest-meeting-detail {
+  height: auto !important;
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+/* 7. 모임 상세 화면 내부 잘림 방지 */
+.meeting-detail-screen {
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom)) !important;
+}
+
+.guest-meeting-detail {
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+/* 8. 작은 세로 화면 대응 */
+@media (max-height: 720px) {
+  .home-app-header {
+    height: auto !important;
+    padding-top: 12px !important;
+    padding-bottom: 6px !important;
+  }
+
+  .app-header {
+    height: 60px !important;
+    padding-top: 10px !important;
+    padding-bottom: 8px !important;
+  }
+
+  .brand-row {
+    height: 56px !important;
+  }
+
+  .home-app-logo {
+    width: 170px !important;
+  }
+
+  .screen,
+  .home-screen {
+    padding-top: 6px !important;
+    padding-bottom: calc(88px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .hero-panel {
+    min-height: 190px !important;
+    padding: 20px !important;
+  }
+
+  .hero-panel h2,
+  .screen-title h2 {
+    font-size: 26px !important;
+  }
+}
+
+/* 9. 모바일 폭에서는 완전 화면 앱처럼 사용 */
+@media (max-width: 899px) {
+  .app-shell {
+    padding: 0 !important;
+  }
+
+  .phone-frame {
+    width: 100vw !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .screen,
+  .home-screen {
+    max-width: none !important;
+    margin: 0 !important;
+  }
+}
+
+/* 10. 데스크탑/태블릿 넓은 화면에서도 높이 잘림 방지 */
+@media (min-width: 900px) {
+  .app-shell {
+    min-height: 100dvh !important;
+    height: 100dvh !important;
+    padding: 24px !important;
+    align-items: center !important;
+  }
+
+  .phone-frame {
+    width: min(100%, 1220px) !important;
+    height: min(920px, calc(100dvh - 48px)) !important;
+    min-height: 0 !important;
+    max-height: calc(100dvh - 48px) !important;
+  }
+
+  .screen {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* 11. iOS safe-area 대응 */
+@supports (height: 100dvh) {
+  .app-shell,
+  .phone-frame {
+    height: 100dvh !important;
+  }
+}
