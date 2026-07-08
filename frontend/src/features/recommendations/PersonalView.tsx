@@ -40,7 +40,7 @@ export function PersonalView({
   onConfirmSelection
 }: PersonalViewProps) {
   return (
-    <Page className="personal-screen" title="개인 메뉴 추천" description="내 선호도, 알러지, 최근 식사 기록으로 랭킹을 만듭니다.">
+    <Page className="personal-screen" title="개인 메뉴 추천" description="취향·알러지·최근 식사를 반영한 오늘의 추천 랭킹입니다.">
       <PageGrid className="personal-layout">
         <aside className="personal-condition-aside condition-panel">
           <label>
@@ -83,7 +83,7 @@ export function PersonalView({
             disabled={isLoading}
           >
             <Sparkles size={17} />
-            {isLoading ? "추천 API 호출 중" : hasResults ? "다시 추천 받기" : "추천 받기"}
+            {isLoading ? "추천 계산 중..." : hasResults ? "다시 추천 받기" : "추천 받기"}
           </button>
         </aside>
 
@@ -110,7 +110,7 @@ export function PersonalView({
           ) : (
             <EmptyState
               title="추천 조건을 확인해 주세요"
-              description="중복 식사 패널티와 새 메뉴 포함 여부를 정한 뒤 추천 받기를 누르면 랭킹을 계산합니다."
+              description="왼쪽 조건을 확인하고 [추천 받기]를 누르면 랭킹을 만들어 드립니다."
             />
           )}
         </main>

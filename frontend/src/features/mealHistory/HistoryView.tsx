@@ -48,12 +48,17 @@ export function HistoryView({
 
   const startEdit = (history: DisplayHistory) => {
     if (!history.id) return;
+    if (editingId === history.id) {
+      setEditingId(null);
+      return;
+    }
+
     setSelectedHistoryId(history.id);
     setEditingId(history.id);
     setDraft({
       menuId: String(history.menuId ?? menus[0]?.menuId ?? ""),
       rating: String(history.rating ?? 5),
-      memo: history.memo?.startsWith("만족도 ") ? "" : history.memo ?? "",
+      memo: formatHistoryMemo(history.memo, history.menu),
       eatenAt: toDateTimeLocal(history.eatenAt)
     });
   };
@@ -134,7 +139,6 @@ export function HistoryView({
                     <HistoryDetailCard
                       key={history.id ?? `${historyDateKey(history)}-${history.menu}`}
                       history={history}
-                      menus={menus}
                       isSaving={isSaving}
                       isEditing={editingId === history.id}
                       draft={draft}
@@ -159,7 +163,6 @@ export function HistoryView({
 
 function HistoryDetailCard({
   history,
-  menus,
   isSaving,
   isEditing,
   draft,
@@ -170,7 +173,6 @@ function HistoryDetailCard({
   onDeleteHistory
 }: {
   history: DisplayHistory;
-  menus: RemoteMenu[];
   isSaving: boolean;
   isEditing: boolean;
   draft: HistoryDraft;
@@ -180,46 +182,46 @@ function HistoryDetailCard({
   onCancelEdit: () => void;
   onDeleteHistory: (historyId: number) => Promise<void>;
 }) {
+  const detailDate = formatDetailDateParts(history.eatenAt);
+  const displayMemo = formatHistoryMemo(history.memo, history.menu);
+
   return (
     <article className="history-detail-card">
       <div className="history-detail-head">
         <HistoryImage image={history.image} />
-        <div>
-          <span>{formatDetailDate(history.eatenAt)}</span>
-          <h3>{history.menu}</h3>
-          <p>{history.memo}</p>
+        <div className="history-detail-copy">
+          <div className="history-detail-title-row">
+            <div>
+              <span className="history-detail-date">
+                <span>{detailDate.date}</span>
+                <span>{detailDate.time}</span>
+              </span>
+              <h3>{history.menu}</h3>
+            </div>
+            <div className="history-actions detail-actions">
+              <button type="button" aria-label="식사 기록 수정" onClick={() => onStartEdit(history)} disabled={!history.id || isSaving}>
+                <Pencil size={15} />
+              </button>
+              <button
+                type="button"
+                aria-label="식사 기록 삭제"
+                onClick={() => history.id && onDeleteHistory(history.id)}
+                disabled={!history.id || isSaving}
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+          </div>
+          {displayMemo ? <p>{displayMemo}</p> : null}
         </div>
       </div>
       <div className="history-detail-rating" aria-label={`${history.menu} 만족도`}>
         <StarRating value={history.rating ?? 0} readOnly />
         <strong>{history.rating ?? "-"} / 5</strong>
       </div>
-      <div className="history-actions detail-actions">
-        <button type="button" aria-label="식사 기록 수정" onClick={() => onStartEdit(history)} disabled={!history.id || isSaving}>
-          <Pencil size={15} />
-        </button>
-        <button
-          type="button"
-          aria-label="식사 기록 삭제"
-          onClick={() => history.id && onDeleteHistory(history.id)}
-          disabled={!history.id || isSaving}
-        >
-          <Trash2 size={15} />
-        </button>
-      </div>
 
       {isEditing ? (
         <form className="history-edit-form" onSubmit={onSubmit}>
-          <label className="text-field">
-            <span>메뉴</span>
-            <select value={draft.menuId} onChange={(event) => setDraft({ ...draft, menuId: event.target.value })}>
-              {menus.map((menu) => (
-                <option key={menu.menuId} value={String(menu.menuId)}>
-                  {menu.name}
-                </option>
-              ))}
-            </select>
-          </label>
           <label className="text-field">
             <span>시간</span>
             <input
@@ -352,6 +354,41 @@ function formatDetailDate(value?: string) {
   }).format(date);
 }
 
+function formatDetailDateParts(value?: string) {
+  if (!value) return { date: "시간 미정", time: "" };
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return { date: "시간 미정", time: "" };
+
+  const timeParts = new Intl.DateTimeFormat("ko-KR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true
+  }).formatToParts(date);
+  const dayPeriod = timeParts.find((part) => part.type === "dayPeriod")?.value ?? "";
+  const hour = timeParts.find((part) => part.type === "hour")?.value ?? "";
+  const minute = timeParts.find((part) => part.type === "minute")?.value ?? "";
+
+  return {
+    date: new Intl.DateTimeFormat("ko-KR", {
+      month: "long",
+      day: "numeric",
+      weekday: "short"
+    }).format(date) + (dayPeriod ? ` ${dayPeriod}` : ""),
+    time: hour && minute ? `${hour}:${minute}` : ""
+  };
+}
+
 function formatSelectedDate(history: DisplayHistory) {
   return formatDetailDate(history.eatenAt ?? history.date);
+}
+
+function formatHistoryMemo(memo: string | undefined, menuName: string) {
+  if (!memo || memo.startsWith("만족도 ")) return "";
+
+  const cleaned = memo
+    .replace(/\s*추천\s*최종\s*선택\s*$/u, "")
+    .replace(/\s*최종\s*선택\s*$/u, "")
+    .trim();
+
+  return cleaned === menuName ? "" : cleaned;
 }

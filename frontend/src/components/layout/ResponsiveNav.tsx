@@ -1,4 +1,6 @@
 import Clock from "lucide-react/dist/esm/icons/clock";
+import ChevronsLeft from "lucide-react/dist/esm/icons/chevrons-left";
+import ChevronsRight from "lucide-react/dist/esm/icons/chevrons-right";
 import Home from "lucide-react/dist/esm/icons/home";
 import SlidersHorizontal from "lucide-react/dist/esm/icons/sliders-horizontal";
 import Sparkles from "lucide-react/dist/esm/icons/sparkles";
@@ -18,14 +20,27 @@ const navItems: Array<{ id: Tab; label: string; icon: typeof Home; mobile?: bool
 type ResponsiveNavProps = {
   visibleTab: Tab;
   onTabChange: (tab: Tab) => void;
+  isCollapsed?: boolean;
+  onToggleCollapsed?: () => void;
 };
 
-export function ResponsiveNav({ visibleTab, onTabChange }: ResponsiveNavProps) {
+export function ResponsiveNav({ visibleTab, onTabChange, isCollapsed = false, onToggleCollapsed }: ResponsiveNavProps) {
+  const CollapseIcon = isCollapsed ? ChevronsRight : ChevronsLeft;
+
   return (
     <nav className="bottom-nav" aria-label="앱 메뉴">
       <div className="desktop-nav-brand">
         <img src="/assets/brand/mukpick-wordmark.webp" alt="MUK PICK" />
         <span>오늘의 메뉴 선택</span>
+        <button
+          className="sidebar-toggle"
+          type="button"
+          aria-label={isCollapsed ? "사이드바 펼치기" : "사이드바 접기"}
+          aria-pressed={isCollapsed}
+          onClick={onToggleCollapsed}
+        >
+          <CollapseIcon size={18} />
+        </button>
       </div>
       {navItems.map((item) => (
         <NavButton

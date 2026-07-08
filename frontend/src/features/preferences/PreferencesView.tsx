@@ -43,10 +43,11 @@ export function PreferencesView({
   setRecentDuplicateDays,
   onSave
 }: PreferencesViewProps) {
-  const [step, setStep] = useState<"categories" | "tags" | "allergies" | "penalty" | "confirm">("categories");
+  const [step, setStep] = useState<"overview" | "categories" | "tags" | "allergies" | "penalty" | "confirm">("overview");
   const options = [1, 3, 7, 14];
 
   const stepMeta = {
+    overview: { title: "선호도 관리", description: "현재 저장된 선호도를 확인하고 수정 여부를 선택하세요.", index: "현재" },
     categories: { title: "카테고리 설정", description: "좋아하는 음식 계열을 선택하고 점수를 조정하세요.", index: "1/5" },
     tags: { title: "태그 설정", description: "선호하는 조리 방식과 취향을 선택하세요.", index: "2/5" },
     allergies: { title: "제한 조건", description: "피해야 할 알러지나 재료를 선택하세요.", index: "3/5" },
@@ -60,11 +61,14 @@ export function PreferencesView({
     { id: "penalty", label: "중복 패널티" },
     { id: "confirm", label: "확인" }
   ] as const;
+  const categoryLabels = pickData.categories.filter((item) => selectedCategories.includes(item.id)).map((item) => item.label);
+  const tagLabels = pickData.tags.filter((item) => selectedTags.includes(item.id)).map((item) => item.label);
+  const allergyLabels = pickData.allergies.filter((item) => selectedAllergies.includes(item.id)).map((item) => item.label);
   const summary = (
     <div className="preference-summary-list">
-      <SummaryLine label="카테고리" values={pickData.categories.filter((item) => selectedCategories.includes(item.id)).map((item) => item.label)} emptyText="선택 없음" />
-      <SummaryLine label="태그" values={pickData.tags.filter((item) => selectedTags.includes(item.id)).map((item) => item.label)} emptyText="선택 없음" />
-      <SummaryLine label="제한" values={pickData.allergies.filter((item) => selectedAllergies.includes(item.id)).map((item) => item.label)} emptyText="없음" />
+      <SummaryLine label="카테고리" values={categoryLabels} emptyText="선택 없음" />
+      <SummaryLine label="태그" values={tagLabels} emptyText="선택 없음" />
+      <SummaryLine label="제한" values={allergyLabels} emptyText="없음" />
       <SummaryLine label="중복" values={[`${recentDuplicateDays}일`]} emptyText="사용 안 함" />
     </div>
   );
@@ -77,21 +81,51 @@ export function PreferencesView({
       </div>
 
       <PageGrid className="preferences-layout">
-        <aside className="preference-stepper" aria-label="선호도 설정 단계">
-          {steps.map((item, index) => (
-            <button
-              key={item.id}
-              className={step === item.id ? "active" : ""}
-              onClick={() => setStep(item.id)}
-              type="button"
-            >
-              <span>{index + 1}</span>
-              {item.label}
-            </button>
-          ))}
-        </aside>
+        {step !== "overview" ? (
+          <aside className="preference-stepper" aria-label="선호도 설정 단계">
+            {steps.map((item, index) => (
+              <button
+                key={item.id}
+                className={step === item.id ? "active" : ""}
+                onClick={() => setStep(item.id)}
+                type="button"
+              >
+                <span>{index + 1}</span>
+                {item.label}
+              </button>
+            ))}
+          </aside>
+        ) : null}
 
-        <main className="preference-step-content">
+        <main className={`preference-step-content ${step === "overview" ? "preference-overview-content" : ""}`}>
+          {step === "overview" ? (
+            <section className="preference-overview-panel">
+              <div className="preference-overview-copy">
+                <strong>선호도를 수정하시겠어요?</strong>
+                <p>현재 설정을 먼저 확인한 뒤, 필요할 때만 카테고리부터 다시 조정할 수 있습니다.</p>
+              </div>
+              {summary}
+              <div className="preference-overview-stats" aria-label="현재 선호도 요약">
+                <div>
+                  <span>선택한 카테고리</span>
+                  <strong>{categoryLabels.length}개</strong>
+                </div>
+                <div>
+                  <span>선호 태그</span>
+                  <strong>{tagLabels.length}개</strong>
+                </div>
+                <div>
+                  <span>제한 조건</span>
+                  <strong>{allergyLabels.length}개</strong>
+                </div>
+              </div>
+              <div className="step-bottom-actions">
+                <button className="primary-button" onClick={() => setStep("categories")}>
+                  수정하기
+                </button>
+              </div>
+            </section>
+          ) : null}
           {step === "categories" ? (
             <>
               <PickerSection title="" items={pickData.categories} selected={selectedCategories} onChange={setSelectedCategories} compact />
@@ -155,14 +189,16 @@ export function PreferencesView({
           ) : null}
         </main>
 
-        <aside className="preference-summary-aside">
+        {step !== "overview" ? (
+          <aside className="preference-summary-aside">
           <h3>선택 요약</h3>
           {summary}
           <button className="primary-button" onClick={onSave} disabled={isSaving}>
             <Check size={18} />
             {isSaving ? "저장 중" : "선호도 저장"}
           </button>
-        </aside>
+          </aside>
+        ) : null}
       </PageGrid>
     </Page>
   );
