@@ -7861,3 +7861,70 @@ button, [role="button"], a.button, .toggle-row { min-height: 40px; }
     flex: 1 1 0;
   }
 }
+
+/* ============================================================
+ * Home Recent Meals No-Crop Cards
+ * ========================================================== */
+
+@media (min-width: 1024px) {
+  .recent-panel .recent-meal-list {
+    align-items: stretch !important;
+  }
+
+  .recent-panel .recent-meal-card {
+    min-height: 128px !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: minmax(74px, 1fr) auto !important;
+    align-content: stretch !important;
+    gap: 8px !important;
+    overflow: hidden !important;
+  }
+
+  .recent-panel .recent-meal-card img {
+    position: static !important;
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 74px !important;
+    max-height: 98px !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    background: #fffaf4 !important;
+    border-radius: 14px !important;
+  }
+
+  .recent-panel .recent-meal-card div {
+    position: static !important;
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    min-height: 34px !important;
+    display: grid !important;
+    align-content: start !important;
+    gap: 2px !important;
+    z-index: 1 !important;
+  }
+
+  .recent-panel .recent-meal-card strong,
+  .recent-panel .recent-meal-card span {
+    position: static !important;
+    display: block !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    text-shadow: none !important;
+  }
+
+  .recent-panel .recent-meal-card strong {
+    color: var(--ink) !important;
+    font-size: 13px !important;
+    line-height: 1.2 !important;
+  }
+
+  .recent-panel .recent-meal-card span {
+    color: var(--muted) !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+  }
+}
