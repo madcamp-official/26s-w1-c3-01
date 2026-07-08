@@ -37,6 +37,7 @@ export function HistoryView({
   onToggleInteraction
 }: HistoryViewProps) {
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
   const [selectedHistoryId, setSelectedHistoryId] = useState<number | null>(() => historiesData[0]?.id ?? null);
   const [draft, setDraft] = useState<HistoryDraft>({ menuId: "", rating: "5", memo: "", eatenAt: "" });
@@ -54,6 +55,7 @@ export function HistoryView({
     }
 
     setSelectedHistoryId(history.id);
+    setPendingDeleteId(null);
     setEditingId(history.id);
     setDraft({
       menuId: String(history.menuId ?? menus[0]?.menuId ?? ""),
@@ -72,6 +74,21 @@ export function HistoryView({
       memo: draft.memo,
       eatenAt: draft.eatenAt ? new Date(draft.eatenAt).toISOString() : undefined
     }).then(() => setEditingId(null));
+  };
+
+  const requestDelete = (history: DisplayHistory) => {
+    if (!history.id) return;
+    const historyId = history.id;
+    setSelectedHistoryId(historyId);
+    setEditingId(null);
+    setPendingDeleteId((currentId) => (currentId === historyId ? null : historyId));
+  };
+
+  const confirmDelete = (historyId: number) => {
+    void onDeleteHistory(historyId).then(() => {
+      setPendingDeleteId(null);
+      setEditingId(null);
+    });
   };
 
   return (
@@ -115,6 +132,7 @@ export function HistoryView({
                           onClick={() => {
                             setSelectedHistoryId(history.id ?? null);
                             setEditingId(null);
+                            setPendingDeleteId(null);
                           }}
                         >
                           {history.menu}
@@ -141,12 +159,15 @@ export function HistoryView({
                       history={history}
                       isSaving={isSaving}
                       isEditing={editingId === history.id}
+                      isDeletePending={pendingDeleteId === history.id}
                       draft={draft}
                       setDraft={setDraft}
                       onStartEdit={startEdit}
                       onSubmit={handleSubmit}
                       onCancelEdit={() => setEditingId(null)}
-                      onDeleteHistory={onDeleteHistory}
+                      onRequestDelete={requestDelete}
+                      onCancelDelete={() => setPendingDeleteId(null)}
+                      onConfirmDelete={confirmDelete}
                     />
                   ))}
                 </div>
@@ -165,28 +186,50 @@ function HistoryDetailCard({
   history,
   isSaving,
   isEditing,
+  isDeletePending,
   draft,
   setDraft,
   onStartEdit,
   onSubmit,
   onCancelEdit,
-  onDeleteHistory
+  onRequestDelete,
+  onCancelDelete,
+  onConfirmDelete
 }: {
   history: DisplayHistory;
   isSaving: boolean;
   isEditing: boolean;
+  isDeletePending: boolean;
   draft: HistoryDraft;
   setDraft: (draft: HistoryDraft) => void;
   onStartEdit: (history: DisplayHistory) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onCancelEdit: () => void;
-  onDeleteHistory: (historyId: number) => Promise<void>;
+  onRequestDelete: (history: DisplayHistory) => void;
+  onCancelDelete: () => void;
+  onConfirmDelete: (historyId: number) => void;
 }) {
   const detailDate = formatDetailDateParts(history.eatenAt);
   const displayMemo = formatHistoryMemo(history.memo, history.menu);
 
   return (
     <article className="history-detail-card">
+      {isDeletePending && history.id ? (
+        <div className="history-delete-confirm" role="alert">
+          <div>
+            <strong>{history.menu} 기록을 삭제할까요?</strong>
+            <span>삭제하면 이 식사 기록은 복구할 수 없습니다.</span>
+          </div>
+          <div className="history-delete-actions">
+            <button type="button" className="secondary-button" onClick={onCancelDelete} disabled={isSaving}>
+              취소
+            </button>
+            <button type="button" className="danger-button" onClick={() => onConfirmDelete(history.id!)} disabled={isSaving}>
+              삭제
+            </button>
+          </div>
+        </div>
+      ) : null}
       <div className="history-detail-head">
         <HistoryImage image={history.image} />
         <div className="history-detail-copy">
@@ -205,7 +248,7 @@ function HistoryDetailCard({
               <button
                 type="button"
                 aria-label="식사 기록 삭제"
-                onClick={() => history.id && onDeleteHistory(history.id)}
+                onClick={() => onRequestDelete(history)}
                 disabled={!history.id || isSaving}
               >
                 <Trash2 size={15} />

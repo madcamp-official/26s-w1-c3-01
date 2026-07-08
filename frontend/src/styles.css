@@ -7786,3 +7786,78 @@ button, [role="button"], a.button, .toggle-row { min-height: 40px; }
 .personal-result-main .score-breakdown {
   display: none !important;
 }
+
+/* ============================================================
+ * Inline History Delete Confirmation
+ * ========================================================== */
+
+.history-delete-confirm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(238, 90, 24, 0.22);
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #fff2ea 0%, #fffaf4 100%);
+}
+
+.history-delete-confirm div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.history-delete-confirm strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 950;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-delete-confirm span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.history-delete-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-delete-actions .secondary-button,
+.history-delete-actions .danger-button {
+  min-height: 36px;
+  border-radius: 12px;
+  padding: 0 13px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.history-delete-actions .danger-button {
+  color: white !important;
+  border: 0 !important;
+  background: var(--orange) !important;
+  box-shadow: 0 8px 18px rgba(238, 90, 24, 0.22);
+}
+
+@media (max-width: 720px) {
+  .history-delete-confirm {
+    grid-template-columns: 1fr;
+  }
+
+  .history-delete-actions {
+    justify-content: stretch;
+  }
+
+  .history-delete-actions .secondary-button,
+  .history-delete-actions .danger-button {
+    flex: 1 1 0;
+  }
+}

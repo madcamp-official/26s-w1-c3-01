@@ -142,7 +142,6 @@ export function useMealHistoryActions({
 
   const handleDeleteHistory = useCallback(
     async (historyId: number) => {
-      if (!window.confirm("이 식사 기록을 삭제할까요?")) return;
       setHistorySaving(true);
       setApiError("");
       const previousHistories = historyItems;
