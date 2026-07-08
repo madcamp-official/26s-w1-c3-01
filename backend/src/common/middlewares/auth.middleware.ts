@@ -6,39 +6,12 @@ import type { AuthProfile } from "../types/express.js";
 
 type AuthContext = NonNullable<Express.Request["auth"]>;
 
-const AUTH_CACHE_TTL_MS = 5 * 60_000;
-const PROFILE_CACHE_TTL_MS = 5 * 60_000;
-const MAX_AUTH_CACHE_ENTRIES = 500;
+const PROFILE_CACHE_TTL_MS = 30_000;
 const MAX_PROFILE_CACHE_ENTRIES = 1_000;
-const authCache = new Map<string, { expiresAt: number; auth: AuthContext }>();
 const profileCache = new Map<string, { expiresAt: number; profile: AuthProfile }>();
 
-function getCachedAuth(token: string) {
-  const cached = authCache.get(token);
-  if (!cached) return null;
-
-  if (cached.expiresAt <= Date.now()) {
-    authCache.delete(token);
-    return null;
-  }
-
-  return cached.auth;
-}
-
-function setCachedAuth(token: string, auth: AuthContext) {
-  if (authCache.size >= MAX_AUTH_CACHE_ENTRIES) {
-    const oldestToken = authCache.keys().next().value;
-    if (oldestToken) authCache.delete(oldestToken);
-  }
-
-  authCache.set(token, {
-    expiresAt: Date.now() + AUTH_CACHE_TTL_MS,
-    auth
-  });
-}
-
 export function invalidateAuthCache(token: string) {
-  authCache.delete(token);
+  void token;
 }
 
 function getCachedProfile(authUserId: string) {
@@ -87,13 +60,6 @@ export const authMiddleware: RequestHandler = async (req, res, next) => {
   }
 
   try {
-    const cachedAuth = getCachedAuth(token);
-    if (cachedAuth) {
-      req.auth = cachedAuth;
-      next();
-      return;
-    }
-
     // Supabase Auth에 access token이 유효한지 확인한다.
     const { data, error } = await supabaseAdmin.auth.getUser(token);
 
@@ -123,7 +89,6 @@ export const authMiddleware: RequestHandler = async (req, res, next) => {
       profile
     };
 
-    setCachedAuth(token, auth);
     req.auth = auth;
 
     next();

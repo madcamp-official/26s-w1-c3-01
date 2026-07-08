@@ -23,6 +23,8 @@ import { useRouteStateRestore } from "./model/useRouteStateRestore";
 import { useToast } from "./model/useToast";
 import { AppScreens } from "./routes/AppScreens";
 import { useAppUrlSync } from "./useAppUrlSync";
+import { isAuthSessionError } from "./appUtils";
+import { appUiStateStorage, authSessionStorage, sessionStorageMeta } from "../utils/storage";
 
 export function MukpickApp() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
@@ -341,6 +343,42 @@ export function MukpickApp() {
   useEffect(() => {
     preloadLoadingGif();
   }, []);
+
+  useEffect(() => {
+    if (flow !== "app" || apiStatus !== "error" || !isAuthSessionError(new Error(apiError))) return;
+
+    authSessionStorage.clear();
+    sessionStorageMeta.clear();
+    appUiStateStorage.clear();
+    resetRouteSyncReady();
+    resetAuthProfile();
+    resetMeetingState();
+    clearPersonalRecommendations();
+    clearHistories();
+    setFlow("start");
+    setActiveTab("home");
+    setIsGuestSession(false);
+    setIsOAuthOnboarding(false);
+    setApiStatus("idle");
+    setApiError("");
+    setAuthError(apiError || "세션이 만료되었습니다. 다시 로그인해주세요.");
+  }, [
+    apiError,
+    apiStatus,
+    clearHistories,
+    clearPersonalRecommendations,
+    flow,
+    resetAuthProfile,
+    resetMeetingState,
+    resetRouteSyncReady,
+    setActiveTab,
+    setApiError,
+    setApiStatus,
+    setAuthError,
+    setFlow,
+    setIsGuestSession,
+    setIsOAuthOnboarding
+  ]);
 
   const globalLoading =
     authBusy ||
