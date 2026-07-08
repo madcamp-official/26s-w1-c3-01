@@ -2,28 +2,22 @@ import { randomBytes } from "node:crypto";
 import type { User } from "@supabase/supabase-js";
 import { authRepository } from "./auth.repository.js";
 import { userRepository } from "../users/user.repository.js";
-import type { LoginRequest, RefreshRequest, SignupRequest } from "./auth.dto.js";
+import type { LoginRequest, RefreshRequest, ResendSignupEmailRequest, SignupRequest } from "./auth.dto.js";
 
 const GUEST_PASSWORD_PREFIX = "Mukpick-guest-";
 const GUEST_ACCOUNT_TTL_MS = 24 * 60 * 60 * 1000;
 
 export const authService = {
   async signup(input: SignupRequest) {
-    if (await authRepository.findProfileByNickname(input.nickname)) {
+    await cleanupUnconfirmedProfileByEmail(input.email);
+    if (input.nickname) await cleanupUnconfirmedProfileByNickname(input.nickname);
+
+    if (input.nickname && await authRepository.findProfileByNickname(input.nickname)) {
       throw Object.assign(new Error("이미 사용 중인 닉네임입니다."), { status: 409, code: "CONFLICT" });
     }
 
     const { data, error } = await authRepository.signUp(input);
     if (error) throw Object.assign(new Error(error.message), { status: 400, code: "VALIDATION_ERROR" });
-
-    if (data.user && !(await authRepository.findProfileByAuthUserId(data.user.id))) {
-      await authRepository.upsertProfile({
-        authUserId: data.user.id,
-        email: data.user.email ?? input.email,
-        nickname: input.nickname,
-        userType: input.userType
-      });
-    }
 
     return {
       user: data.user,
@@ -117,11 +111,20 @@ export const authService = {
     };
   },
 
+  async resendSignupEmail(input: ResendSignupEmailRequest) {
+    const { error } = await authRepository.resendSignupEmail(input.email);
+    if (error) throw Object.assign(new Error(error.message), { status: 400, code: "VALIDATION_ERROR" });
+
+    return { email: input.email };
+  },
+
   async checkNickname(nickname: string) {
     const normalized = nickname.trim();
     if (!normalized) {
       throw Object.assign(new Error("닉네임을 입력해주세요."), { status: 400, code: "VALIDATION_ERROR" });
     }
+
+    await cleanupUnconfirmedProfileByNickname(normalized);
 
     return {
       nickname: normalized,
@@ -149,6 +152,26 @@ export const authService = {
 
 async function ensureProfileForAuthUser(user: User) {
   return userRepository.ensureProfile(user);
+}
+
+async function cleanupUnconfirmedProfileByEmail(email: string) {
+  const profile = await authRepository.findProfileByEmail(email.trim());
+  await cleanupUnconfirmedProfile(profile);
+}
+
+async function cleanupUnconfirmedProfileByNickname(nickname: string) {
+  const profile = await authRepository.findProfileByNickname(nickname.trim());
+  await cleanupUnconfirmedProfile(profile);
+}
+
+async function cleanupUnconfirmedProfile(profile: { auth_user_id: string | null } | null) {
+  if (!profile?.auth_user_id) return;
+
+  const authUser = await authRepository.getAuthUser(String(profile.auth_user_id));
+  const confirmedAt = authUser?.email_confirmed_at ?? authUser?.confirmed_at;
+  if (!confirmedAt) {
+    await authRepository.deleteAuthUser(String(profile.auth_user_id));
+  }
 }
 
 async function cleanupExpiredGuestProfiles() {

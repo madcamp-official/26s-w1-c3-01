@@ -19,45 +19,45 @@ export const logoAssets = {
 };
 
 export const categoryAssets = {
-  korean: localAsset("categories/korean.png"),
-  japanese: localAsset("categories/japanese.png"),
-  chinese: localAsset("categories/chinese.png"),
-  western: localAsset("categories/western.png"),
-  asian: localAsset("categories/asian.png"),
-  meat: localAsset("categories/meat.png"),
-  fastfood: localAsset("categories/fast-food.png")
+  korean: localAsset("categories/korean.webp"),
+  japanese: localAsset("categories/japanese.webp"),
+  chinese: localAsset("categories/chinese.webp"),
+  western: localAsset("categories/western.webp"),
+  asian: localAsset("categories/asian.webp"),
+  meat: localAsset("categories/meat.webp"),
+  fastfood: localAsset("categories/fast-food.webp")
 };
 
 export const tagAssets = {
-  spicy: localAsset("tags/spicy.png"),
-  soup: localAsset("tags/soup.png"),
-  grilled: localAsset("tags/grilled.png"),
-  braised: localAsset("tags/braised.png"),
-  fried: localAsset("tags/fried.png"),
-  stirfried: localAsset("tags/stir-fried.png"),
-  steamed: localAsset("tags/steamed.png"),
-  boiled: localAsset("tags/boiled.png"),
-  raw: localAsset("tags/raw.png")
+  spicy: localAsset("tags/spicy.webp"),
+  soup: localAsset("tags/soup.webp"),
+  grilled: localAsset("tags/grilled.webp"),
+  braised: localAsset("tags/braised.webp"),
+  fried: localAsset("tags/fried.webp"),
+  stirfried: localAsset("tags/stir-fried.webp"),
+  steamed: localAsset("tags/steamed.webp"),
+  boiled: localAsset("tags/boiled.webp"),
+  raw: localAsset("tags/raw.webp")
 };
 
 export const allergyAssets = {
-  shrimp: localAsset("allergies/shrimp.png"),
-  crab: localAsset("allergies/crab.png"),
-  milk: localAsset("allergies/milk.png"),
-  wheat: localAsset("allergies/wheat.png"),
-  peanut: localAsset("allergies/peanut.png"),
-  egg: localAsset("allergies/egg.png"),
-  mackerel: localAsset("allergies/mackerel.png"),
-  chicken: localAsset("allergies/chicken.png"),
-  soy: localAsset("allergies/soy.png"),
-  pork: localAsset("allergies/pork.png"),
-  buckwheat: localAsset("allergies/buckwheat.png"),
-  peach: localAsset("allergies/peach.png"),
-  sulfites: localAsset("allergies/sulfites.png"),
-  squid: localAsset("allergies/squid.png"),
-  beef: localAsset("allergies/beef.png"),
-  pineNut: localAsset("allergies/pine-nut.png"),
-  shellfish: localAsset("allergies/shellfish.png"),
-  tomato: localAsset("allergies/tomato.png"),
-  walnut: localAsset("allergies/walnut.png")
+  shrimp: localAsset("allergies/shrimp.webp"),
+  crab: localAsset("allergies/crab.webp"),
+  milk: localAsset("allergies/milk.webp"),
+  wheat: localAsset("allergies/wheat.webp"),
+  peanut: localAsset("allergies/peanut.webp"),
+  egg: localAsset("allergies/egg.webp"),
+  mackerel: localAsset("allergies/mackerel.webp"),
+  chicken: localAsset("allergies/chicken.webp"),
+  soy: localAsset("allergies/soy.webp"),
+  pork: localAsset("allergies/pork.webp"),
+  buckwheat: localAsset("allergies/buckwheat.webp"),
+  peach: localAsset("allergies/peach.webp"),
+  sulfites: localAsset("allergies/sulfites.webp"),
+  squid: localAsset("allergies/squid.webp"),
+  beef: localAsset("allergies/beef.webp"),
+  pineNut: localAsset("allergies/pine-nut.webp"),
+  shellfish: localAsset("allergies/shellfish.webp"),
+  tomato: localAsset("allergies/tomato.webp"),
+  walnut: localAsset("allergies/walnut.webp")
 };

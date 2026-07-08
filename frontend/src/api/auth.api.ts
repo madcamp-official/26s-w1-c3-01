@@ -4,6 +4,7 @@ import type {
   LoginRequest,
   LoginResponse,
   NicknameAvailabilityResponse,
+  ResendSignupEmailResponse,
   RefreshResponse,
   SignupRequest,
   SignupResponse
@@ -15,6 +16,13 @@ export const authApi = {
       method: "POST",
       auth: false,
       body: JSON.stringify(body)
+    });
+  },
+  resendSignupEmail(email: string) {
+    return apiRequest<ResendSignupEmailResponse>("/auth/signup/resend", {
+      method: "POST",
+      auth: false,
+      body: JSON.stringify({ email: email.trim() })
     });
   },
   login(body: LoginRequest) {

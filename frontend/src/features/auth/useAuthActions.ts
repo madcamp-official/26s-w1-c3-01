@@ -36,6 +36,7 @@ type UseAuthActionsValue = {
   setApiError: Dispatch<SetStateAction<string>>;
   setFlow: Dispatch<SetStateAction<Flow>>;
   setActiveTab: Dispatch<SetStateAction<Tab>>;
+  setNickname: Dispatch<SetStateAction<string>>;
   setProfileName: Dispatch<SetStateAction<string>>;
   setIsGuestSession: Dispatch<SetStateAction<boolean>>;
   setIsOAuthOnboarding: Dispatch<SetStateAction<boolean>>;
@@ -57,17 +58,17 @@ export function useAuthActions({
   setApiError,
   setFlow,
   setActiveTab,
+  setNickname,
   setProfileName,
   setIsGuestSession,
   setIsOAuthOnboarding,
   showToast
 }: UseAuthActionsValue) {
   const requestEmailSignup = useCallback(
-    async (nextNickname: string) => {
+    async () => {
       return authApi.signup({
         email: signupCredentials.email.trim(),
         password: signupCredentials.password,
-        nickname: nextNickname.trim() || "밥",
         userType: "USER"
       });
     },
@@ -117,9 +118,11 @@ export function useAuthActions({
         showToast("로그인했습니다.");
       } else {
         await loadMasterDataOnly();
-        setFlow("signup-categories");
+        setNickname("");
+        setIsOAuthOnboarding(true);
+        setFlow("oauth-nickname");
         setApiStatus("ready");
-        showToast("이메일 인증이 완료되었습니다. 선호도를 설정해주세요.");
+        showToast("이메일 인증이 완료되었습니다. 닉네임을 설정해주세요.");
       }
     } catch (error) {
       const message = errorMessage(error);
@@ -142,6 +145,7 @@ export function useAuthActions({
     setFlow,
     setIsGuestSession,
     setIsOAuthOnboarding,
+    setNickname,
     showToast
   ]);
 
@@ -156,20 +160,18 @@ export function useAuthActions({
       if (signupCredentials.password !== signupCredentials.passwordConfirm) {
         throw new Error("비밀번호 확인이 일치하지 않습니다.");
       }
-      if (!(await handleCheckNickname(nickname))) return;
-
-      const signupResponse = await requestEmailSignup(nickname);
-      setProfileName(nickname.trim() || "밥");
+      const signupResponse = await requestEmailSignup();
       setIsGuestSession(false);
       sessionStorageMeta.set({ isGuest: false });
 
       if (signupResponse.accessToken) {
         persistAccessToken(signupResponse);
-        setIsOAuthOnboarding(false);
+        setNickname("");
+        setIsOAuthOnboarding(true);
         await loadMasterDataOnly();
-        setFlow("signup-categories");
+        setFlow("oauth-nickname");
         setApiStatus("ready");
-        showToast("선호도 설정을 계속해주세요.");
+        showToast("닉네임을 설정한 뒤 선호도를 입력해주세요.");
         return;
       }
 
@@ -186,9 +188,7 @@ export function useAuthActions({
       setAuthBusy(false);
     }
   }, [
-    handleCheckNickname,
     loadMasterDataOnly,
-    nickname,
     requestEmailSignup,
     setApiError,
     setApiStatus,
@@ -197,11 +197,40 @@ export function useAuthActions({
     setFlow,
     setIsGuestSession,
     setIsOAuthOnboarding,
-    setProfileName,
+    setNickname,
     showToast,
     signupCredentials.email,
     signupCredentials.password,
     signupCredentials.passwordConfirm
+  ]);
+
+  const handleResendSignupEmail = useCallback(async () => {
+    setAuthBusy(true);
+    setAuthError("");
+    setApiStatus("authenticating");
+    try {
+      const email = signupCredentials.email.trim();
+      if (!email) {
+        throw new Error("인증 메일을 받을 이메일을 입력해주세요.");
+      }
+      await authApi.resendSignupEmail(email);
+      setApiStatus("ready");
+      showToast("인증 메일을 다시 보냈습니다.");
+    } catch (error) {
+      const message = errorMessage(error);
+      setApiStatus("error");
+      setAuthError(message);
+      setApiError(message);
+    } finally {
+      setAuthBusy(false);
+    }
+  }, [
+    setApiError,
+    setApiStatus,
+    setAuthBusy,
+    setAuthError,
+    showToast,
+    signupCredentials.email
   ]);
 
   const handleOAuthStart = useCallback(
@@ -362,6 +391,7 @@ export function useAuthActions({
     handleLogin,
     handleCheckNickname,
     handleCreateEmailSignup,
+    handleResendSignupEmail,
     handleOAuthStart,
     handleOAuthNicknameComplete,
     handleSignupComplete,

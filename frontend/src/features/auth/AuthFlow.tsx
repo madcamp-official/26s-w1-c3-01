@@ -45,6 +45,7 @@ type AuthFlowProps = {
   onLogin: () => Promise<void>;
   onCheckNickname: (nickname: string) => Promise<boolean>;
   onCreateEmailSignup: () => Promise<void>;
+  onResendSignupEmail: () => Promise<void>;
   onCompleteOAuthNickname: () => Promise<void>;
   onCompleteSignup: () => Promise<void>;
   onCompleteGuestPreferences: () => Promise<void>;
@@ -97,6 +98,7 @@ export function AuthFlow({
   onLogin,
   onCheckNickname,
   onCreateEmailSignup,
+  onResendSignupEmail,
   onCompleteOAuthNickname,
   onCompleteSignup,
   onCompleteGuestPreferences,
@@ -199,13 +201,10 @@ export function AuthFlow({
 
   if (flow === "signup-name") {
     return (
-      <NicknameStep
-        nickname={nickname}
+      <EmailSignupStep
         credentials={signupCredentials}
         onBack={() => onFlowChange("start")}
-        onChange={onNicknameChange}
         onCredentialsChange={onSignupCredentialsChange}
-        onCheckNickname={onCheckNickname}
         onNext={onCreateEmailSignup}
         isLoading={authBusy}
         errorMessage={authError}
@@ -219,6 +218,8 @@ export function AuthFlow({
         email={signupCredentials.email}
         onBack={() => onFlowChange("signup-name")}
         onGoLogin={() => onFlowChange("login")}
+        onResend={onResendSignupEmail}
+        isLoading={authBusy}
         errorMessage={authError}
       />
     );
@@ -575,11 +576,15 @@ function EmailVerificationScreen({
   email,
   onBack,
   onGoLogin,
+  onResend,
+  isLoading,
   errorMessage
 }: {
   email: string;
   onBack: () => void;
   onGoLogin: () => void;
+  onResend: () => Promise<void>;
+  isLoading: boolean;
   errorMessage: string;
 }) {
   return (
@@ -597,10 +602,13 @@ function EmailVerificationScreen({
           <SummaryLine label="다음 단계" values={["메일 인증", "이메일 로그인", "선호도 조사"]} emptyText="메일 인증" />
         </div>
         {errorMessage ? <p className="auth-error" role="alert">{errorMessage}</p> : null}
-        <button className="secondary-button" onClick={onBack}>
+        <button className="secondary-button" onClick={onBack} disabled={isLoading}>
           이메일 다시 입력
         </button>
-        <button className="primary-button" onClick={onGoLogin}>
+        <button className="secondary-button" onClick={() => void onResend()} disabled={isLoading}>
+          {isLoading ? "재발송 중" : "인증 메일 다시 보내기"}
+        </button>
+        <button className="primary-button" onClick={onGoLogin} disabled={isLoading}>
           인증 후 로그인하기
         </button>
       </section>
@@ -745,47 +753,36 @@ function OAuthNicknameStep({
   );
 }
 
-function NicknameStep({
-  nickname,
+function EmailSignupStep({
   credentials,
   onBack,
-  onChange,
   onCredentialsChange,
-  onCheckNickname,
   onNext,
   isLoading,
   errorMessage
 }: {
-  nickname: string;
   credentials: SignupCredentials;
   onBack: () => void;
-  onChange: (value: string) => void;
   onCredentialsChange: (value: SignupCredentials) => void;
-  onCheckNickname: (nickname: string) => Promise<boolean>;
   onNext: () => Promise<void>;
   isLoading: boolean;
   errorMessage: string;
 }) {
-  const { nicknameStatus, localError, setLocalError, checkNickname, resetNicknameStatus } =
-    useNicknameAvailability(nickname, onCheckNickname);
+  const [localError, setLocalError] = useState("");
 
   const canSubmit =
     credentials.email.trim() &&
     credentials.password.length >= 6 &&
-    credentials.password === credentials.passwordConfirm &&
-    nickname.trim();
+    credentials.password === credentials.passwordConfirm;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canSubmit) {
-      setLocalError("이메일, 6자 이상 비밀번호, 닉네임을 모두 입력해주세요.");
+      setLocalError("이메일과 6자 이상 비밀번호를 입력해주세요.");
       return;
     }
     if (credentials.password !== credentials.passwordConfirm) {
       setLocalError("비밀번호 확인이 일치하지 않습니다.");
-      return;
-    }
-    if (nicknameStatus !== "available" && !(await checkNickname())) {
       return;
     }
     await onNext();
@@ -798,6 +795,10 @@ function NicknameStep({
           <ArrowLeft size={20} />
         </button>
         <img src={logoAssets.startKo} alt="먹픽" className="nickname-logo account-logo" />
+        <div className="auth-copy">
+          <h1>이메일로 가입하기</h1>
+          <p>메일 인증을 완료한 뒤 닉네임과 선호도를 설정합니다</p>
+        </div>
         <form className="account-form" onSubmit={handleSubmit}>
           <label className="text-field">
             <span>이메일</span>
@@ -831,17 +832,9 @@ function NicknameStep({
               required
             />
           </label>
-          <NicknameCheckField
-            nickname={nickname}
-            onChange={onChange}
-            onCheck={checkNickname}
-            onReset={resetNicknameStatus}
-            status={nicknameStatus}
-            isLoading={isLoading}
-          />
           {localError || errorMessage ? <p className="auth-error" role="alert">{localError || errorMessage}</p> : null}
-          <button className="primary-button" type="submit" disabled={isLoading || !canSubmit || nicknameStatus === "taken"}>
-            다음
+          <button className="primary-button" type="submit" disabled={isLoading || !canSubmit}>
+            인증 메일 받기
           </button>
         </form>
       </section>

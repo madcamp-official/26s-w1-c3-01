@@ -230,6 +230,7 @@ export function MukpickApp() {
     handleLogin,
     handleCheckNickname,
     handleCreateEmailSignup,
+    handleResendSignupEmail,
     handleOAuthStart,
     handleOAuthNicknameComplete,
     handleSignupComplete,
@@ -249,6 +250,7 @@ export function MukpickApp() {
     setApiError,
     setFlow,
     setActiveTab,
+    setNickname,
     setProfileName,
     setIsGuestSession,
     setIsOAuthOnboarding,
@@ -330,6 +332,7 @@ export function MukpickApp() {
 
   useSelectedMeetingPolling({
     flow,
+    activeTab,
     selectedMeetingId: selectedMeeting?.id,
     syncSelectedMeeting
   });
@@ -390,6 +393,7 @@ export function MukpickApp() {
           onLogin={handleLogin}
           onCheckNickname={handleCheckNickname}
           onCreateEmailSignup={handleCreateEmailSignup}
+          onResendSignupEmail={handleResendSignupEmail}
           onCompleteOAuthNickname={handleOAuthNicknameComplete}
           onCompleteSignup={handleSignupComplete}
           onCompleteGuestPreferences={handleGuestPreferenceComplete}

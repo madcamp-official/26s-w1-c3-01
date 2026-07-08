@@ -32,6 +32,15 @@ export const refresh: RequestHandler = async (req, res, next) => {
   }
 };
 
+export const resendSignupEmail: RequestHandler = async (req, res, next) => {
+  try {
+    const data = await authService.resendSignupEmail(req.body);
+    sendSuccess(res, data, 200, "인증 메일을 다시 보냈습니다.");
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const syncProfile: RequestHandler = async (req, res, next) => {
   const token = req.header("authorization")?.replace(/^Bearer\s+/i, "");
 

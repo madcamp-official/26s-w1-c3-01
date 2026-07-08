@@ -19,11 +19,11 @@ function readNullableNumber(row: any, keys: string[]) {
 }
 
 export function usePreferenceSettings() {
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(["korean", "japanese"]);
-  const [selectedTags, setSelectedTags] = useState<string[]>(["spicy", "soup"]);
-  const [selectedAllergies, setSelectedAllergies] = useState<string[]>(["shrimp"]);
-  const [categoryScores, setCategoryScores] = useState<PreferenceScoreMap>({ korean: 5, japanese: 4 });
-  const [tagScores, setTagScores] = useState<PreferenceScoreMap>({ spicy: 5, soup: 4 });
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedAllergies, setSelectedAllergies] = useState<string[]>([]);
+  const [categoryScores, setCategoryScores] = useState<PreferenceScoreMap>({});
+  const [tagScores, setTagScores] = useState<PreferenceScoreMap>({});
   const [newMenuIncluded, setNewMenuIncluded] = useState(true);
   const [recentDuplicateDays, setRecentDuplicateDays] = useState(3);
   const [budgetMin, setBudgetMin] = useState<number | null>(null);

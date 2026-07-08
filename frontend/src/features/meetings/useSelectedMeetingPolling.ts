@@ -1,19 +1,21 @@
 import { useEffect } from "react";
-import type { Flow } from "../../app/app.types";
+import type { Flow, Tab } from "../../app/app.types";
 
 type UseSelectedMeetingPollingValue = {
   flow: Flow;
+  activeTab: Tab;
   selectedMeetingId?: number;
   syncSelectedMeeting: (options?: { silent?: boolean }) => Promise<void>;
 };
 
 export function useSelectedMeetingPolling({
   flow,
+  activeTab,
   selectedMeetingId,
   syncSelectedMeeting
 }: UseSelectedMeetingPollingValue) {
   useEffect(() => {
-    if (flow !== "app" || !selectedMeetingId) return;
+    if (flow !== "app" || activeTab !== "meeting" || !selectedMeetingId) return;
 
     const refresh = () => {
       if (document.visibilityState === "hidden") return;
@@ -29,5 +31,5 @@ export function useSelectedMeetingPolling({
       window.removeEventListener("focus", refresh);
       document.removeEventListener("visibilitychange", refresh);
     };
-  }, [flow, selectedMeetingId, syncSelectedMeeting]);
+  }, [activeTab, flow, selectedMeetingId, syncSelectedMeeting]);
 }

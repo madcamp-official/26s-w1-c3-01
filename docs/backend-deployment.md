@@ -38,9 +38,46 @@ http://localhost:3000/health
 SUPABASE_URL
 SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
+PUBLIC_SITE_URL
+AUTH_EMAIL_REDIRECT_URL
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY`는 서버 전용 secret이므로 프론트엔드 환경변수에 넣지 않는다.
+
+이메일 인증을 운영 도메인에서 사용하려면 아래처럼 설정한다.
+
+```text
+PUBLIC_SITE_URL=https://mukpick.help
+AUTH_EMAIL_REDIRECT_URL=https://mukpick.help
+```
+
+### Supabase Auth + Resend 설정
+
+`mukpick.help` 도메인 메일 발송은 코드만으로 끝나지 않고 DNS와 Supabase 대시보드 설정이 필요하다.
+
+1. Resend에서 `mukpick.help` 도메인을 추가한다.
+2. 도메인 구매처 DNS에 Resend가 안내하는 `TXT`, `MX`, `CNAME` 레코드를 추가한다.
+3. Resend에서 도메인이 Verified 상태인지 확인한다.
+4. Supabase Dashboard > Authentication > SMTP Settings에서 Custom SMTP를 켠다.
+5. Resend SMTP 값을 입력한다.
+
+```text
+Host: smtp.resend.com
+Port: 465
+Username: resend
+Password: Resend API key
+Sender email: no-reply@mukpick.help
+Sender name: MUK PICK
+```
+
+6. Supabase Dashboard > Authentication > URL Configuration에서 설정한다.
+
+```text
+Site URL: https://mukpick.help
+Redirect URLs: https://mukpick.help
+```
+
+로컬 테스트를 같이 할 때는 Redirect URLs에 `http://localhost:5173`도 추가한다.
 
 ## 3. Render에서 배포하기
 
@@ -57,6 +94,8 @@ SUPABASE_SERVICE_ROLE_KEY
 SUPABASE_URL
 SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
+PUBLIC_SITE_URL
+AUTH_EMAIL_REDIRECT_URL
 ```
 
 ### 방법 B: 수동 설정
@@ -78,6 +117,8 @@ NODE_ENV=production
 SUPABASE_URL=...
 SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
+PUBLIC_SITE_URL=https://mukpick.help
+AUTH_EMAIL_REDIRECT_URL=https://mukpick.help
 ```
 
 Render는 `PORT`를 자동으로 주입하므로 별도로 고정하지 않아도 된다.
@@ -117,9 +158,10 @@ VITE_API_BASE_URL=https://your-backend.onrender.com/api/v1
 |---|---|---|
 | 1 | 백엔드 서버 상태 | `GET /health` |
 | 2 | Supabase 연결 | 회원가입 또는 로그인 API 호출 |
-| 3 | Master Data 조회 | 로그인 후 `/api/v1/menus` 호출 |
+| 3 | 이메일 인증 | 회원가입 후 `no-reply@mukpick.help` 발신 인증 메일 수신 및 링크 클릭 |
 | 4 | 프론트 연결 | Vercel 환경변수 `VITE_API_BASE_URL` 설정 후 재배포 |
-| 5 | 주요 플로우 | 회원가입, 선호도 저장, 개인 추천, 모임 생성, 모임 추천 |
+| 5 | Master Data 조회 | 로그인 후 `/api/v1/menus` 호출 |
+| 6 | 주요 플로우 | 회원가입, 선호도 저장, 개인 추천, 모임 생성, 모임 추천 |
 
 ## 7. 주의 사항
 
