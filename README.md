@@ -1,150 +1,428 @@
-# 26s-w1-c3-01
+# MUK PICK
 
-## 공통과제 I : 웹 기반 프로젝트 (2인 1팀)
+**먹픽(MUK PICK)** 은 개인과 모임의 음식 취향, 알러지 및 제한 조건, 예산 조건, 최근 식사 기록을 바탕으로 식사 메뉴를 추천하는 웹 서비스입니다.
 
-**목적:** 공통 과제를 함께 수행하며 웹 개발의 전체 흐름을 빠르게 익히고 협업에 적응하기
-
-**결과물:** 기획부터 배포까지 완료된 웹 서비스와 관련 문서 일체
+사용자는 혼자 먹을 메뉴를 빠르게 추천받을 수 있고, 모임에서는 여러 참여자의 선호도를 종합해 모두가 수용하기 쉬운 메뉴 후보를 확인할 수 있습니다.
 
 ---
 
-## 팀원
+## 1. 프로젝트 정보
 
-| 이름 | GitHub | 역할 |
-|---|---|---|
+| 항목    | 내용                                  |
+| ----- | ----------------------------------- |
+| 과제    | 공통과제 I: 웹 기반 프로젝트                   |
+| 프로젝트명 | 먹픽 (MUK PICK)                       |
+| 주제    | 메뉴 결정 갈등을 줄여주는 개인/모임 메뉴 추천 서비스      |
+| 형태    | React + Express + Supabase 기반 웹 서비스 |
+
+---
+
+## 2. 팀원
+
+| 이름  | GitHub    | 역할         |
+| --- | --------- | ---------- |
 | 손기환 | Kihwan819 | 공동 기획 및 개발 |
 | 박지호 | batiger00 | 공동 기획 및 개발 |
 
 ---
 
-## 기획안
+## 3. 프로젝트 목적
 
-- **주제:** 메뉴 결정 갈등을 줄여주는 앱 (MUK PICK)
-- **목적:**
-  - 먹픽은 식사 메뉴를 결정할 때 소요되는 시간을 줄이는 것을 목적으로 한다.
-  - 개인 음식 취향 분석을 통해 메뉴 결정을 돕는다.
-  - 집단 약속의 경우, 구성원들의 공통된 취향과 선호도를 종합적으로 반영하여 모두가 수용하기 쉬운 메뉴를 제안한다.
-  - 이를 통해 개인과 단체 모두가 더 빠르고 만족스럽게 식사 메뉴를 결정할 수 있도록 돕는다.
-- **핵심 기능:**
-  - **개인 식단 및 선호도 분석:** 앱에서의 초반 선호도 조사를 통해 개인의 음식 성향을 분석한다. 추가적으로 사용자의 평소 식사 기록을 통해 선호도가 업데이트 가능하다. 이를 통해 사용자가 어떤 종류의 음식을 선호하는지 파악하고, 이후 메뉴 추천에 반영한다.
-  - **집단 선호도 기반 메뉴 추천:** 여러 명이 함께 식사할 경우, 각 사용자의 선호도와 제한 조건을 종합하여 집단 전체가 수용하기 쉬운 메뉴를 추천한다. 특정 사용자의 취향에만 치우치지 않고, 공통적으로 만족할 가능성이 높은 메뉴를 제안함으로써 메뉴 결정 과정에서 발생하는 갈등을 줄인다.
-  - **새로운 식사 경험 제안:** 사용자가 자주 먹는 메뉴만 반복해서 추천하지 않고, 기존 선호도와 크게 벗어나지 않는 범위 안에서 새로운 메뉴를 제안한다. 이를 통해 사용자는 익숙한 선택지에만 머무르지 않고, 부담스럽지 않게 새로운 음식을 시도할 수 있다.
-  - **메뉴 후보 비교 및 최종 선택 지원:** 추천된 메뉴 후보들에 대해 집단 구성원이 간단히 선호도를 표시할 수 있도록 하여 최종 메뉴 결정을 돕는다. 투표 결과와 개인별 선호도를 함께 반영해 가장 적합한 메뉴를 제시한다.
-- **예상 사용자:**
-  - 매일 식사 메뉴를 고르기 어려워하는 개인
-  - 반복되는 메뉴 선택에서 벗어나 새로운 음식을 시도하고 싶은 개인
-  - 식사 메뉴를 결정해야 하는 친구 모임, 동아리, 팀 프로젝트, 직장 동료 등 단체
-  - 여러 사람의 취향을 고려해 메뉴를 정해야 하는 모임 주최자
-- **팀원별 역할:**
-  - 손기환: 공동 기획 및 개발
-  - 박지호: 공동 기획 및 개발
+식사 메뉴를 고르는 과정은 개인에게도, 여러 명이 함께하는 모임에서도 자주 발생하는 의사결정 문제입니다. 특히 모임에서는 각자의 취향, 알러지, 예산, 최근에 먹은 메뉴가 달라 메뉴를 결정하는 데 시간이 오래 걸릴 수 있습니다.
+
+먹픽은 이러한 문제를 줄이기 위해 다음을 목표로 합니다.
+
+* 개인 사용자의 음식 취향과 제한 조건을 반영한 메뉴 추천
+* 최근 식사 기록을 고려한 반복 메뉴 감점
+* 예산 조건을 반영한 현실적인 메뉴 후보 제공
+* 여러 참여자의 선호도를 종합한 모임 메뉴 추천
+* 알러지 및 제한 조건과 충돌하는 메뉴 제외
+* 추천 점수와 이유를 함께 제공하는 납득 가능한 메뉴 결정 지원
 
 ---
 
-## 기능 명세서
+## 4. 주요 기능
 
-구현해야 할 기능은 사용자가 개인 또는 집단 식사 상황에서 메뉴를 효율적으로 결정할 수 있도록 지원하는 기능으로 구성한다.
+### 4.1 사용자 인증
 
-### 필수 기능
+* 이메일 회원가입 및 로그인
+* Google OAuth 로그인
+* OAuth 신규 사용자 닉네임 온보딩
+* 닉네임 중복 확인
+* access token / refresh token 기반 세션 유지
+* 게스트 임시 계정 생성 및 모임 참여
 
-- 적절한 메뉴에 대한 랭킹 제공: 추천 시스템 기반 메뉴 순위화
-- 다수의 정보 취합 후 메뉴 선정: 음식에 대한 취향과 알러지 정보 반영
-- 식사 시기에 따른 메뉴 추천
+### 4.2 선호도 설정
 
-### 선택 기능
+* 음식 카테고리 선택
+* 음식 태그 선택
+* 카테고리별 선호 점수 설정
+* 태그별 선호 점수 설정
+* 알러지 및 제한 조건 선택
+* 예산 조건 설정
+* 최근 식사 중복 패널티 기간 설정
+* 새로운 메뉴 포함 여부 설정
 
-- 추천 메뉴에 맞는 주변 식당 정보 제공
-- 날짜와 시간에 대한 메뉴 선호도 반영
-- 개인 식단 목표 기반 추천: 다이어트, 웰니스 등
+### 4.3 개인 메뉴 추천
+
+* 개인 선호도 기반 메뉴 랭킹 제공
+* 알러지 및 제한 조건과 충돌하는 메뉴 제외
+* 예산 조건 반영
+* 최근에 먹은 메뉴 감점
+* 추천 메뉴 점수와 추천 이유 제공
+* 추천 메뉴 확정 시 식사 기록으로 저장
+
+### 4.4 모임 메뉴 추천
+
+* 모임 생성 및 모임 ID 기반 참여
+* 게스트 모임 preview 및 참여
+* 참여자 목록 확인
+* 추천 계산에 포함할 참여자 선택
+* 참여자별 선호도, 알러지, 예산 조건 종합
+* 모임 목적에 맞는 메뉴 추천
+* 모임 생성자에 의한 최종 메뉴 확정
+
+### 4.5 식사 기록 및 메뉴 상호작용
+
+* 식사 기록 조회, 생성, 수정, 삭제
+* 만족도와 메모 저장
+* 메뉴 좋아요, 싫어요, 북마크
+* 메뉴별 상호작용 상태 조회 및 토글
 
 ---
 
-## IA 및 화면 설계서
+## 5. 추천 방식 요약
 
-> 서비스의 전체 페이지 구조와 페이지 간 이동 흐름; 각 페이지의 주요 UI 구성, 입력 요소, 버튼, 사용자 행동 흐름 등을 간단한 와이어프레임 형태로 정리
+먹픽은 단순 랜덤 추천이 아니라, 사용자 선호도와 메뉴 데이터를 기반으로 점수를 계산해 메뉴를 추천합니다.
 
-- [프론트엔드 아키텍처](docs/frontend-architecture.md)
-- [프론트엔드 라우팅 및 화면 흐름](docs/frontend-routing.md)
-- [프론트엔드 컴포넌트 설계](docs/frontend-components.md)
-- [프론트엔드 API 및 상태 계약](docs/frontend-api-state.md)
+### 5.1 개인 추천
+
+개인 추천은 다음 요소를 반영합니다.
+
+* 카테고리 선호도
+* 태그 선호도
+* 메뉴 선호도 또는 식사 기록 평점
+* 예산 조건
+* 최근 식사 기록
+* 알러지 및 제한 조건
+
+알러지와 충돌하는 메뉴는 추천 후보에서 제외되며, 최근에 먹은 메뉴는 설정된 기간에 따라 감점됩니다.
+
+### 5.2 모임 추천
+
+모임 추천은 다음 요소를 반영합니다.
+
+* 참여자별 카테고리 선호도
+* 참여자별 태그 선호도
+* 참여자별 메뉴 선호도
+* 참여자별 예산 조건
+* 참여자별 알러지 및 제한 조건
+* 모임 목적 적합도
+
+참여자 중 한 명이라도 알러지와 충돌하거나 강하게 비선호한 메뉴는 추천 후보에서 제외됩니다. 추천 결과는 모임 전체 평균 점수뿐만 아니라 특정 참여자에게 지나치게 불리하지 않은지도 고려합니다.
 
 ---
 
-## DB 스키마
+## 6. 기술 스택
 
-> 필요한 테이블, 주요 필드, 데이터 타입, 테이블 간 관계를 정리
+### Frontend
 
-- [DB 스키마 문서](docs/dbschema.md)
-- ERD: `assets/dbschema-erd.png`
+| 항목          | 기술           |
+| ----------- | ------------ |
+| Framework   | React 19     |
+| Build Tool  | Vite         |
+| Language    | TypeScript   |
+| Styling     | CSS          |
+| Icon        | lucide-react |
+| Auth Client | Supabase JS  |
+
+### Backend
+
+| 항목         | 기술           |
+| ---------- | ------------ |
+| Runtime    | Node.js      |
+| Framework  | Express      |
+| Language   | TypeScript   |
+| Validation | Zod          |
+| Security   | Helmet, CORS |
+| Test       | Vitest       |
+
+### Database / Infra
+
+| 항목        | 기술                  |
+| --------- | ------------------- |
+| Database  | Supabase PostgreSQL |
+| Auth      | Supabase Auth       |
+| Storage   | Supabase Storage    |
+| Migration | Supabase migrations |
+| Seed      | `supabase/seed.sql` |
 
 ---
 
-## API 문서
-
-> API 주소, 요청 방식, 요청값, 응답값, 에러 상황을 정리
-
-- [백엔드 구조 및 API 문서](docs/backend.md)
-- [기능 명세서](docs/기능명세서.md)
-
----
-
-## 프로젝트 구조
+## 7. 프로젝트 구조
 
 ```text
-frontend/   # React + Vite 클라이언트
-backend/    # Express API 서버
-supabase/   # Supabase DB migration, seed, local config
-docs/       # 기능/API/DB/프론트엔드 설계 문서
-assets/     # 문서용 이미지
+.
+├─ frontend/        # React + Vite 클라이언트
+├─ backend/         # Express API 서버
+├─ supabase/        # Supabase migration, seed, local config
+├─ docs/            # 기능/API/DB/프론트엔드 설계 문서
+├─ assets/          # 문서용 이미지
+├─ package.json     # 루트 실행 스크립트
+└─ README.md
+```
+
+### 7.1 Frontend
+
+```text
+frontend/src/
+├─ App.tsx
+├─ app/             # 앱 shell, URL sync, 전역 상태 조립
+├─ api/             # backend API wrapper
+├─ components/      # 공통 UI 컴포넌트
+├─ domain/          # backend 응답 -> UI 모델 변환
+├─ features/        # auth, preferences, recommendations, meetings 등 기능 단위 코드
+├─ types/
+├─ utils/
+└─ styles.css
+```
+
+### 7.2 Backend
+
+```text
+backend/src/
+├─ app.ts
+├─ server.ts
+├─ routes/
+├─ modules/
+│  ├─ auth/
+│  ├─ users/
+│  ├─ master-data/
+│  ├─ preferences/
+│  ├─ user-preferences/
+│  ├─ recommendations/
+│  ├─ menu-interactions/
+│  ├─ meetings/
+│  ├─ meeting-recommendations/
+│  └─ meal-history/
+├─ common/
+└─ config/
 ```
 
 ---
 
-## 배포 결과물
+## 8. 실행 방법
 
-> 접속 가능한 링크, 실행 방법, 주요 구현 내용
-
-- **서비스 URL:**
-- **실행 방법:**
+### 8.1 패키지 설치
 
 ```bash
 npm --prefix backend install
 npm --prefix frontend install
+```
 
-# 백엔드 실행
+### 8.2 Supabase 로컬 실행
+
+Docker Desktop을 실행한 뒤 다음 명령어를 실행합니다.
+
+```bash
+npm run supabase:start
+npm run supabase:reset
+```
+
+`supabase:start` 실행 후 출력되는 local Supabase URL, anon key, service role key를 환경변수에 반영합니다.
+
+### 8.3 Backend 환경변수 설정
+
+```bash
 cp backend/.env.example backend/.env
-npm run backend:dev
+```
 
-# 프론트엔드 실행
+`backend/.env` 예시:
+
+```env
+NODE_ENV=development
+PORT=3000
+SUPABASE_URL="http://127.0.0.1:54321"
+SUPABASE_ANON_KEY="your-local-supabase-anon-key"
+SUPABASE_SERVICE_ROLE_KEY="your-local-supabase-service-role-key"
+PUBLIC_SITE_URL="http://localhost:5173"
+AUTH_EMAIL_REDIRECT_URL="http://localhost:5173"
+```
+
+`SUPABASE_SERVICE_ROLE_KEY`는 backend 전용 환경변수입니다. 프론트엔드에 노출하면 안 됩니다.
+
+### 8.4 Frontend 환경변수 설정
+
+```bash
 cp frontend/.env.example frontend/.env
+```
+
+`frontend/.env` 예시:
+
+```env
+VITE_API_BASE_URL=http://localhost:3000/api/v1
+VITE_SUPABASE_URL=http://127.0.0.1:54321
+VITE_SUPABASE_ANON_KEY=your-local-supabase-anon-key
+```
+
+### 8.5 Backend 실행
+
+```bash
+npm run backend:dev
+```
+
+기본 주소:
+
+```text
+http://localhost:3000
+```
+
+상태 확인:
+
+```text
+http://localhost:3000/health
+```
+
+### 8.6 Frontend 실행
+
+```bash
 npm run frontend:dev
 ```
 
-프론트엔드 단독 배포 시에는 배포 환경 변수에 `VITE_API_BASE_URL`을 실제 백엔드 주소로 설정해야 한다. 이 값이 없으면 기본값 `/api/v1`을 사용하므로, 백엔드가 같은 도메인에 없을 때 Vite/배포 서버의 HTML 응답을 API JSON으로 파싱하려는 오류가 발생할 수 있다.
+기본 주소:
+
+```text
+http://localhost:5173
+```
+
+### 8.7 Build / Test
+
+```bash
+npm run backend:build
+npm run frontend:build
+npm run backend:test
+```
 
 ---
 
-## 회고 문서
+## 9. 주요 API
 
-> 개발 과정에서의 어려움, 해결 방법, 역할 분담, 다음에 개선할 점 (KPT 방법론 참고)
+백엔드 API는 `/api/v1` prefix를 사용합니다.
 
-### Keep
+| 영역               | Endpoint                                          |
+| ---------------- | ------------------------------------------------- |
+| Auth             | `/api/v1/auth`                                    |
+| User             | `/api/v1/users`                                   |
+| Menu             | `/api/v1/menus`                                   |
+| Preference       | `/api/v1/preferences`, `/api/v1/user-preferences` |
+| Recommendation   | `/api/v1/recommendations`                         |
+| Menu Interaction | `/api/v1/menu-interactions`                       |
+| Meeting          | `/api/v1/meetings`                                |
+| Meal History     | `/api/v1/meal-history`                            |
 
-### Problem
+상태 확인 API:
 
-### Try
+```http
+GET /health
+```
+
+자세한 API 명세는 [`docs/backend.md`](docs/backend.md)를 참고합니다.
 
 ---
 
-## 참고 자료
+## 10. Seed Data
 
-- [SDD(스펙 주도 개발) 이해하기](https://news.hada.io/topic?id=21338)
-- [Software Design Document Best Practices](https://www.atlassian.com/work-management/project-management/design-document)
-- [IA 정보구조도 작성 방법](https://brunch.co.kr/@nyonyo/7)
-- [기획자 화면설계서 작성법](https://brunch.co.kr/@soup/10)
-- [Figma 와이어프레임 가이드](https://www.figma.com/ko-kr/resource-library/what-is-wireframing/)
-- [무료 Figma 와이어프레임 키트](https://www.figma.com/ko-kr/templates/wireframe-kits/)
-- [ERD/DB 설계 총정리](https://inpa.tistory.com/entry/DB-%F0%9F%93%9A-%EB%8D%B0%EC%9D%B4%ED%84%B0-%EB%AA%A8%EB%8D%B8%EB%A7%81-%EA%B0%9C%EB%85%90-ERD-%EB%8B%A4%EC%9D%B4%EC%96%B4%EA%B7%B8%EB%9E%A8)
-- [API 명세서 작성 가이드라인](https://velog.io/@sebinChu/BackEnd-API-%EB%AA%85%EC%84%B8%EC%84%9C-%EC%9E%91%EC%84%B1-%EA%B0%80%EC%9D%B4%EB%93%9C-%EB%9D%BC%EC%9D%B8)
-- [좋은 README 작성하는 방법](https://velog.io/@sabo/good-readme)
-- [단기 프로젝트 회고 KPT 방법론](https://velog.io/@habwa/%EB%8B%A8%EA%B8%B0-%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8-%ED%9A%8C%EA%B3%A0-KPT-%EB%B0%A9%EB%B2%95%EB%A1%A0)
+`supabase/seed.sql`은 기본 master data를 제공합니다.
+
+### 10.1 카테고리
+
+```text
+한식, 중식, 양식, 일식, 아시안, 고기, 패스트푸드
+```
+
+### 10.2 태그
+
+```text
+구이, 국물, 조림, 찜, 삶음, 볶음, 튀김, 날것, 매운맛
+```
+
+### 10.3 모임 목적
+
+```text
+가벼운 식사, 든든한 식사, 회식, 데이트, 팀플 식사, 새로운 메뉴 시도, 건강식
+```
+
+### 10.4 기본 메뉴 예시
+
+```text
+김치찌개, 비빔밥, 제육볶음, 짜장면, 마라탕, 초밥, 라멘, 파스타, 샐러드볼, 쌀국수
+```
+
+---
+
+## 11. 구현 범위
+
+### 11.1 현재 구현된 MVP 범위
+
+* 이메일 회원가입/로그인/로그아웃
+* Google OAuth 로그인
+* OAuth 신규 사용자 닉네임 온보딩
+* 게스트 시작 및 모임 참여
+* 선호도 설정
+* 예산 조건 설정
+* 최근 식사 중복 패널티 설정
+* 개인 메뉴 추천
+* 개인 추천 메뉴 확정 및 식사 기록 생성
+* 식사 기록 조회/수정/삭제
+* 메뉴 좋아요/싫어요/북마크
+* 모임 생성/조회/수정
+* 모임 참여자 관리
+* 모임 메뉴 추천
+* 모임 메뉴 최종 확정
+* Supabase 기반 DB/Auth/Storage 연동
+* 모바일 중심 UI
+
+### 11.2 현재 MVP에서 제외한 기능
+
+* 주변 식당 위치 기반 추천
+* 실시간 지도/거리 계산
+* 배달앱 또는 예약 서비스 연동
+* 투표 기반 최종 메뉴 결정
+* 반복 모임 그룹 관리
+* 머신러닝 기반 추천 모델
+* 결제 기능
+
+현재 먹픽은 식당 추천 서비스가 아니라 **메뉴 추천 서비스**에 집중합니다.
+
+---
+
+## 12. 관련 문서
+
+| 문서                                              | 설명                                            |
+| ----------------------------------------------- | --------------------------------------------- |
+| [기능명세서](docs/기능명세서.md)                          | 서비스 기능 요구사항                                   |
+| [DB 스키마](docs/dbschema.md)                      | Supabase DB 테이블, view, RPC, Storage 설계        |
+| [백엔드 구조 및 API](docs/backend.md)                 | Express API 구조와 endpoint 설명                   |
+| [프론트엔드 아키텍처](docs/frontend-architecture.md)     | React/Vite 프론트 구조                             |
+| [프론트엔드 API 및 상태 계약](docs/frontend-api-state.md) | API client, token, URL state, localStorage 계약 |
+| [프론트엔드 컴포넌트 설계](docs/frontend-components.md)    | 화면 및 컴포넌트 구조                                  |
+| [ERD 이미지](assets/dbschema-erd.png)              | DB 관계도                                        |
+
+---
+
+## 13. 개발 확인 체크리스트
+
+* Supabase local stack 실행 여부
+* `supabase db reset`으로 migration/seed 적용 여부
+* backend `.env` 설정 여부
+* frontend `.env` 설정 여부
+* `GET /health` 정상 응답 여부
+* 이메일 회원가입/로그인 동작 여부
+* Google OAuth 로그인 동작 여부
+* 게스트 모임 참여 동작 여부
+* 선호도 저장 동작 여부
+* 개인 추천 생성 및 확정 동작 여부
+* 식사 기록 생성/수정/삭제 동작 여부
+* 좋아요/싫어요/북마크 토글 동작 여부
+* 모임 생성/추천/확정 동작 여부
+* 새로고침 후 주요 화면 상태 복원 여부
