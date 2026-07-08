@@ -7860,3 +7860,82 @@ button, [role="button"], a.button, .toggle-row { min-height: 40px; }
     -webkit-line-clamp: 2;
   }
 }
+
+/* ============================================================
+ * Personal Recommendation Desktop Density
+ * ========================================================== */
+
+@media (min-width: 1024px) {
+  .personal-result-main > .recommendation-list {
+    gap: 10px !important;
+    padding-right: 6px !important;
+  }
+
+  .personal-result-main .recommendation-card {
+    min-height: 104px !important;
+    grid-template-columns: 76px 42px minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 12px 14px !important;
+    border-radius: 18px !important;
+  }
+
+  .personal-result-main .recommendation-media {
+    width: 76px !important;
+    height: 76px !important;
+    border-radius: 18px !important;
+  }
+
+  .personal-result-main .rank-mark {
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 14px !important;
+    font-size: 18px !important;
+  }
+
+  .personal-result-main .recommendation-title {
+    gap: 10px !important;
+  }
+
+  .personal-result-main .recommendation-title strong {
+    font-size: 17px !important;
+    line-height: 1.2 !important;
+  }
+
+  .personal-result-main .recommendation-title span {
+    padding: 4px 10px !important;
+    border-radius: 999px !important;
+    color: var(--mp-green) !important;
+    background: var(--mp-green-soft) !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+  }
+
+  .personal-result-main .recommendation-body p {
+    margin: 4px 0 6px !important;
+    overflow: hidden !important;
+    display: -webkit-box !important;
+    color: var(--muted) !important;
+    font-size: 12px !important;
+    line-height: 1.35 !important;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .personal-result-main .score-breakdown {
+    gap: 5px !important;
+    margin-bottom: 0 !important;
+  }
+
+  .personal-result-main .score-breakdown span {
+    padding: 4px 8px !important;
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+  }
+
+  .personal-result-main .final-choice-bar {
+    min-height: 58px !important;
+    margin-top: 8px !important;
+    padding: 10px 14px !important;
+  }
+}
