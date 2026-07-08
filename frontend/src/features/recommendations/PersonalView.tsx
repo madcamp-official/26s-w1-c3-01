@@ -7,8 +7,6 @@ import { budgetOptions, readBudgetValue } from "./budgetOptions";
 import { RecommendationList } from "./RecommendationList";
 
 type PersonalViewProps = {
-  newMenuIncluded: boolean;
-  setNewMenuIncluded: (value: boolean) => void;
   recentDuplicateDays: number;
   setRecentDuplicateDays: (value: number) => void;
   budgetLevel: number | null;
@@ -24,8 +22,6 @@ type PersonalViewProps = {
 };
 
 export function PersonalView({
-  newMenuIncluded,
-  setNewMenuIncluded,
   recentDuplicateDays,
   setRecentDuplicateDays,
   budgetLevel,
@@ -53,14 +49,6 @@ export function PersonalView({
               <option value="14">14일</option>
             </select>
           </label>
-          <button
-            className={`toggle-row ${newMenuIncluded ? "on" : ""}`}
-            onClick={() => setNewMenuIncluded(!newMenuIncluded)}
-            aria-pressed={newMenuIncluded}
-          >
-            <span>새로운 메뉴 포함</span>
-            <span className="toggle-knob" />
-          </button>
           <label>
             <span>가격대</span>
             <select value={budgetLevel ?? ""} onChange={(event) => setBudgetLevel(readBudgetValue(event.target.value))}>
@@ -76,7 +64,7 @@ export function PersonalView({
             onClick={() =>
               onRefresh({
                 recentDuplicateDays,
-                includeNewMenu: newMenuIncluded,
+                includeNewMenu: true,
                 budgetLevel
               })
             }

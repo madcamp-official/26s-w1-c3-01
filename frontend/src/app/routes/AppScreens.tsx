@@ -45,7 +45,6 @@ type AppScreensProps = {
   categoryScores: PreferenceScoreMap;
   tagScores: PreferenceScoreMap;
   recentDuplicateDays: number;
-  newMenuIncluded: boolean;
   budgetLevel: number | null;
   recommendationItems: DisplayRecommendation[];
   personalRecommendationReady: boolean;
@@ -74,7 +73,6 @@ type AppScreensProps = {
   setCategoryScores: (value: PreferenceScoreMap) => void;
   setTagScores: (value: PreferenceScoreMap) => void;
   setRecentDuplicateDays: (value: number) => void;
-  setNewMenuIncluded: (value: boolean) => void;
   setBudgetLevel: (value: number | null) => void;
   setSelectedPersonalRecommendation: (value: DisplayRecommendation | null) => void;
   setMeetingDialogOpen: (value: boolean) => void;
@@ -120,7 +118,6 @@ export function AppScreens({
   categoryScores,
   tagScores,
   recentDuplicateDays,
-  newMenuIncluded,
   budgetLevel,
   recommendationItems,
   personalRecommendationReady,
@@ -149,7 +146,6 @@ export function AppScreens({
   setCategoryScores,
   setTagScores,
   setRecentDuplicateDays,
-  setNewMenuIncluded,
   setBudgetLevel,
   setSelectedPersonalRecommendation,
   setMeetingDialogOpen,
@@ -230,8 +226,6 @@ export function AppScreens({
 
         {visibleTab === "personal" ? (
           <PersonalView
-            newMenuIncluded={newMenuIncluded}
-            setNewMenuIncluded={setNewMenuIncluded}
             recentDuplicateDays={recentDuplicateDays}
             setRecentDuplicateDays={setRecentDuplicateDays}
             budgetLevel={budgetLevel}

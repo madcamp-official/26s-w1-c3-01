@@ -470,7 +470,6 @@ export function MukpickApp() {
         categoryScores={categoryScores}
         tagScores={tagScores}
         recentDuplicateDays={recentDuplicateDays}
-        newMenuIncluded={newMenuIncluded}
         budgetLevel={budgetLevel}
         recommendationItems={recommendationItems}
         personalRecommendationReady={personalRecommendationReady}
@@ -499,7 +498,6 @@ export function MukpickApp() {
         setCategoryScores={setCategoryScores}
         setTagScores={setTagScores}
         setRecentDuplicateDays={setRecentDuplicateDays}
-        setNewMenuIncluded={setNewMenuIncluded}
         setBudgetLevel={setBudgetLevel}
         setSelectedPersonalRecommendation={setSelectedPersonalRecommendation}
         setMeetingDialogOpen={setMeetingDialogOpen}

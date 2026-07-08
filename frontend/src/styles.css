@@ -7553,11 +7553,15 @@ button, [role="button"], a.button, .toggle-row { min-height: 40px; }
 .history-detail-head h3 {
   margin: 3px 0 0 !important;
   overflow: hidden;
+  display: -webkit-box;
   color: var(--ink);
-  font-size: 22px !important;
-  line-height: 1.14 !important;
+  font-size: 18px !important;
+  line-height: 1.18 !important;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .history-detail-head p {
