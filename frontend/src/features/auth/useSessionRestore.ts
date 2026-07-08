@@ -101,6 +101,11 @@ export function useSessionRestore({
         sessionStorageMeta.clear();
         setApiStatus("error");
         setAuthError(errorMessage(error));
+        setProfileName("밥");
+        setProfileUserId(null);
+        setIsGuestSession(false);
+        setIsOAuthOnboarding(false);
+        setFlow("start");
       }
     },
     [
@@ -183,6 +188,9 @@ export function useSessionRestore({
         authSessionStorage.clear();
         sessionStorageMeta.clear();
         setIsGuestSession(false);
+        setIsOAuthOnboarding(false);
+        setProfileName("밥");
+        setProfileUserId(null);
         clearActiveMeetingState();
         setFlow("start");
         setApiStatus("idle");

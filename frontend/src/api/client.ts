@@ -1,8 +1,15 @@
 import type { ApiResponse } from "../types/api";
-import { authSessionStorage, tokenStorage } from "../utils/storage";
+import { authSessionStorage, sessionStorageMeta, tokenStorage } from "../utils/storage";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
 let refreshPromise: Promise<void> | null = null;
+
+export class AuthSessionExpiredError extends Error {
+  constructor(message = "세션이 만료되었습니다. 다시 로그인해주세요.") {
+    super(message);
+    this.name = "AuthSessionExpiredError";
+  }
+}
 
 type RequestOptions = RequestInit & {
   auth?: boolean;
@@ -27,14 +34,19 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}) 
   });
 
   if (response.status === 401 && options.auth !== false && authSessionStorage.get()?.refreshToken) {
-    await refreshStoredSessionOnce();
-    const retryHeaders = new Headers(headers);
-    const retryToken = tokenStorage.get();
-    if (retryToken) retryHeaders.set("Authorization", `Bearer ${retryToken}`);
-    response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers: retryHeaders
-    });
+    try {
+      await refreshStoredSessionOnce();
+      const retryHeaders = new Headers(headers);
+      const retryToken = tokenStorage.get();
+      if (retryToken) retryHeaders.set("Authorization", `Bearer ${retryToken}`);
+      response = await fetch(`${API_BASE_URL}${path}`, {
+        ...options,
+        headers: retryHeaders
+      });
+    } catch {
+      clearStoredAuthState();
+      throw new AuthSessionExpiredError();
+    }
   }
 
   const responseText = await response.text();
@@ -52,6 +64,10 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}) 
   }
 
   if (!payload.success) {
+    if (options.auth !== false && (response.status === 401 || response.status === 403)) {
+      clearStoredAuthState();
+      throw new AuthSessionExpiredError(payload.error.message);
+    }
     throw new Error(payload.error.message);
   }
 
@@ -69,8 +85,8 @@ async function refreshStoredSession() {
   });
 
   if (!response.ok) {
-    authSessionStorage.clear();
-    throw new Error("세션이 만료되었습니다. 다시 로그인해주세요.");
+    clearStoredAuthState();
+    throw new AuthSessionExpiredError();
   }
 
   const payload = (await response.json()) as ApiResponse<{
@@ -80,8 +96,8 @@ async function refreshStoredSession() {
   }>;
 
   if (!payload.success || !payload.data.accessToken) {
-    authSessionStorage.clear();
-    throw new Error("세션을 복구하지 못했습니다. 다시 로그인해주세요.");
+    clearStoredAuthState();
+    throw new AuthSessionExpiredError("세션을 복구하지 못했습니다. 다시 로그인해주세요.");
   }
 
   authSessionStorage.set({
@@ -96,4 +112,9 @@ async function refreshStoredSessionOnce() {
     refreshPromise = null;
   });
   return refreshPromise;
+}
+
+function clearStoredAuthState() {
+  authSessionStorage.clear();
+  sessionStorageMeta.clear();
 }
