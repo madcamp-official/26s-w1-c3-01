@@ -7673,3 +7673,49 @@ button, [role="button"], a.button, .toggle-row { min-height: 40px; }
 .history-detail-date > span {
   display: block;
 }
+
+/* ============================================================
+ * Home Recent Meals Image Fit
+ * ========================================================== */
+
+@media (min-width: 1024px) {
+  .recent-panel .recent-meal-list {
+    align-items: stretch !important;
+    overflow: hidden !important;
+  }
+
+  .recent-panel .recent-meal-card {
+    min-height: 0 !important;
+    overflow: hidden !important;
+    grid-template-rows: auto minmax(38px, auto) !important;
+    align-content: start !important;
+  }
+
+  .recent-panel .recent-meal-card img {
+    width: 100% !important;
+    height: clamp(82px, 11vh, 112px) !important;
+    aspect-ratio: auto !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    border-radius: 16px !important;
+  }
+
+  .recent-panel .recent-meal-card div {
+    min-height: 38px !important;
+    align-content: start !important;
+  }
+
+  .recent-panel .recent-meal-card strong {
+    display: block !important;
+    color: var(--ink) !important;
+    font-size: clamp(13px, 1.25vw, 15px) !important;
+    line-height: 1.25 !important;
+  }
+
+  .recent-panel .recent-meal-card span {
+    display: block !important;
+    color: var(--muted) !important;
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+  }
+}
