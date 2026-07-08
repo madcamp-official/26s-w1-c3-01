@@ -7773,16 +7773,35 @@ button, [role="button"], a.button, .toggle-row { min-height: 40px; }
 @media (min-width: 1024px) {
   .recent-panel .recent-meal-list {
     align-items: stretch !important;
+    overflow: visible !important;
   }
 
   .recent-panel .recent-meal-card {
+    position: relative !important;
+    z-index: 1 !important;
     min-height: 128px !important;
+    max-height: 128px !important;
     display: grid !important;
     grid-template-columns: 1fr !important;
-    grid-template-rows: minmax(74px, 1fr) auto !important;
+    grid-template-rows: 76px auto !important;
     align-content: stretch !important;
     gap: 8px !important;
     overflow: hidden !important;
+    transition:
+      transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+      max-height 180ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 180ms ease,
+      border-color 180ms ease !important;
+    will-change: transform, max-height;
+  }
+
+  .recent-panel .recent-meal-card:hover,
+  .recent-panel .recent-meal-card:focus-within {
+    z-index: 8 !important;
+    max-height: 168px !important;
+    transform: translateY(-18px) !important;
+    border-color: rgba(238, 90, 24, 0.22) !important;
+    box-shadow: 0 18px 38px rgba(50, 38, 29, 0.16) !important;
   }
 
   .recent-panel .recent-meal-card img {
@@ -7790,9 +7809,9 @@ button, [role="button"], a.button, .toggle-row { min-height: 40px; }
     grid-column: 1 !important;
     grid-row: 1 !important;
     width: 100% !important;
-    height: 100% !important;
+    height: 76px !important;
     min-height: 74px !important;
-    max-height: 98px !important;
+    max-height: 76px !important;
     object-fit: contain !important;
     object-position: center !important;
     background: #fffaf4 !important;
@@ -7830,5 +7849,14 @@ button, [role="button"], a.button, .toggle-row { min-height: 40px; }
     color: var(--muted) !important;
     font-size: 11px !important;
     line-height: 1.2 !important;
+    white-space: normal !important;
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+
+  .recent-panel .recent-meal-card:hover span,
+  .recent-panel .recent-meal-card:focus-within span {
+    -webkit-line-clamp: 2;
   }
 }
