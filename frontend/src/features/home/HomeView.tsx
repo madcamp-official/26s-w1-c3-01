@@ -76,14 +76,16 @@ export function HomeView({
               <div className="recent-meal-list">
                 {recentMeals.map((meal, index) => (
                   <article key={meal.id ?? `${meal.date}-${meal.menu}-${index}`} className="recent-meal-card">
-                    <img
-                      src={meal.image}
-                      alt=""
-                      onError={(event) => {
-                        event.currentTarget.onerror = null;
-                        event.currentTarget.src = fallbackPickData.categories[0].image;
-                      }}
-                    />
+                    <div className="recent-meal-image">
+                      <img
+                        src={meal.image}
+                        alt=""
+                        onError={(event) => {
+                          event.currentTarget.onerror = null;
+                          event.currentTarget.src = fallbackPickData.categories[0].image;
+                        }}
+                      />
+                    </div>
                     <div>
                       <strong>{meal.menu}</strong>
                       <span>{meal.date}</span>

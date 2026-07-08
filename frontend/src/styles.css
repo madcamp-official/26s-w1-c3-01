@@ -7804,7 +7804,7 @@ button, [role="button"], a.button, .toggle-row { min-height: 40px; }
     box-shadow: 0 18px 38px rgba(50, 38, 29, 0.16) !important;
   }
 
-  .recent-panel .recent-meal-card img {
+  .recent-panel .recent-meal-image {
     position: static !important;
     grid-column: 1 !important;
     grid-row: 1 !important;
@@ -7812,13 +7812,22 @@ button, [role="button"], a.button, .toggle-row { min-height: 40px; }
     height: 76px !important;
     min-height: 74px !important;
     max-height: 76px !important;
-    object-fit: contain !important;
-    object-position: center !important;
+    display: block !important;
+    overflow: hidden !important;
     background: #fffaf4 !important;
     border-radius: 14px !important;
   }
 
-  .recent-panel .recent-meal-card div {
+  .recent-panel .recent-meal-image img {
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    border-radius: inherit !important;
+  }
+
+  .recent-panel .recent-meal-card > div:not(.recent-meal-image) {
     position: static !important;
     grid-column: 1 !important;
     grid-row: 2 !important;
