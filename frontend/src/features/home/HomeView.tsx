@@ -86,7 +86,7 @@ export function HomeView({
                     />
                     <div>
                       <strong>{meal.menu}</strong>
-                      <span>{meal.date} · {meal.memo}</span>
+                      <span>{meal.date}</span>
                     </div>
                   </article>
                 ))}
