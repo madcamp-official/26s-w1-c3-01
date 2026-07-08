@@ -1,7 +1,7 @@
 export type SignupRequest = {
   email: string;
   password: string;
-  nickname: string;
+  nickname?: string;
   userType?: string;
 };
 
@@ -10,6 +10,10 @@ export type SignupResponse = {
   accessToken?: string;
   refreshToken?: string;
   expiresAt?: number;
+};
+
+export type ResendSignupEmailResponse = {
+  email: string;
 };
 
 export type LoginRequest = {

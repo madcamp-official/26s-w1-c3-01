@@ -114,5 +114,6 @@ function getScoreBreakdown(item: DisplayRecommendation) {
     { label: "반복", value: scores.repeatScore }
   ];
 
-  return entries.filter((entry) => typeof entry.value === "number" && entry.value !== 0);
+  const visibleEntries = entries.filter((entry) => typeof entry.value === "number");
+  return visibleEntries.some((entry) => entry.value !== 0) ? visibleEntries : [];
 }

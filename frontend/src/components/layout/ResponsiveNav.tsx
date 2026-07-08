@@ -24,7 +24,7 @@ export function ResponsiveNav({ visibleTab, onTabChange }: ResponsiveNavProps) {
   return (
     <nav className="bottom-nav" aria-label="앱 메뉴">
       <div className="desktop-nav-brand">
-        <img src="/assets/brand/mukpick-wordmark.png" alt="MUK PICK" />
+        <img src="/assets/brand/mukpick-wordmark.webp" alt="MUK PICK" />
         <span>오늘의 메뉴 선택</span>
       </div>
       {navItems.map((item) => (

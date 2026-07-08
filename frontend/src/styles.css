@@ -639,7 +639,7 @@ body.modal-open {
   overflow: hidden;
   border: 0;
   border-radius: 0;
-  background: var(--paper) url("/mukpick-home-bg.png") top center / cover no-repeat;
+  background: var(--paper) url("/mukpick-home-bg.webp") top center / cover no-repeat;
   box-shadow: none;
 }
 
@@ -3321,7 +3321,7 @@ body.modal-open {
     overflow: hidden;
     background:
       linear-gradient(180deg, rgba(255, 250, 244, 0.94), rgba(255, 250, 244, 0.82)),
-      url("/mukpick-home-bg.png") top center / cover no-repeat;
+      url("/mukpick-home-bg.webp") top center / cover no-repeat;
     box-shadow:
       0 34px 92px rgba(50, 38, 29, 0.2),
       inset 0 0 0 1px rgba(255, 255, 255, 0.72);
@@ -4622,11 +4622,13 @@ body.modal-open {
   :root {
     --dashboard-sidebar: 238px;
     --dashboard-header: 76px;
+    --desktop-ui-scale: 0.78;
   }
 
   .app-shell {
     align-items: center;
     justify-content: center;
+    overflow: hidden;
     padding: 24px;
     background:
       radial-gradient(circle at 0% 0%, rgba(238, 90, 24, 0.1) 0 150px, transparent 152px),
@@ -4634,14 +4636,16 @@ body.modal-open {
   }
 
   .phone-frame.app-frame {
-    width: min(1440px, 100%);
-    height: min(960px, calc(100vh - 48px));
-    min-height: 760px;
+    width: min(calc(1440px / var(--desktop-ui-scale)), calc((100vw - 48px) / var(--desktop-ui-scale)));
+    height: min(calc(960px / var(--desktop-ui-scale)), calc((100vh - 48px) / var(--desktop-ui-scale)));
+    min-height: calc(760px / var(--desktop-ui-scale));
     display: grid;
     grid-template-columns: var(--dashboard-sidebar) minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
     grid-template-areas:
       "nav content";
+    transform: scale(var(--desktop-ui-scale));
+    transform-origin: center;
     border-radius: 28px;
     background: #fffaf4;
     box-shadow: 0 34px 92px rgba(50, 38, 29, 0.18);
@@ -5915,8 +5919,17 @@ body.modal-open {
 
   .recent-meal-list {
     flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     align-content: stretch;
     grid-template-rows: repeat(4, minmax(0, 1fr));
+    padding-right: 4px;
+  }
+
+  .recent-meal-list::-webkit-scrollbar {
+    width: 0;
   }
 
   .recent-meal-card {
@@ -5960,6 +5973,56 @@ body.modal-open {
   .personal-result-main {
     min-height: 0;
     height: 100%;
+  }
+
+  .history-calendar-layout {
+    flex: 1 1 auto;
+    height: 100%;
+    min-height: 0;
+    align-items: stretch;
+  }
+
+  .history-screen {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .history-screen > .screen-title {
+    flex: 0 0 auto;
+  }
+
+  .history-calendar-panel,
+  .history-detail-panel {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .history-calendar-panel .calendar-toolbar,
+  .history-detail-panel .history-day-summary {
+    flex: 0 0 auto;
+  }
+
+  .history-calendar-grid,
+  .history-day-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .history-calendar-grid::-webkit-scrollbar,
+  .history-day-list::-webkit-scrollbar {
+    width: 0;
+  }
+
+  .history-detail-panel {
+    position: static;
+    max-height: none;
   }
 
   .personal-condition-aside.condition-panel {

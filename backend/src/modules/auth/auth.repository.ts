@@ -14,14 +14,27 @@ function createAuthClient() {
 
 export const authRepository = {
   async signUp(input: SignupRequest) {
+    const metadata: Record<string, string> = {
+      user_type: input.userType ?? "PERSONAL"
+    };
+    if (input.nickname) metadata.nickname = input.nickname;
+
     return createAuthClient().auth.signUp({
       email: input.email,
       password: input.password,
       options: {
-        data: {
-          nickname: input.nickname,
-          user_type: input.userType ?? "PERSONAL"
-        }
+        data: metadata,
+        emailRedirectTo: env.authEmailRedirectUrl
+      }
+    });
+  },
+
+  async resendSignupEmail(email: string) {
+    return createAuthClient().auth.resend({
+      type: "signup",
+      email,
+      options: {
+        emailRedirectTo: env.authEmailRedirectUrl
       }
     });
   },
@@ -95,6 +108,23 @@ export const authRepository = {
 
     if (error) throw error;
     return data;
+  },
+
+  async findProfileByEmail(email: string) {
+    const { data, error } = await supabaseAdmin
+      .from("users")
+      .select("user_id, auth_user_id, email, nickname, user_type")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getAuthUser(authUserId: string) {
+    const { data, error } = await supabaseAdmin.auth.admin.getUserById(authUserId);
+    if (error) throw error;
+    return data.user;
   },
 
   async listExpiredGuestProfiles(cutoffIso: string, limit = 100) {

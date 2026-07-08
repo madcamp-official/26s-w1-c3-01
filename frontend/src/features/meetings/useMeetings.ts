@@ -141,7 +141,7 @@ export function useMeetings() {
     }
 
     return { previousMeeting, nextMeeting };
-  }, [selectedMeeting]);
+  }, [meetingRecommendations, selectedMeeting]);
 
   const applyMeetingRecommendationPayload = useCallback((meetingId: number, payload: unknown) => {
     const nextRecommendations = mapRecommendations(payload);

@@ -15,7 +15,7 @@ export const userRepository = {
 
     const nicknameBase = typeof user.user_metadata?.nickname === "string"
       ? user.user_metadata.nickname
-      : user.email?.split("@")[0] ?? "user";
+      : `user-${user.id.slice(0, 8)}`;
     const nickname = await createUniqueNickname(nicknameBase);
     const userType = typeof user.user_metadata?.user_type === "string"
       ? user.user_metadata.user_type
