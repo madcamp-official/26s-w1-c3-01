@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ApiStatus, Tab } from "./app.types";
 import { LoadingOverlay, preloadLoadingGif } from "../components/feedback/LoadingOverlay";
 import { AuthFlow } from "../features/auth/AuthFlow";
@@ -66,6 +66,7 @@ export function MukpickApp() {
     setBudgetMax,
     applyPreferences,
     applyUserPreferences,
+    resetPreferenceSelections,
     buildCurrentPreferencePayload
   } = usePreferenceSettings();
   const {
@@ -355,6 +356,15 @@ export function MukpickApp() {
     setBudgetMin(value);
     setBudgetMax(value);
   };
+  const handleAuthFlowChange = useCallback(
+    (nextFlow: typeof flow) => {
+      if (flow === "start" && (nextFlow === "signup-name" || nextFlow === "guest-categories")) {
+        resetPreferenceSelections();
+      }
+      setFlow(nextFlow);
+    },
+    [flow, resetPreferenceSelections, setFlow]
+  );
 
   if (flow !== "app") {
     return (
@@ -370,7 +380,7 @@ export function MukpickApp() {
           categoryScores={categoryScores}
           tagScores={tagScores}
           recentDuplicateDays={recentDuplicateDays}
-          onFlowChange={setFlow}
+          onFlowChange={handleAuthFlowChange}
           onNicknameChange={setNickname}
           onSignupCredentialsChange={setSignupCredentials}
           onLoginCredentialsChange={setLoginCredentials}
