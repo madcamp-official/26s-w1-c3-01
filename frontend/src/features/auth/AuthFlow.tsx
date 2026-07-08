@@ -362,32 +362,47 @@ function StartScreen({
   return (
     <main className="start-screen">
       <section className="start-card">
-        <img src={logoAssets.startKo} alt="먹픽" className="start-logo" />
-        <div className="start-copy">
-          <p>오늘 뭐 먹지? 다 먹픽과 결정해요!</p>
-        </div>
-        <div className="social-panel">
-          <div className="social-icon">
-            <Sparkles size={18} />
+        <div className="start-auth-column">
+          <img src={logoAssets.startKo} alt="먹픽" className="start-logo" />
+          <div className="start-copy">
+            <p>오늘 뭐 먹지? 다 먹픽과 결정해요!</p>
           </div>
-          <p>빠른 가입 없이 간편하게 시작하고<br />내가 고른 메뉴를 추천받아보세요.</p>
-          <button className="social-button google" aria-label="Google로 시작하기" onClick={() => onOAuthStart("google")} disabled={isLoading}>
-            <span>G</span>
-            {isLoading ? "소셜 로그인 연결 중" : "Google로 시작하기"}
+          <div className="social-panel">
+            <div className="social-icon">
+              <Sparkles size={18} />
+            </div>
+            <p>빠른 가입 없이 간편하게 시작하고<br />내가 고른 메뉴를 추천받아보세요.</p>
+            <button className="social-button google" aria-label="Google로 시작하기" onClick={() => onOAuthStart("google")} disabled={isLoading}>
+              <span>G</span>
+              {isLoading ? "소셜 로그인 연결 중" : "Google로 시작하기"}
+            </button>
+            <button className="social-button signup" aria-label="일반 회원가입" onClick={onSignupStart} disabled={isLoading}>
+              <span>+</span>
+              일반 회원가입
+            </button>
+            <button className="social-button login" aria-label="이메일 로그인" onClick={onLoginStart} disabled={isLoading}>
+              <span>@</span>
+              이메일로 로그인
+            </button>
+            {errorMessage ? <p className="auth-error" role="alert">{errorMessage}</p> : null}
+          </div>
+          <button className="guest-link" aria-label="게스트로 모임 참여하기" onClick={onGuestStart} disabled={isLoading}>
+            게스트로 모임 참여하기 <ChevronRight size={14} />
           </button>
-          <button className="social-button signup" aria-label="일반 회원가입" onClick={onSignupStart} disabled={isLoading}>
-            <span>+</span>
-            일반 회원가입
-          </button>
-          <button className="social-button login" aria-label="이메일 로그인" onClick={onLoginStart} disabled={isLoading}>
-            <span>@</span>
-            이메일로 로그인
-          </button>
-          {errorMessage ? <p className="auth-error" role="alert">{errorMessage}</p> : null}
         </div>
-        <button className="guest-link" aria-label="게스트로 모임 참여하기" onClick={onGuestStart} disabled={isLoading}>
-          게스트로 모임 참여하기 <ChevronRight size={14} />
-        </button>
+
+        <div className="start-divider" aria-hidden="true" />
+
+        <aside className="start-visual" aria-hidden="true">
+          <p className="start-visual-title">고민은 짧게, 한 끼는 맛있게</p>
+          <div className="start-roulette-wrap">
+            <span className="start-roulette-pointer" />
+            <img className="start-roulette-image" src="/login-roulette.webp" alt="" />
+            <span className="start-roulette-center">
+              <img src="/favicon.png?v=2" alt="" />
+            </span>
+          </div>
+        </aside>
       </section>
     </main>
   );
