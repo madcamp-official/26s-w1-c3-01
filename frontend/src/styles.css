@@ -7104,7 +7104,8 @@ button, [role="button"], a.button, .toggle-row { min-height: 40px; }
     flex: 1 1 auto !important;
     min-height: 0 !important;
     display: grid !important;
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(4, minmax(118px, 1fr)) !important;
+    align-items: stretch !important;
     gap: clamp(8px, 1.5vh, 14px) !important;
     overflow: hidden !important;
   }
@@ -7114,22 +7115,26 @@ button, [role="button"], a.button, .toggle-row { min-height: 40px; }
     height: 100% !important;
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: minmax(0, 1fr) auto auto !important;
     align-content: start !important;
     gap: clamp(6px, 1.1vh, 10px) !important;
     padding: clamp(8px, 1.4vh, 12px) !important;
+    overflow: hidden !important;
   }
 
   .recent-meal-card img {
     width: 100% !important;
-    height: auto !important;
-    aspect-ratio: 1 !important;
+    height: clamp(78px, 10vh, 108px) !important;
+    aspect-ratio: auto !important;
+    object-fit: cover !important;
     border-radius: 16px !important;
   }
 
   .recent-meal-card div {
     min-width: 0 !important;
     display: grid !important;
-    gap: 5px !important;
+    gap: 3px !important;
+    align-content: start !important;
   }
 
   .recent-meal-card strong,
@@ -7137,6 +7142,18 @@ button, [role="button"], a.button, .toggle-row { min-height: 40px; }
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
+  }
+
+  .recent-meal-card strong {
+    display: block !important;
+    font-size: clamp(12px, 1.05vw, 14px) !important;
+    line-height: 1.2 !important;
+  }
+
+  .recent-meal-card span {
+    display: block !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
   }
 
   .my-summary-panel {
