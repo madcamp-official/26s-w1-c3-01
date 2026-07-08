@@ -7864,11 +7864,11 @@ button, [role="button"], a.button, .toggle-row { min-height: 40px; }
   }
 
   .personal-result-main .recommendation-card {
-    min-height: 104px !important;
+    min-height: 124px !important;
     grid-template-columns: 76px 42px minmax(0, 1fr) !important;
     align-items: center !important;
     gap: 12px !important;
-    padding: 12px 14px !important;
+    padding: 16px 14px !important;
     border-radius: 18px !important;
   }
 
