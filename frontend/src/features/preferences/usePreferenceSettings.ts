@@ -57,6 +57,14 @@ export function usePreferenceSettings() {
     setBudgetMax(readNullableNumber(userPreference, ["budgetMax", "budget_max"]));
   }, []);
 
+  const resetPreferenceSelections = useCallback(() => {
+    setSelectedCategories([]);
+    setSelectedTags([]);
+    setSelectedAllergies([]);
+    setCategoryScores({});
+    setTagScores({});
+  }, []);
+
   const buildCurrentPreferencePayload = useCallback(
     (pickData: PickData) =>
       buildPreferencePayload({
@@ -91,6 +99,7 @@ export function usePreferenceSettings() {
     setBudgetMax,
     applyPreferences,
     applyUserPreferences,
+    resetPreferenceSelections,
     buildCurrentPreferencePayload
   };
 }
